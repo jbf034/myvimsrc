@@ -800,10 +800,6 @@ struct cleanup_stuff
     except_T *exception;	/* exception value */
 };
 
-#ifdef FEAT_JS
-    void	*b_js_ref;
-#endif
-
 #ifdef FEAT_SYN_HL
 /* struct passed to in_id_list() */
 struct sp_syn
@@ -1674,6 +1670,10 @@ struct file_buffer
 #ifdef FEAT_NETBEANS_INTG
     int		b_netbeans_file;    /* TRUE when buffer is owned by NetBeans */
     int		b_was_netbeans_file;/* TRUE if b_netbeans_file was once set */
+#endif
+
+#ifdef FEAT_JS
+    void	*b_js_ref;
 #endif
 
 };

@@ -35,7 +35,12 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef UNIX
+#define XP_UNIX
+#endif
 #include "jsapi.h"
+#define JS_FS(a, b, c, d, e) (a), (b), (c), (d), (e)
+#define JS_FS_END JS_FS(NULL, NULL, 0, 0, 0)
 
 #define JS_RUNTIME_MEMORY 8L
 
@@ -579,7 +584,7 @@ js_vim_message( cx , obj , argc , argv , rval )
         str = JS_ValueToString(cx, argv[i]);
         if (!str)
             return JS_FALSE;
-        bytes = JS_EncodeString(cx, str);
+        bytes = JS_GetStringBytes(str);
         if (!bytes)
             return JS_FALSE;
 	sprintf( message , "%s%s" , i ? " " : "", bytes );
@@ -641,7 +646,7 @@ vim_js_init(arg)
     if (js_env->cx == NULL)
 	return;
     JS_SetOptions(js_env->cx, JSOPTION_VAROBJFIX);
-    JS_SetVersion(js_env->cx, JSVERSION_LATEST);
+    JS_SetVersion(js_env->cx, JSVERSION_1_7);
     JS_SetErrorReporter( js_env->cx, report_error);
 
     js_env->global = JS_NewObject( js_env->cx, &global_class, NULL, NULL);
