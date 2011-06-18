@@ -196,6 +196,10 @@ main
     vim_tcl_init(params.argv[0]);
 #endif
 
+#ifdef FEAT_JS
+    vim_js_init(params.argv[0]);
+#endif
+
 #ifdef MEM_PROFILE
     atexit(vim_mem_profile_dump);
 #endif
@@ -1413,6 +1417,9 @@ getout(exitval)
 #endif
 #ifdef FEAT_PYTHON3
     python3_end();
+#endif
+#ifdef FEAT_JS
+    js_end();
 #endif
 #ifdef FEAT_PERL
     perl_end();

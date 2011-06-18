@@ -1322,7 +1322,7 @@ SHELL = /bin/sh
 .SUFFIXES: .c .o .pro
 
 PRE_DEFS = -Iproto $(DEFS) $(GUI_DEFS) $(GUI_IPATH) $(CPPFLAGS) $(EXTRA_IPATHS)
-POST_DEFS = $(X_CFLAGS) $(MZSCHEME_CFLAGS) $(TCL_CFLAGS) $(EXTRA_DEFS)
+POST_DEFS = $(X_CFLAGS) $(MZSCHEME_CFLAGS) $(JS_CFLAGS) $(TCL_CFLAGS) $(EXTRA_DEFS)
 
 ALL_CFLAGS = $(PRE_DEFS) $(CFLAGS) $(PROFILE_CFLAGS) $(LEAK_CFLAGS) $(POST_DEFS)
 
@@ -1348,6 +1348,7 @@ ALL_LIBS = \
 	   $(EXTRA_LIBS) \
 	   $(LUA_LIBS) \
 	   $(MZSCHEME_LIBS) \
+	   $(JS_LIBS) \
 	   $(PERL_LIBS) \
 	   $(PYTHON_LIBS) \
 	   $(PYTHON3_LIBS) \
@@ -1462,6 +1463,7 @@ SRC =	$(BASIC_SRC) \
 	$(HANGULIN_SRC) \
 	$(LUA_SRC) \
 	$(MZSCHEME_SRC) \
+	$(JS_SRC) \
 	$(PERL_SRC) \
 	$(PYTHON_SRC) $(PYTHON3_SRC) \
 	$(TCL_SRC) \
@@ -1473,7 +1475,7 @@ SRC =	$(BASIC_SRC) \
 TAGS_SRC = *.c *.cpp if_perl.xs
 
 EXTRA_SRC = hangulin.c if_lua.c if_mzsch.c auto/if_perl.c if_perlsfio.c \
-	    if_python.c if_python3.c if_tcl.c if_ruby.c if_sniff.c \
+	    if_python.c if_python3.c if_tcl.c if_js.c if_ruby.c if_sniff.c \
 	    gui_beval.c workshop.c wsdebug.c integration.c netbeans.c
 
 # Unittest files
@@ -1548,6 +1550,7 @@ OBJ_COMMON = \
 	$(LUA_OBJ) \
 	$(MZSCHEME_OBJ) \
 	$(PERL_OBJ) \
+	$(JS_OBJ) \
 	$(PYTHON_OBJ) \
 	$(PYTHON3_OBJ) \
 	$(TCL_OBJ) \
@@ -1621,7 +1624,9 @@ PRO_AUTO = \
 	workshop.pro \
 	netbeans.pro \
 	$(ALL_GUI_PRO) \
-	$(TCL_PRO)
+	$(TCL_PRO) \
+	$(JS_PRO)
+
 
 # Resources used for the Mac are in one directory.
 RSRC_DIR = os_mac_rsrc
@@ -1649,7 +1654,7 @@ config auto/config.mk: auto/configure config.mk.in config.h.in
 		LDFLAGS="$(LDFLAGS)" $(CONF_SHELL) srcdir="$(srcdir)" \
 		./configure $(CONF_OPT_GUI) $(CONF_OPT_X) $(CONF_OPT_XSMP) \
 		$(CONF_OPT_DARWIN) $(CONF_OPT_PERL) $(CONF_OPT_PYTHON) $(CONF_OPT_PYTHON3) \
-		$(CONF_OPT_TCL) $(CONF_OPT_RUBY) $(CONF_OPT_NLS) \
+		$(CONF_OPT_TCL) $(CONF_OPT_JS) $(CONF_OPT_RUBY) $(CONF_OPT_NLS) \
 		$(CONF_OPT_CSCOPE) $(CONF_OPT_MULTIBYTE) $(CONF_OPT_INPUT) \
 		$(CONF_OPT_OUTPUT) $(CONF_OPT_GPM) $(CONF_OPT_WORKSHOP) \
 		$(CONF_OPT_SNIFF) $(CONF_OPT_FEAT) $(CONF_TERM_LIB) \
@@ -2571,6 +2576,9 @@ objects/if_python3.o: if_python3.c if_py_both.h
 objects/if_ruby.o: if_ruby.c
 	$(CCC) $(RUBY_CFLAGS) -o $@ if_ruby.c
 
+objects/if_js.o:  if_js.c
+	$(CCC) -o $@ if_js.c
+
 objects/if_sniff.o: if_sniff.c
 	$(CCC) -o $@ if_sniff.c
 
@@ -3081,6 +3089,10 @@ objects/if_python3.o: if_python3.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
  globals.h farsi.h arabic.h if_py_both.h
+objects/if_js.o: if_js.c vim.h auto/config.h feature.h os_unix.h \
+  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
+  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
+  globals.h farsi.h arabic.h
 objects/if_tcl.o: if_tcl.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h \

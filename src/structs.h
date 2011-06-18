@@ -800,6 +800,10 @@ struct cleanup_stuff
     except_T *exception;	/* exception value */
 };
 
+#ifdef FEAT_JS
+    void	*b_js_ref;
+#endif
+
 #ifdef FEAT_SYN_HL
 /* struct passed to in_id_list() */
 struct sp_syn
