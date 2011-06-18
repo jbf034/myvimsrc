@@ -762,6 +762,7 @@
 		|| defined(FEAT_GUI_PHOTON))
 # define FEAT_TOOLBAR
 #endif
+# undef FEAT_TOOLBAR
 
 
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_MENU)
