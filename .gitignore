@@ -1,0 +1,6 @@
+src/autom4te.cache/
+*.mo
+src/xxd/xxd
+src/auto/
+src/config.log
+src/config.status
