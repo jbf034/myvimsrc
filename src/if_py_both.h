@@ -694,7 +694,7 @@ StringToLine(PyObject *obj)
 	return NULL;
     }
 
-    bytes = PyString_AsBytes(obj);
+    bytes = PyString_AsBytes(obj);  /* for Python 2 this does nothing */
     str = PyString_AsString(bytes);
     len = PyString_Size(bytes);
 
@@ -735,7 +735,7 @@ StringToLine(PyObject *obj)
     }
 
     save[i] = '\0';
-    PyString_FreeBytes(bytes);
+    PyString_FreeBytes(bytes);  /* Python 2 does nothing here */
 
     return save;
 }
@@ -822,7 +822,8 @@ py_fix_cursor(linenr_T lo, linenr_T hi, linenr_T extra)
     invalidate_botline();
 }
 
-/* Replace a line in the specified buffer. The line number is
+/*
+ * Replace a line in the specified buffer. The line number is
  * in Vim format (1-based). The replacement line is given as
  * a Python string object. The object is checked for validity
  * and correct format. Errors are returned as a value of FAIL.
