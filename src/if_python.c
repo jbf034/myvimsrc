@@ -56,8 +56,9 @@
 
 static void init_structs(void);
 
+/* No-op conversion functions, use with care! */
 #define PyString_AsBytes(obj) (obj)
-#define PyString_FreeBytes(obj) (bytes)
+#define PyString_FreeBytes(obj)
 
 #if !defined(FEAT_PYTHON) && defined(PROTO)
 /* Use this to be able to generate prototypes without python being used. */

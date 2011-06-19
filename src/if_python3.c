@@ -70,7 +70,7 @@ static void init_structs(void);
 
 #define PyInt Py_ssize_t
 #define PyString_Check(obj) PyUnicode_Check(obj)
-#define PyString_AsBytes(obj) PyUnicode_AsEncodedString(obj, p_enc, NULL);
+#define PyString_AsBytes(obj) PyUnicode_AsEncodedString(obj, (char *)p_enc, NULL);
 #define PyString_FreeBytes(obj) Py_XDECREF(bytes)
 #define PyString_AsString(obj) PyBytes_AsString(obj)
 #define PyString_Size(obj) PyBytes_GET_SIZE(bytes)
@@ -661,7 +661,7 @@ DoPy3Command(exarg_T *eap, const char *cmd)
 
     /* PyRun_SimpleString expects a UTF-8 string. Wrong encoding may cause
      * SyntaxError (unicode error). */
-    cmdstr = PyUnicode_Decode(cmd, strlen(cmd), p_enc, NULL);
+    cmdstr = PyUnicode_Decode(cmd, strlen(cmd), (char *)p_enc, NULL);
     cmdbytes = PyUnicode_AsEncodedString(cmdstr, "utf-8", NULL);
     Py_XDECREF(cmdstr);
     PyRun_SimpleString(PyBytes_AsString(cmdbytes));
@@ -1020,7 +1020,7 @@ BufferSubscript(PyObject *self, PyObject* idx)
     } else if (PySlice_Check(idx)) {
 	Py_ssize_t start, stop, step, slicelen;
 
-	if (PySlice_GetIndicesEx(idx,
+	if (PySlice_GetIndicesEx((PySliceObject *)idx,
 	      (Py_ssize_t)((BufferObject *)(self))->buf->b_ml.ml_line_count+1,
 	      &start, &stop,
 	      &step, &slicelen) < 0) {
@@ -1044,7 +1044,7 @@ BufferAsSubscript(PyObject *self, PyObject* idx, PyObject* val)
     } else if (PySlice_Check(idx)) {
 	Py_ssize_t start, stop, step, slicelen;
 
-	if (PySlice_GetIndicesEx(idx,
+	if (PySlice_GetIndicesEx((PySliceObject *)idx,
 	      (Py_ssize_t)((BufferObject *)(self))->buf->b_ml.ml_line_count+1,
 	      &start, &stop,
 	      &step, &slicelen) < 0) {
@@ -1123,7 +1123,7 @@ RangeSubscript(PyObject *self, PyObject* idx)
     } else if (PySlice_Check(idx)) {
 	Py_ssize_t start, stop, step, slicelen;
 
-	if (PySlice_GetIndicesEx(idx,
+	if (PySlice_GetIndicesEx((PySliceObject *)idx,
 		((RangeObject *)(self))->end-((RangeObject *)(self))->start+1,
 		&start, &stop,
 		&step, &slicelen) < 0) {
@@ -1463,7 +1463,7 @@ LineToString(const char *str)
     }
     *p = '\0';
 
-    result = PyUnicode_Decode(tmp, len, p_enc, NULL);
+    result = PyUnicode_Decode(tmp, len, (char *)p_enc, NULL);
 
     vim_free(tmp);
     return result;
