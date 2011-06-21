@@ -607,8 +607,8 @@ js_vim_message( cx , obj , argc , argv , rval )
  * :jsfile
  *
  * @see:
- * https://developer.mozilla.org/en/SpiderMonkey/JSAPI_Reference/JS_CompileFil
- * e
+ * https://developer.mozilla.org/en/SpiderMonkey/JSAPI_Reference/JS_CompileFile
+ * https://developer.mozilla.org/en/JSAPI_User_Guide#Compiled_scripts
  */
     void
 ex_jsfile(eap)
@@ -619,8 +619,10 @@ ex_jsfile(eap)
     JSScript *script = JS_CompileFile( js_env->cx, js_env->global, filename);
 
     if (script) {
-	if (!compileOnly)
-	    (void) JS_ExecuteScript( js_env->cx, js_env->global, script, NULL);
+	if (!compileOnly){
+	    jsval result;
+	    (void) JS_ExecuteScript( js_env->cx, js_env->global, script, &result);
+	}
 	JS_DestroyScript( js_env->cx, script);
     }
 }
