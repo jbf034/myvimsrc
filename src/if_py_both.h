@@ -12,6 +12,10 @@
  * Common code for if_python.c and if_python3.c.
  */
 
+#ifndef FEAT_MBYTE
+# define p_enc ("latin1")
+#endif
+
 /*
  * obtain a lock on the Vim data structures
  */
