@@ -12,6 +12,12 @@
  * Common code for if_python.c and if_python3.c.
  */
 
+#ifdef FEAT_MBYTE
+# define ENC_OPT p_enc
+#else
+# define ENC_OPT "latin1"
+#endif
+
 /*
  * obtain a lock on the Vim data structures
  */
@@ -68,7 +74,7 @@ OutputWrite(PyObject *self, PyObject *args)
     char *str = NULL;
     int error = ((OutputObject *)(self))->error;
 
-    if (!PyArg_ParseTuple(args, "es#", p_enc, &str, &len))
+    if (!PyArg_ParseTuple(args, "es#", ENC_OPT, &str, &len))
 	return NULL;
 
     Py_BEGIN_ALLOW_THREADS
@@ -108,7 +114,7 @@ OutputWritelines(PyObject *self, PyObject *args)
 	char *str = NULL;
 	PyInt len;
 
-	if (!PyArg_Parse(line, "es#", p_enc, &str, &len)) {
+	if (!PyArg_Parse(line, "es#", ENC_OPT, &str, &len)) {
 	    PyErr_SetString(PyExc_TypeError, _("writelines() requires list of strings"));
 	    Py_DECREF(list);
 	    return NULL;
@@ -528,7 +534,6 @@ WindowSetattr(PyObject *self, char *name, PyObject *val)
     {
 	long lnum;
 	long col;
-	long len;
 
 	if (!PyArg_Parse(val, "(ll)", &lnum, &col))
 	    return -1;
@@ -543,18 +548,15 @@ WindowSetattr(PyObject *self, char *name, PyObject *val)
 	if (VimErrorCheck())
 	    return -1;
 
-	/* When column is out of range silently correct it. */
-	len = (long)STRLEN(ml_get_buf(this->win->w_buffer, lnum, FALSE));
-	if (col > len)
-	    col = len;
-
 	this->win->w_cursor.lnum = lnum;
 	this->win->w_cursor.col = col;
 #ifdef FEAT_VIRTUALEDIT
 	this->win->w_cursor.coladd = 0;
 #endif
-	update_screen(VALID);
+	/* When column is out of range silently correct it. */
+	check_cursor_col_win(this->win);
 
+	update_screen(VALID);
 	return 0;
     }
     else if (strcmp(name, "height") == 0)
