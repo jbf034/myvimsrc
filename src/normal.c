@@ -4533,6 +4533,7 @@ nv_screengo(oap, dir, dist)
 		}
 		curwin->w_cursor.lnum++;
 		curwin->w_curswant %= width2;
+		linelen = linetabsize(ml_get_curline());
 	    }
 	}
       }
@@ -8773,7 +8774,7 @@ unadjust_for_sel()
 	{
 	    --pp->col;
 #ifdef FEAT_MBYTE
-	    mb_adjustpos(pp);
+	    mb_adjustpos(curbuf, pp);
 #endif
 	}
 	else if (pp->lnum > 1)
