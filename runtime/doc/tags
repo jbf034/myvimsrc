@@ -5096,7 +5096,6 @@ cpo-+	options.txt	/*cpo-+*
 cpo--	options.txt	/*cpo--*
 cpo-.	options.txt	/*cpo-.*
 cpo-/	options.txt	/*cpo-\/*
-cpo-;	options.txt	/*cpo-;*
 cpo-<	options.txt	/*cpo-<*
 cpo->	options.txt	/*cpo->*
 cpo-A	options.txt	/*cpo-A*
