@@ -668,7 +668,8 @@ DoPy3Command(exarg_T *eap, const char *cmd)
 
     /* PyRun_SimpleString expects a UTF-8 string. Wrong encoding may cause
      * SyntaxError (unicode error). */
-    cmdstr = PyUnicode_Decode(cmd, strlen(cmd), (char *)ENC_OPT, CODEC_ERROR_HANDLER);
+    cmdstr = PyUnicode_Decode(cmd, strlen(cmd),
+					(char *)ENC_OPT, CODEC_ERROR_HANDLER);
     cmdbytes = PyUnicode_AsEncodedString(cmdstr, "utf-8", CODEC_ERROR_HANDLER);
     Py_XDECREF(cmdstr);
     PyRun_SimpleString(PyBytes_AsString(cmdbytes));
