@@ -5180,7 +5180,7 @@ if test "$enable_jsinterp" = "yes"; then
     JS_SRC=if_js.c
     JS_PRO=if_js.pro
     JS_OBJ=objects/if_js.o
-    JS_LIBS="-L/usr/lib -lmozjs  -ldl -lm  -lm -ldl "
+    JS_LIBS="-L/usr/lib -lmozjs185  -ldl -lm  -lm -ldl "
     JS_CFLAGS="-I/usr/include/js"
 fi
 

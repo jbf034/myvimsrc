@@ -42,7 +42,7 @@
 #define INSTANCE_BUFFER(cx,obj)   JS_GetInstancePrivate(cx, obj, &buffer_class, NULL);
 
 #define CHECK_BUFFER_FIELD(buf,field)  if( !buf->field ) { \
-	*rval = JSVAL_VOID ;\
+	JS_SET_RVAL(cx, vp, JSVAL_VOID) ;\
 	JS_ReportError(cx, "buffer field '" #field "' is empty. %s:%d", __FILE__ , __LINE__ ); \
 	return JS_FALSE ; \
     }
@@ -60,23 +60,23 @@ void report_error( JSContext *cx , const char *message , JSErrorReport *report )
 JSObject * js_buffer_new( JSContext * cx, buf_T * buf);
 
 /* Interface Functions */
-JSBool js_system(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
+JSBool js_system(JSContext * cx, uintN argc, jsval * vp);
 
 /* Vim Interface Functions */
-JSBool js_vim_message(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
+JSBool js_vim_message(JSContext * cx, uintN argc, jsval * vp);
 
 /* Buffer interface functions */
-JSBool js_buffer_number(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_line(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_lines(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_ffname(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_sfname(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_fname(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_window_number(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buf_cnt(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_get_buffer_by_num(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_next(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
-JSBool js_buffer_prev(JSContext * cx, JSObject * obj, uintN argc, jsval * argv, jsval * rval);
+JSBool js_buffer_number(JSContext * cx, uintN argc, jsval * rval);
+JSBool js_buffer_line(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_lines(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_ffname(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_sfname(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_fname(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_window_number(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buf_cnt(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_get_buffer_by_num(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_next(JSContext * cx, uintN argc, jsval * vp);
+JSBool js_buffer_prev(JSContext * cx, uintN argc, jsval * vp);
 
 /* Window interface functions */
 
@@ -101,7 +101,7 @@ static JSClass buffer_class = {
     JS_PropertyStub,
     JS_PropertyStub,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_StrictPropertyStub,
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
@@ -110,15 +110,15 @@ static JSClass buffer_class = {
 };
 
 static JSFunctionSpec buffer_methods[] = {
-    JS_FS("number", js_buffer_number, 1, 0, 0),
-    JS_FS("window_number", js_buffer_window_number, 1, 0, 0),
-    JS_FS("ffname", js_buffer_ffname, 1, 0, 0),
-    JS_FS("sfname", js_buffer_sfname, 1, 0, 0),
-    JS_FS("fname", js_buffer_fname, 1, 0, 0),
-    JS_FS("line", js_buffer_line, 1, 0, 0),
-    JS_FS("lines", js_buffer_lines, 1, 0, 0),
-    JS_FS("next", js_buffer_next, 1, 0, 0),
-    JS_FS("prev", js_buffer_prev, 1, 0, 0),
+    JS_FS("number", js_buffer_number, 0, 0),
+    JS_FS("window_number", js_buffer_window_number, 0, 0),
+    JS_FS("ffname", js_buffer_ffname, 0, 0),
+    JS_FS("sfname", js_buffer_sfname, 0, 0),
+    JS_FS("fname", js_buffer_fname, 0, 0),
+    JS_FS("line", js_buffer_line, 0, 0),
+    JS_FS("lines", js_buffer_lines, 0, 0),
+    JS_FS("next", js_buffer_next, 0, 0),
+    JS_FS("prev", js_buffer_prev, 0, 0),
     JS_FS_END
 };
 
@@ -131,7 +131,7 @@ static JSClass vim_class = {
     JS_PropertyStub,
     JS_PropertyStub,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_StrictPropertyStub,
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
@@ -156,7 +156,7 @@ static JSClass global_class = {
     JS_PropertyStub,
     JS_PropertyStub,
     JS_PropertyStub,
-    JS_PropertyStub,
+    JS_StrictPropertyStub,
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
@@ -166,15 +166,15 @@ static JSClass global_class = {
 
 /* global functions */
 static JSFunctionSpec js_global_functions[] = {
-    JS_FS("system", js_system, 1, 0, 0),
+    JS_FS("system", js_system, 0, 0),
 
     /* vim function interface here  */
-    JS_FS("alert"      , js_vim_message       , 1 , 0 , 0) ,
-    JS_FS("message"    , js_vim_message       , 1 , 0 , 0) ,
+    JS_FS("alert"      , js_vim_message       , 0 , 0) ,
+    JS_FS("message"    , js_vim_message       , 0 , 0) ,
 
 // XXX: mv buf_cnt , buf_nr to vim.buffer.count()  and vim.buffer.find( [num] );
-    JS_FS("buf_cnt"    , js_buf_cnt           , 0 , 0 , 0) ,
-    JS_FS("buf_nr"     , js_get_buffer_by_num , 0 , 0 , 0) ,
+    JS_FS("buf_cnt"    , js_buf_cnt           , 0 , 0) ,
+    JS_FS("buf_nr"     , js_get_buffer_by_num , 0 , 0) ,
     JS_FS_END
 };
 
@@ -229,17 +229,15 @@ js_buffer_new( cx , buf )
 /* --------------------- Javascript Interface ----------------------- */
 
     JSBool
-js_system(cx, obj, argc, argv, rval)
+js_system(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     const char *cmd;
     int rc;
 
-    if (!JS_ConvertArguments(cx, argc, argv, "s", &cmd))
+    if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx, vp), "s", &cmd))
 	return JS_FALSE;
 
     rc = system(cmd);
@@ -249,75 +247,71 @@ js_system(cx, obj, argc, argv, rval)
 	JS_ReportError(cx, "Command failed with exit code %d", rc);
 	return JS_FALSE;
     }
-    *rval = JSVAL_VOID;		/* return undefined */
+    JS_SET_RVAL(cx, vp, JSVAL_VOID);		/* return undefined */
 
     return JS_TRUE;
 }
 
 
     JSBool
-js_buffer_number( cx , obj , argc , argv , rval )
+js_buffer_number( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     int fnum;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     //buf_T *buf = JS_GetInstancePrivate(cx, obj, &buffer_class, NULL);
     buf_T *buf = INSTANCE_BUFFER(cx,obj);
     fnum = buf->b_fnum;
-    *rval = INT_TO_JSVAL( fnum );
+    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(fnum));
     return JS_TRUE;
 }
 
     JSBool
-js_buffer_window_number( cx , obj , argc , argv , rval )
+js_buffer_window_number( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     int wnum;
     buf_T *buf = INSTANCE_BUFFER(cx,obj);
     wnum = buf->b_nwindows;
-    *rval = INT_TO_JSVAL( wnum );
+    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(wnum));
     return JS_TRUE;
 }
 
 
     JSBool
-js_buffer_ffname( cx , obj , argc , argv , rval )
+js_buffer_ffname( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     char* ffname;
     JSString *str;
     buf_T *buf;
 
-    buf = INSTANCE_BUFFER(cx,obj);
-    CHECK_BUFFER_FIELD(buf,b_ffname);
+    buf = INSTANCE_BUFFER(cx, obj);
+    CHECK_BUFFER_FIELD(buf, b_ffname);
 
-    ffname = strdup( (char *) buf->b_ffname );
-    str = JS_NewString( cx , ffname , strlen( ffname ) );
-    *rval = STRING_TO_JSVAL( str );
+    ffname = strdup((char *)buf->b_ffname);
+    str = JS_NewStringCopyN(cx, ffname, strlen(ffname));
+    JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(str));
     return JS_TRUE;
 }
 
 
 
     JSBool
-js_buffer_fname( cx , obj , argc , argv , rval )
+js_buffer_fname( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     char *fname;
     JSString *str;
     buf_T *buf;
@@ -327,81 +321,78 @@ js_buffer_fname( cx , obj , argc , argv , rval )
     CHECK_BUFFER_FIELD(buf,b_fname);
 
     fname = strdup( (char *) buf->b_fname );
-    str = JS_NewString( cx , fname , strlen( fname ) );
-    *rval = STRING_TO_JSVAL( str );
+    str = JS_NewStringCopyN(cx, fname, strlen(fname));
+    JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(str));
     return JS_TRUE;
 }
 
 
     JSBool
-js_buffer_sfname( cx , obj , argc , argv , rval )
+js_buffer_sfname( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     char* sfname;
     JSString *str;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     buf_T *buf;
     buf = INSTANCE_BUFFER(cx,obj);
 
     CHECK_BUFFER_FIELD(buf,b_sfname);
 
-    sfname = strdup( (char *) buf->b_sfname );
-    str = JS_NewString( cx , sfname , strlen( sfname ) );
-    *rval = STRING_TO_JSVAL( str );
+    sfname = strdup((char *) buf->b_sfname);
+    str = JS_NewStringCopyN(cx, sfname, strlen(sfname));
+    JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(str));
     return JS_TRUE;
 }
 
 
 
     JSBool
-js_buffer_line( cx , obj , argc , argv , rval )
+js_buffer_line(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     JSString *str;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
     char * jsstr;
     char_u* line;
-    int linenr = JSVAL_TO_INT( argv[0] );
-    buf_T *buf = INSTANCE_BUFFER(cx,obj);
+    int linenr = JSVAL_TO_INT(JS_ARGV(cx, vp)[0]);
+    buf_T *buf = INSTANCE_BUFFER(cx, obj);
 
     line = ml_get_buf( buf , (linenr_T)linenr , FALSE );
 
     jsstr = strdup( (char *) line );
 
-    str = JS_NewString( cx , jsstr , strlen( jsstr ) );
-    *rval = STRING_TO_JSVAL( str );
+    str = JS_NewStringCopyN(cx, jsstr, strlen(jsstr));
+    JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(str));
     return JS_TRUE;
 }
 
     JSString *
 js_make_string( JSContext * cx , char * str )
 {
-    char * _str = strdup( str );
-    return JS_NewString( cx , _str , strlen( _str ) );
+    char * _str = strdup(str);
+    return JS_NewStringCopyN(cx, _str, strlen(_str));
 }
 
     JSBool
-js_buffer_lines( cx , obj , argc , argv , rval )
+js_buffer_lines(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     int n,i,start,end;
     buf_T *buf;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
 
     JSObject *array;
 
     buf = INSTANCE_BUFFER(cx, obj);
-    start = JSVAL_TO_INT(argv[0]);
-    end = JSVAL_TO_INT(argv[1]);
+    start = JSVAL_TO_INT(JS_ARGV(cx, vp)[0]);
+    end = JSVAL_TO_INT(JS_ARGV(cx, vp)[1]);
 
     start = start < 0 ? 0 : start;
     end = end < 0 ? 0 : end;
@@ -421,7 +412,7 @@ js_buffer_lines( cx , obj , argc , argv , rval )
 	    return JS_FALSE;
     }
 
-    *rval = OBJECT_TO_JSVAL( array );
+    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(array));
     /*
      *
     int linenr = JSVAL_TO_INT( argv[0] );
@@ -441,51 +432,49 @@ js_buffer_lines( cx , obj , argc , argv , rval )
 
 
     JSBool
-js_buffer_prev( cx , obj , argc , argv , rval )
+js_buffer_prev(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     buf_T *buf,*prev;
     JSObject *jsobj;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
 
-    buf = INSTANCE_BUFFER(cx,obj);
+    buf = INSTANCE_BUFFER(cx, obj);
     prev = buf->b_prev;
 
     if( ! prev ) {
-	*rval = JSVAL_VOID;
+	JS_SET_RVAL(cx, vp, JSVAL_VOID);
 	return JS_TRUE;
     }
 
     jsobj = js_buffer_new(cx, prev);
-    *rval = OBJECT_TO_JSVAL( jsobj );
+    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(jsobj));
     return JS_TRUE;
 }
 
 
     JSBool
-js_buffer_next( cx , obj , argc , argv , rval )
+js_buffer_next(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     buf_T *buf,*next;
     JSObject *jsobj;
+    JSObject *obj = JS_THIS_OBJECT(cx, vp);
 
-    buf = INSTANCE_BUFFER(cx,obj);
+    buf = INSTANCE_BUFFER(cx, obj);
     next = buf->b_next;
 
-    if( ! next ) {
-	*rval = JSVAL_VOID;
+    if(!next) {
+	JS_SET_RVAL(cx, vp, JSVAL_VOID);
 	return JS_TRUE;
     }
 
     jsobj = js_buffer_new(cx, next);
-    *rval = OBJECT_TO_JSVAL( jsobj );
+    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(jsobj));
     return JS_TRUE;
 }
 
@@ -496,20 +485,18 @@ js_buffer_next( cx , obj , argc , argv , rval )
 
 
     JSBool
-js_buf_cnt( cx , obj , argc ,argv , rval )
+js_buf_cnt(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     buf_T  *b;
     int n = 0;
 
-    for ( b = firstbuf ; b ; b = b->b_next)
+    for( b = firstbuf ; b ; b = b->b_next)
 	++n;
 
-    return JS_NewNumberValue(cx, n , rval);
+    return JS_NewNumberValue(cx, n, &JS_RVAL(cx, vp));
 }
 
 
@@ -523,21 +510,19 @@ js_buf_cnt( cx , obj , argc ,argv , rval )
  *
  */
     JSBool
-js_get_buffer_by_num( cx , obj , argc ,argv , rval )
+js_get_buffer_by_num( cx , argc , vp )
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     int	    fnum;
     buf_T   *buf;
 
     JSObject * jsobj;
 
-    if (!JS_ConvertArguments(cx, argc, argv, "/j", &fnum)) {
+    if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx, vp), "/j", &fnum)) {
 	JS_ReportError(cx, "Can't convert buffer number");
-	*rval = JSVAL_VOID;
+	JS_SET_RVAL(cx, vp, JSVAL_VOID);
 	return JS_FALSE;
     }
 
@@ -548,12 +533,12 @@ js_get_buffer_by_num( cx , obj , argc ,argv , rval )
 	    if( ! jsobj )
 		return JS_FALSE;
 
-	    *rval = OBJECT_TO_JSVAL( jsobj );
+	    JS_RVAL(cx, vp) = OBJECT_TO_JSVAL( jsobj );
 	    return JS_TRUE;
 	}
     }
 
-    *rval = JSVAL_VOID;
+    JS_RVAL(cx, vp) = JSVAL_VOID;
     JS_ReportError(cx, "Can not found buffer %d", fnum);
     return JS_FALSE;
 }
@@ -561,12 +546,10 @@ js_get_buffer_by_num( cx , obj , argc ,argv , rval )
 
 
     JSBool
-js_vim_message( cx , obj , argc , argv , rval )
+js_vim_message(cx, argc, vp)
     JSContext	*cx;
-    JSObject	*obj;
     uintN	argc;
-    jsval	*argv;
-    jsval	*rval;
+    jsval	*vp;
 {
     uintN i;
     JSString *str;
@@ -576,7 +559,7 @@ js_vim_message( cx , obj , argc , argv , rval )
     message = (char *) alloc( sizeof(char) * 128 );
 
     for (i = 0; i < argc; i++) {
-        str = JS_ValueToString(cx, argv[i]);
+        str = JS_ValueToString(cx, JS_ARGV(cx, vp)[i]);
         if (!str)
             return JS_FALSE;
         bytes = JS_EncodeString(cx, str);
@@ -592,8 +575,7 @@ js_vim_message( cx , obj , argc , argv , rval )
 	*p = '\0';
     MSG( message );
 
-    *rval = JSVAL_VOID;
-    //JS_SET_RVAL(cx, vp, JSVAL_VOID);
+    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return JS_TRUE;
 }
 
@@ -611,12 +593,14 @@ ex_jsfile(eap)
 {
     char *filename = (char *) eap->arg;
     int compileOnly = 0;
-    JSScript *script = JS_CompileFile( js_env->cx, js_env->global, filename);
+    JSObject *script = JS_CompileFile(js_env->cx, js_env->global, filename);
 
     if (script) {
 	if (!compileOnly)
-	    (void) JS_ExecuteScript( js_env->cx, js_env->global, script, NULL);
-	JS_DestroyScript( js_env->cx, script);
+	    (void) JS_ExecuteScript(js_env->cx, js_env->global, script, NULL);
+	/* At present, this function has no effect; the JSScript lives for as
+	 * long as its script object lives. */
+	/* JS_DestroyScript(js_env->cx, script); */
     }
 }
 
@@ -625,7 +609,7 @@ vim_js_init(arg)
     char *arg;
 {
     js_env = (jsEnv *) alloc(sizeof(jsEnv));
-    vim_memset( js_env , 0 , sizeof(jsEnv) );
+    vim_memset(js_env, 0, sizeof(jsEnv));
 
     //js_env = (jsEnv *) JS_malloc( sizeof(jsEnv) );
     //JS_malloc
@@ -637,16 +621,16 @@ vim_js_init(arg)
     if ( js_env->rt == NULL)
 	return;
 
-    js_env->cx = JS_NewContext( js_env->rt, 8192);
+    js_env->cx = JS_NewContext(js_env->rt, 8192);
     if (js_env->cx == NULL)
 	return;
     JS_SetOptions(js_env->cx, JSOPTION_VAROBJFIX);
     JS_SetVersion(js_env->cx, JSVERSION_LATEST);
-    JS_SetErrorReporter( js_env->cx, report_error);
+    JS_SetErrorReporter(js_env->cx, report_error);
 
-    js_env->global = JS_NewObject( js_env->cx, &global_class, NULL, NULL);
+    js_env->global = JS_NewObject(js_env->cx, &global_class, NULL, NULL);
 
-    if ( js_env->global == NULL)
+    if (js_env->global == NULL)
 	return;
 
     /*
