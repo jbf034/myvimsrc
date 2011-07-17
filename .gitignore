@@ -4,3 +4,6 @@ src/xxd/xxd
 src/auto/
 src/config.log
 src/config.status
+src/tags
+src/vim
+gvim.desktop
