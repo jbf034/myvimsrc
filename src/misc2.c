@@ -2146,6 +2146,25 @@ ga_append(gap, c)
     }
 }
 
+#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264)
+/*
+ * Append the text in "gap" below the cursor line and clear "gap".
+ */
+    void
+append_ga_line(gap)
+    garray_T	*gap;
+{
+    /* Remove trailing CR. */
+    if (gap->ga_len > 0
+	    && !curbuf->b_p_bin
+	    && ((char_u *)gap->ga_data)[gap->ga_len - 1] == CAR)
+	--gap->ga_len;
+    ga_append(gap, NUL);
+    ml_append(curwin->w_cursor.lnum++, gap->ga_data, 0, FALSE);
+    gap->ga_len = 0;
+}
+#endif
+
 /************************************************************************
  * functions that use lookup tables for various things, generally to do with
  * special key codes.
@@ -2735,6 +2754,7 @@ find_special_key(srcp, modp, keycode, keep_x_key)
     int		bit;
     int		key;
     unsigned long n;
+    int		l;
 
     src = *srcp;
     if (src[0] != '<')
@@ -2747,25 +2767,31 @@ find_special_key(srcp, modp, keycode, keep_x_key)
 	if (*bp == '-')
 	{
 	    last_dash = bp;
-	    if (bp[1] != NUL && bp[2] == '>')
-		++bp;	/* anything accepted, like <C-?> */
+	    if (bp[1] != NUL)
+	    {
+#ifdef FEAT_MBYTE
+		if (has_mbyte)
+		    l = mb_ptr2len(bp + 1);
+		else
+#endif
+		    l = 1;
+		if (bp[l + 1] == '>')
+		    bp += l;	/* anything accepted, like <C-?> */
+	    }
 	}
 	if (bp[0] == 't' && bp[1] == '_' && bp[2] && bp[3])
 	    bp += 3;	/* skip t_xx, xx may be '-' or '>' */
+	else if (STRNICMP(bp, "char-", 5) == 0)
+	{
+	    vim_str2nr(bp + 5, NULL, &l, TRUE, TRUE, NULL, NULL);
+	    bp += l + 5;
+	    break;
+	}
     }
 
     if (*bp == '>')	/* found matching '>' */
     {
 	end_of_name = bp + 1;
-
-	if (STRNICMP(src + 1, "char-", 5) == 0 && VIM_ISDIGIT(src[6]))
-	{
-	    /* <Char-123> or <Char-033> or <Char-0x33> */
-	    vim_str2nr(src + 6, NULL, NULL, TRUE, TRUE, NULL, &n);
-	    *modp = 0;
-	    *srcp = end_of_name;
-	    return (int)n;
-	}
 
 	/* Which modifiers are given? */
 	modifiers = 0x0;
@@ -2785,16 +2811,32 @@ find_special_key(srcp, modp, keycode, keep_x_key)
 	 */
 	if (bp >= last_dash)
 	{
-	    /*
-	     * Modifier with single letter, or special key name.
-	     */
-	    if (modifiers != 0 && last_dash[2] == '>')
-		key = last_dash[1];
+	    if (STRNICMP(last_dash + 1, "char-", 5) == 0
+						 && VIM_ISDIGIT(last_dash[6]))
+	    {
+		/* <Char-123> or <Char-033> or <Char-0x33> */
+		vim_str2nr(last_dash + 6, NULL, NULL, TRUE, TRUE, NULL, &n);
+		key = (int)n;
+	    }
 	    else
 	    {
-		key = get_special_key_code(last_dash + 1);
-		if (!keep_x_key)
-		    key = handle_x_keys(key);
+		/*
+		 * Modifier with single letter, or special key name.
+		 */
+#ifdef FEAT_MBYTE
+		if (has_mbyte)
+		    l = mb_ptr2len(last_dash + 1);
+		else
+#endif
+		    l = 1;
+		if (modifiers != 0 && last_dash[l + 1] == '>')
+		    key = PTR2CHAR(last_dash + 1);
+		else
+		{
+		    key = get_special_key_code(last_dash + 1);
+		    if (!keep_x_key)
+			key = handle_x_keys(key);
+		}
 	    }
 
 	    /*
@@ -3228,7 +3270,7 @@ get_real_state()
 #if defined(FEAT_MBYTE) || defined(PROTO)
 /*
  * Return TRUE if "p" points to just after a path separator.
- * Take care of multi-byte characters.
+ * Takes care of multi-byte characters.
  * "b" must point to the start of the file name
  */
     int
@@ -3236,7 +3278,7 @@ after_pathsep(b, p)
     char_u	*b;
     char_u	*p;
 {
-    return vim_ispathsep(p[-1])
+    return p > b && vim_ispathsep(p[-1])
 			     && (!has_mbyte || (*mb_head_off)(b, p - 1) == 0);
 }
 #endif
@@ -4634,9 +4676,8 @@ vim_findfile_stopdir(buf)
     {
 	if (r_ptr[0] == '\\' && r_ptr[1] == ';')
 	{
-	    /* overwrite the escape char,
-	     * use STRLEN(r_ptr) to move the trailing '\0'
-	     */
+	    /* Overwrite the escape char,
+	     * use STRLEN(r_ptr) to move the trailing '\0'. */
 	    STRMOVE(r_ptr, r_ptr + 1);
 	    r_ptr++;
 	}
@@ -4895,10 +4936,13 @@ vim_findfile(search_ctx_arg)
 			stackp->ffs_filearray_size = 0;
 		}
 		else
+		    /* Add EW_NOTWILD because the expanded path may contain
+		     * wildcard characters that are to be taken literally.
+		     * This is a bit of a hack. */
 		    expand_wildcards((dirptrs[1] == NULL) ? 1 : 2, dirptrs,
 			    &stackp->ffs_filearray_size,
 			    &stackp->ffs_filearray,
-			    EW_DIR|EW_ADDSLASH|EW_SILENT);
+			    EW_DIR|EW_ADDSLASH|EW_SILENT|EW_NOTWILD);
 
 		stackp->ffs_filearray_cur = 0;
 		stackp->ffs_stage = 0;

@@ -367,7 +367,8 @@ py3_runtime_link_init(char *libname, int verbose)
      * standard C extension libraries of one or both python versions. */
     if (python_loaded())
     {
-	EMSG(_("E837: This Vim cannot execute :py3 after using :python"));
+	if (verbose)
+	    EMSG(_("E837: This Vim cannot execute :py3 after using :python"));
 	return FAIL;
     }
 # endif
@@ -668,7 +669,8 @@ DoPy3Command(exarg_T *eap, const char *cmd)
 
     /* PyRun_SimpleString expects a UTF-8 string. Wrong encoding may cause
      * SyntaxError (unicode error). */
-    cmdstr = PyUnicode_Decode(cmd, strlen(cmd), (char *)ENC_OPT, CODEC_ERROR_HANDLER);
+    cmdstr = PyUnicode_Decode(cmd, strlen(cmd),
+					(char *)ENC_OPT, CODEC_ERROR_HANDLER);
     cmdbytes = PyUnicode_AsEncodedString(cmdstr, "utf-8", CODEC_ERROR_HANDLER);
     Py_XDECREF(cmdstr);
     PyRun_SimpleString(PyBytes_AsString(cmdbytes));
