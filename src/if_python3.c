@@ -867,6 +867,7 @@ static Py_ssize_t BufferAsSubscript(PyObject *self, PyObject* idx, PyObject* val
 
 static PyObject* RangeSubscript(PyObject *self, PyObject* idx);
 static Py_ssize_t RangeAsItem(PyObject *, Py_ssize_t, PyObject *);
+static Py_ssize_t RangeAsSubscript(PyObject *self, PyObject* idx, PyObject* val);
 
 /* Current objects type - Implementation functions
  * -----------------------------------------------
@@ -1084,7 +1085,7 @@ static PySequenceMethods RangeAsSeq = {
 PyMappingMethods RangeAsMapping = {
     /* mp_length	*/ (lenfunc)RangeLength,
     /* mp_subscript     */ (binaryfunc)RangeSubscript,
-    /* mp_ass_subscript */ (objobjargproc)0,
+    /* mp_ass_subscript */ (objobjargproc)RangeAsSubscript,
 };
 
 /* Line range object - Implementation
@@ -1123,6 +1124,15 @@ RangeAsItem(PyObject *self, Py_ssize_t n, PyObject *val)
 		    &((RangeObject *)(self))->end);
 }
 
+    static Py_ssize_t
+RangeAsSlice(PyObject *self, Py_ssize_t lo, Py_ssize_t hi, PyObject *val)
+{
+    return RBAsSlice(((RangeObject *)(self))->buf, lo, hi, val,
+		    ((RangeObject *)(self))->start,
+		    ((RangeObject *)(self))->end,
+		    &((RangeObject *)(self))->end);
+} 
+
     static PyObject *
 RangeSubscript(PyObject *self, PyObject* idx)
 {
@@ -1144,6 +1154,29 @@ RangeSubscript(PyObject *self, PyObject* idx)
 	return NULL;
     }
 }
+
+    static Py_ssize_t
+RangeAsSubscript(PyObject *self, PyObject* idx, PyObject* val)
+{
+    if (PyLong_Check(idx)) {
+	long n = PyLong_AsLong(idx); 
+	return RangeAsItem(self, n, val); 
+    } else if (PySlice_Check(idx)) {
+	Py_ssize_t start, stop, step, slicelen;
+
+	if (PySlice_GetIndicesEx((PySliceObject *)idx,
+		((RangeObject *)(self))->end-((RangeObject *)(self))->start+1,
+		&start, &stop,
+		&step, &slicelen) < 0) {
+	    return -1;
+	}
+	return RangeAsSlice(self, start, stop, val);
+    } else {
+	PyErr_SetString(PyExc_IndexError, "Index must be int or slice");
+	return -1;
+    }
+}
+
 
 /* Buffer list object - Definitions
  */
