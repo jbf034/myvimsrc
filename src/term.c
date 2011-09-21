@@ -3420,6 +3420,7 @@ cursor_off()
 term_cursor_shape()
 {
     static int showing_insert_mode = MAYBE;
+    long old_wd;
 
     if (!full_screen || *T_CSI == NUL || *T_CEI == NUL)
 	return;
@@ -3432,8 +3433,16 @@ term_cursor_shape()
     }
     else
     {
+	if (showing_insert_mode == MAYBE)
+	{
+	    old_wd = p_wd;
+	    p_wd = 1L;
+	    /* or the display will get corrupted if 't_EI' is too long */
+	}
 	if (showing_insert_mode != FALSE)
 	    out_str(T_CEI);	    /* non-Insert mode cursor */
+	if (showing_insert_mode == MAYBE)
+	    p_wd = old_wd;
 	showing_insert_mode = FALSE;
     }
 }
