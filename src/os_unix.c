@@ -235,6 +235,13 @@ typedef struct
 static xsmp_config_T xsmp;
 #endif
 
+static int build_argv __ARGS((char_u *newsh, const char_u *cmd, int *argc, char ***argv));
+static void simulate_dumb_terminal __ARGS((void));
+
+#ifdef FEAT_ASYNC
+static void handle_one_async_task __ARGS((async_ctx_T *ctx));
+#endif
+
 #ifdef SYS_SIGLIST_DECLARED
 /*
  * I have seen
@@ -3708,6 +3715,102 @@ wait4pid(child, status)
     return wait_pid;
 }
 
+    static int
+build_argv(newsh, cmd, out_argc, out_argv)
+    char_u	*newsh;
+    const char_u *cmd;
+    int		*out_argc;
+    char	***out_argv;
+{
+    int		i;
+    char_u	*p;
+    int		inquote;
+    int		argc = 0;
+    char	**argv = NULL;
+    int		res = FAIL;
+
+    /*
+     * Do this loop twice:
+     * 1: find number of arguments
+     * 2: separate them and build argv[]
+     */
+    for (i = 0; i < 2; ++i)
+    {
+	p = newsh;
+	inquote = FALSE;
+	argc = 0;
+	for (;;)
+	{
+	    if (i == 1)
+		argv[argc] = (char *)p;
+	    ++argc;
+	    while (*p && (inquote || (*p != ' ' && *p != TAB)))
+	    {
+		if (*p == '"')
+		    inquote = !inquote;
+		++p;
+	    }
+	    if (*p == NUL)
+		break;
+	    if (i == 1)
+		*p++ = NUL;
+	    p = skipwhite(p);
+	}
+	if (argv == NULL)
+	{
+	    argv = (char **)alloc((unsigned)((argc + 4) * sizeof(char *)));
+	    if (argv == NULL)	    /* out of memory */
+		goto bail;
+	}
+    }
+    if (cmd != NULL)
+    {
+	if (extra_shell_arg != NULL)
+	    argv[argc++] = (char *)extra_shell_arg;
+	argv[argc++] = (char *)p_shcf;
+	argv[argc++] = (char *)cmd;
+    }
+    argv[argc] = NULL;
+
+    res = OK;
+    // fall through expected
+bail:
+    *out_argc = argc;
+    *out_argv = argv;
+    return res;
+}
+
+    static void
+simulate_dumb_terminal()
+{
+# ifdef HAVE_SETENV
+    char	envbuf[50];
+    setenv("TERM", "dumb", 1);
+    sprintf((char *)envbuf, "%ld", Rows);
+    setenv("ROWS", (char *)envbuf, 1);
+    sprintf((char *)envbuf, "%ld", Rows);
+    setenv("LINES", (char *)envbuf, 1);
+    sprintf((char *)envbuf, "%ld", Columns);
+    setenv("COLUMNS", (char *)envbuf, 1);
+# else
+    static char	envbuf_Rows[20];
+    static char	envbuf_Columns[20];
+    /*
+     * Putenv does not copy the string, it has to remain valid.
+     * Use a static array to avoid losing allocated memory.
+     */
+    putenv("TERM=dumb");
+    sprintf(envbuf_Rows, "ROWS=%ld", Rows);
+    putenv(envbuf_Rows);
+    sprintf(envbuf_Rows, "LINES=%ld", Rows);
+    putenv(envbuf_Rows);
+    sprintf(envbuf_Columns, "COLUMNS=%ld", Columns);
+    putenv(envbuf_Columns);
+# endif
+}
+
+
+
     int
 mch_call_shell(cmd, options)
     char_u	*cmd;
@@ -3856,12 +3959,6 @@ mch_call_shell(cmd, options)
     int		fd_toshell[2];		/* for pipes */
     int		fd_fromshell[2];
     int		pipe_error = FALSE;
-# ifdef HAVE_SETENV
-    char	envbuf[50];
-# else
-    static char	envbuf_Rows[20];
-    static char	envbuf_Columns[20];
-# endif
     int		did_settmode = FALSE;	/* settmode(TMODE_RAW) called */
 
     newcmd = vim_strsave(p_sh);
@@ -4118,27 +4215,7 @@ mch_call_shell(cmd, options)
 		}
 # endif
 		/* Simulate to have a dumb terminal (for now) */
-# ifdef HAVE_SETENV
-		setenv("TERM", "dumb", 1);
-		sprintf((char *)envbuf, "%ld", Rows);
-		setenv("ROWS", (char *)envbuf, 1);
-		sprintf((char *)envbuf, "%ld", Rows);
-		setenv("LINES", (char *)envbuf, 1);
-		sprintf((char *)envbuf, "%ld", Columns);
-		setenv("COLUMNS", (char *)envbuf, 1);
-# else
-		/*
-		 * Putenv does not copy the string, it has to remain valid.
-		 * Use a static array to avoid losing allocated memory.
-		 */
-		putenv("TERM=dumb");
-		sprintf(envbuf_Rows, "ROWS=%ld", Rows);
-		putenv(envbuf_Rows);
-		sprintf(envbuf_Rows, "LINES=%ld", Rows);
-		putenv(envbuf_Rows);
-		sprintf(envbuf_Columns, "COLUMNS=%ld", Columns);
-		putenv(envbuf_Columns);
-# endif
+		simulate_dumb_terminal();
 
 		/*
 		 * stderr is only redirected when using the GUI, so that a
@@ -4749,6 +4826,193 @@ error:
 #endif /* USE_SYSTEM */
 }
 
+#ifdef FEAT_ASYNC
+/*
+ * Start new async task.  ctx->callback will be called with data.
+ * Returns -1 on failure, pid value on success.
+ */
+    int
+mch_start_async_shell(ctx)
+    async_ctx_T *ctx;
+{
+    int		pid = -1;
+    char_u	*newcmd = NULL;
+    char	**argv = NULL;
+    int		argc = 0;
+    int		fd_fromshell[2];
+    int		fd_toshell[2];
+    int		pipe_error = FALSE;
+    int		flags;
+
+    newcmd = vim_strsave(p_sh);
+    if (newcmd == NULL)		/* out of memory */
+	goto error_newcmd;
+
+    if (!build_argv(newcmd, ctx->cmd, &argc, &argv)) {
+	MSG_PUTS(_("\nCannot build argument list\n"));
+	goto error_build_argv;
+    }
+
+    // create communication pipes:
+    pipe_error = (pipe(fd_fromshell) < 0);
+    if (pipe_error) {
+	MSG_PUTS(_("\nCannot create pipe\n"));
+	goto error_from_pipe;
+    }
+
+    pipe_error = (pipe(fd_toshell) < 0);
+    if (pipe_error) {
+	MSG_PUTS(_("\nCannot create pipe\n"));
+	goto error_to_pipe;
+    }
+
+    pid = fork();
+    if (pid == -1) {
+	MSG_PUTS(_("\nCannot fork\n"));
+	goto error_fork;
+
+    } else if (pid == 0) { /* child */
+	reset_signals();		/* handle signals normally */
+
+	simulate_dumb_terminal();
+
+	/* set up stdin for the child */
+	close(fd_toshell[1]);
+	close(0);
+	ignored = dup(fd_toshell[0]);
+	close(fd_toshell[0]);
+
+	/* set up stdout/stderr for the child */
+	close(fd_fromshell[0]);
+	close(1);
+	ignored = dup(fd_fromshell[1]);
+	close(2);
+	ignored = dup(fd_fromshell[1]);
+	close(fd_fromshell[1]);
+
+	execvp(argv[0], argv);
+	_exit(EXEC_FAILED);	    /* exec failed, return failure code */
+    }
+
+    /* parent */
+
+    close(fd_fromshell[1]);
+    ctx->fd_pipe_fromshell = fd_fromshell[0];
+    close(fd_toshell[0]);
+    ctx->fd_pipe_toshell = fd_toshell[1];
+
+    /* make it non blocking */
+#if defined(O_NONBLOCK)
+    /* Fixme: O_NONBLOCK is defined but broken on SunOS 4.1.x and AIX 3.2.5. */
+    if (-1 == (flags = fcntl(ctx->fd_pipe_fromshell, F_GETFL, 0)))
+	flags = 0;
+    fcntl(ctx->fd_pipe_fromshell, F_SETFL, flags | O_NONBLOCK);
+#else
+    /* Otherwise, use the old way of doing it */
+    flags = 1;
+    ioctl(ctx->fd_pipe_fromshell, FIOBIO, &flags);
+#endif
+
+    ctx->pid = pid;
+    async_task_list_add(ctx);
+
+    return pid;
+
+error_fork:
+	close(fd_fromshell[0]);
+	close(fd_fromshell[1]);
+error_to_pipe:
+	close(fd_toshell[0]);
+	close(fd_toshell[1]);
+error_from_pipe:
+    vim_free(argv);
+error_build_argv:
+    vim_free(newcmd);
+error_newcmd:
+    return -1;
+}
+
+    void
+mch_kill_async_shell(ctx)
+    async_ctx_T *ctx;
+{
+    ctx->events |= ACE_TERM;
+    kill(ctx->pid, SIGTERM);
+}
+
+    static void
+handle_one_async_task (ctx)
+    async_ctx_T *ctx;
+{
+#define BUF_SIZE 4096
+    char_u buf[BUF_SIZE + 1];
+    int len, rc, status;
+    int terminate = (ctx->events & ACE_TERM);
+
+    if (!ctx->events)
+	return;
+
+    if (ctx->events & ACE_READ) {
+	len = read(ctx->fd_pipe_fromshell, buf, BUF_SIZE);
+	if (len <= 0) {
+	    /* failed to read, or got to the end */
+	    terminate = 1;
+
+	} else
+	    buf[len] = 0;
+
+	if (len > 0 || ctx->linefrag) {
+	    // pass read bytes to callback
+	    if (async_value_from_ctx(&ctx->tv_dict, (char_u*)"receive")
+		    || ctx->flags & ACF_OUTTOBUF)
+		async_call_receive(ctx, buf, len);
+	}
+    }
+
+    ctx->events = 0;
+
+    if (terminate) {
+	if ( waitpid(ctx->pid, &status, WNOHANG) == 0 ) {
+	    // child is still running
+
+	    // TODO: this needs to be handled better
+	    // ... what if your process doesn't quit politely?
+	    kill(ctx->pid, SIGTERM);
+
+	    rc = waitpid(ctx->pid, &status, 0);
+	    // TODO: again, needs better handling
+
+	    // TODO: convert above waitpid's to be compatible with wait4()
+	}
+
+	// for debugging purposes
+	dict_add_nr_str(ctx->tv_dict.vval.v_dict, "kill_signal_sent", 1, NULL);
+	if (WIFEXITED(status)){
+	    dict_add_nr_str(ctx->tv_dict.vval.v_dict, "status", WEXITSTATUS(status), NULL);
+	}
+
+	call_async_callback(ctx, (char_u*)"terminated", 0, (typval_T *) NULL);
+
+	free_async_ctx(ctx);
+    }
+}
+
+    int
+mch_handle_async_events ()
+{
+    int count = 0;
+    async_ctx_T *ctx;
+
+    while ((ctx = async_active_task_list_remove_head()))
+    {
+	handle_one_async_task (ctx);
+	count ++;
+    }
+
+    return count;
+}
+#endif
+
 /*
  * Check for CTRL-C typed by reading all available characters.
  * In cooked mode we should get SIGINT, no need to check.
@@ -4864,7 +5128,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 #ifdef FEAT_NETBEANS_INTG
     int		nb_fd = netbeans_filedesc();
 #endif
-#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME)
+#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(HAVE_ASYNC_SHELL)
     static int	busy = FALSE;
 
     /* May retry getting characters after an event was handled. */
@@ -4875,6 +5139,9 @@ RealWaitForChar(fd, msec, check_for_gpm)
      * should wait after being interrupted. */
 #  define USE_START_TV
     struct timeval  start_tv;
+#if HAVE_ASYNC_SHELL
+    async_ctx_T *actx;
+#endif
 
     if (msec > 0 && (
 #  ifdef FEAT_XCLIPBOARD
@@ -4900,6 +5167,11 @@ RealWaitForChar(fd, msec, check_for_gpm)
      * manager stuff, it may save the file, which does a breakcheck. */
     if (busy)
 	return 0;
+
+#ifdef HAVE_ASYNC_SHELL
+    if (handling_async_events)
+	return 0;
+#endif
 #endif
 
 #ifdef MAY_LOOP
@@ -4913,7 +5185,11 @@ RealWaitForChar(fd, msec, check_for_gpm)
 # endif
 #endif
 #ifndef HAVE_SELECT
+#ifndef HAVE_ASYNC_SHELL
 	struct pollfd   fds[6];
+#else
+	struct pollfd   fds[128]; // need to make this dynamically allocated
+#endif
 	int		nfd;
 # ifdef FEAT_XCLIPBOARD
 	int		xterm_idx = -1;
@@ -4926,6 +5202,9 @@ RealWaitForChar(fd, msec, check_for_gpm)
 # endif
 # ifdef FEAT_NETBEANS_INTG
 	int		nb_idx = -1;
+# endif
+# ifdef HAVE_ASYNC_SHELL
+	int		async_idx = -1;
 # endif
 	int		towait = (int)msec;
 
@@ -4982,6 +5261,15 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	{
 	    nb_idx = nfd;
 	    fds[nfd].fd = nb_fd;
+	    fds[nfd].events = POLLIN;
+	    nfd++;
+	}
+#endif
+#if HAVE_ASYNC_SHELL
+	for (actx=async_task_list_head(); actx; actx=actx->next) {
+	    if (async_idx == -1)
+		async_idx = nfd;
+	    fds[nfd].fd = actx->fd_pipe_fromshell;
 	    fds[nfd].events = POLLIN;
 	    nfd++;
 	}
@@ -5044,6 +5332,25 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	{
 	    netbeans_read();
 	    --ret;
+	}
+#endif
+#if HAVE_ASYNC_SHELL
+	if (ret > 0 && async_idx != -1) {
+	    int idx = async_idx;
+	    for (actx=async_task_list_head(); ret>0 && actx; actx=actx->all_next, idx++) {
+		int rd = fds[idx].revents & POLLIN;
+		int ex = fds[idx].revents & POLLHUP;
+		if (rd)
+		    actx->events |= ACE_READ;
+		if (ex)
+		    actx->events |= ACE_TERM;
+		if (rd || ex) {
+		    async_active_task_list_add(actx);
+		    --ret;
+		}
+	    }
+	    if (ret == 0)
+		finished = FALSE;	/* Try again */
 	}
 #endif
 
@@ -5134,6 +5441,14 @@ select_eintr:
 	    FD_SET(nb_fd, &rfds);
 	    if (maxfd < nb_fd)
 		maxfd = nb_fd;
+	}
+#endif
+#if HAVE_ASYNC_SHELL
+	for (actx=async_task_list_head(); actx; actx=actx->all_next) {
+	    FD_SET(actx->fd_pipe_fromshell, &rfds);
+	    FD_SET(actx->fd_pipe_fromshell, &efds);
+	    if (maxfd < actx->fd_pipe_fromshell)
+		maxfd = actx->fd_pipe_fromshell;
 	}
 #endif
 
@@ -5235,6 +5550,21 @@ select_eintr:
 	    --ret;
 	}
 #endif
+#if HAVE_ASYNC_SHELL
+	for (actx=async_task_list_head(); ret>0 && actx; actx=actx->all_next) {
+	    int rd = FD_ISSET(actx->fd_pipe_fromshell, &rfds);
+	    int ex = FD_ISSET(actx->fd_pipe_fromshell, &efds);
+	    if (rd)
+		actx->events |= ACE_READ;
+	    if (ex)
+		actx->events |= ACE_TERM;
+	    if (rd || ex) {
+		async_active_task_list_add(actx);
+		if (--ret == 0)
+		    finished = FALSE;	/* Try again */
+	    }
+	}
+#endif
 
 #endif /* HAVE_SELECT */
 
@@ -5259,6 +5589,11 @@ select_eintr:
 	    if (msec <= 0)
 		break;	/* waited long enough */
 	}
+
+#ifdef HAVE_ASYNC_SHELL
+	/* before we loop, handle some events */
+	handle_async_events();
+#endif
 #endif
     }
 

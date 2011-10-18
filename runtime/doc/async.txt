@@ -1,0 +1,251 @@
+async.txt*     For Vim version 7.3.  Last change: 2010
+
+
+Async communication                                  *async-communication*
+
+1. Introduction				|async-intro|
+2. Command syntax			|async-commands|
+3. Function syntax			|async-functions|
+4. Examples				|async-examples|
+5. TODO					|async-todo|
+
+{Vi has None of this}
+{only available when compiled with the |+async| feature}
+
+==============================================================================
+1. Introduction						*async-intro*
+
+Yes - Vim is only an editor. Yet this feature has been missing for too long
+IMHO.
+
+This short help text tries to document the --enable-async feature letting Vim
+talk to processes in a non blocking interactive way. Thus you can run
+interpreters, caching compilers (fcsh), or web servers within vim easily
+appending their output to buffers.
+
+:echo has('async') should be 1
+
+The async feature provides the following commands:
+
+:ajobs				List running async jobs.
+:akill {pid}			Terminate a running async job
+
+this feature provides the following vim functions:
+
+async_exec({ctx})		Starts an asynchronous job context.
+async_kill({ctx})		Terminate a running async job context.
+async_list()			Returns list of running jobs context.
+async_write({ctx}, {data}, [ {fd} ])
+				Writes data to a running async job context.
+
+TODO:
+async_read({ctx}, [ {fd} [,{regex} [,{max}]]])
+				Blocking read from running async job
+                                context.
+
+When a process dies it will be removed from the list.
+So keep your own references if you have to.
+
+==============================================================================
+2. Command syntax					*async-commands*
+
+							*:ajobs*
+:ajobs
+		Lists all running jobs.
+
+							*:akill*
+:akill {pid}
+		Terminates a process matching the given process ID.
+
+
+==============================================================================
+3. Function syntax					*async-functions*
+
+							*async_exec()*
+async_exec({ctx})
+		Starts an asynchronous job context.
+
+                The {ctx} is a |Dictionary| containing the following
+                manditory keys:
+
+			"cmd" - a string representing to command to run in an
+        			async job context
+
+		The following optional keys referencing functions.  The
+		caller to |async_exec()| can set these methods to receive
+		data via async callbacks.
+
+			"started"			*async:started()*
+                                function called to signal successful
+				async task start.
+
+                                Now self.pid should contain the process
+				identifier.
+
+			"receive"			*async:receive()*
+                                function called to pass data obtained
+                                from the async process to the vim.
+
+				The function takes the following form:
+>
+				:func ctx.receive (data, fd)
+				:    ...
+				:end
+<
+                                If 'aslines' attribute is set, thien the
+                                {data} argument will be a list of lines,
+                                otherwise it will contain a string with
+                                all the data.
+
+                                The {fd} argument identifies the source
+                                of the data:
+                                   1 - standard output
+                                   2 - standard error
+
+                                NOTE: current implementation merges
+                                stderr into stdout.
+
+				If this function is not defined the
+				caller will have to poll async_read in
+				order to get data from the process.
+
+			"terminated"			*async:terminated()*
+                                function called to signal completion of
+				async task.
+
+                                Now self.status should contain the exit
+				status.
+
+		The following optional keys referencing options.
+
+			"aslines"                       *async:aslines*
+				if set to non-zero, causes the next
+				chunk of data passed to the |async_ctx_
+				passed to the |async:receive()| event
+				handler, or to the |async_read()|
+				function, to be split into lines.
+
+			"outtobufnr"			*async:outtobufnr*
+				if set the output of the command will
+				be appended directly to the buffer whose
+				number is stored in the attribute.
+
+				Setting the |async:receive()| as well
+				is undefined, and the effect may change
+				in the future.
+
+		Finally, the following keys are reserved and generated
+		automatically by the async mechanism.  They should not
+		be used by vimL scripts.
+
+			"pid"                           *async:pid*
+				holds the process ID of the running
+				async task.
+
+			"status"	                *async:status*
+				after termination, holds the status of
+				the async task.  This key is undefined
+				until the task terminates.
+
+
+							*async_kill()*
+async_kill({ctx})
+		Terminate a running async job context.
+
+		This function takes a running context and using it's
+		*async:pid* terminates the running task process.
+
+
+							*async_list()*
+async_list()
+		Returns |List| of running jobs context.
+
+							*async_list()*
+async_write({ctx}, {data}, [ {fd} ])
+		write {data} to async process.  If {fd} is provided,
+		data is written to that file descriptor, otherwise
+		stdin (fd of 0) is implied.
+
+		{data} can be an array of lines, or a string.
+
+		Returns number of bytes (or lines) written.
+
+		Can also be used with this alternative form:
+>
+			ctx.write({string}, [ {fd ])
+<
+
+TODO:
+async_read({ctx}, [ {fd} [,{regex} [,{max}]]])
+
+
+==============================================================================
+4. Examples						*async-examples*
+
+VIML CODE EXAMPLE: >
+  fun! s:Add(s)
+    let l = [{'text': string(a:s)}]
+    call setqflist(l, 'a')
+  endf
+
+  " ctx 1
+  let ctx = { 'cmd' : 'nr=1; while read f; do nr=`expr $nr + 1`; sleep 1; echo $nr $f - pong; if [ $nr == 5 ]; then break; fi; done; exit 12' }
+  fun ctx.receive(text, type)
+    call s:Add(string(a:text))
+    call async_write(self, "ping\n")
+  endf
+
+  fun ctx.started()
+    call s:Add("ctx1: process started. pid:  ". self.pid)
+  endf
+
+  fun ctx.terminated()
+    call s:Add("ctx1: process died. status (should be 12): ". self.status)
+  endf
+
+  call async_exec(ctx)
+  call async_write(ctx, "ping\n")
+
+
+  " ctx2 2
+  let ctx2 = { 'cmd' : 'find / | while read f; do echo $f; sleep 1; done' }
+
+  fun ctx2.receive(text, type)
+    call s:Add('ctx22: '.string(a:text))
+  endf
+
+  fun ctx2.started()
+    call s:Add("ctx22: process started. pid:  ". self.pid)
+  endf
+
+  fun ctx2.terminated()
+    call s:Add("ctx22: process died. status:  ". self.status)
+  endf
+  call async_exec(ctx2)
+
+
+random notes:
+- writing to a process is a blocking operation. Ussually only little data is
+  written which should fit into the os pipe buffer.
+
+  Of course a non blocking version could be implemented (eg vim buffering all
+  the data you want to write). I don't see any value doing so.
+
+
+==============================================================================
+5. TODO							*async-todo*
+
+TODO:
+  - implement blocking async_read()
+
+  - fix gui and non gui version (by introducing mzscheme like timers)
+
+  - enhance this help
+
+  - have async_exec() fill in kill/read/write handlers so it's possible to:
+     ctx = { ... }
+     call async_exec(ctx)
+     call ctx.write('something')
+     let txt = ctx.read()
+     call ctx.kill()
+

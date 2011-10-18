@@ -2479,3 +2479,37 @@ typedef struct {
   UINT32_T state[8];
   char_u   buffer[64];
 } context_sha256_T;
+
+#ifdef FEAT_ASYNC
+/*
+ * Async context flags
+ */
+#define ACF_LINELIST	1	/* return a list of lines instead of a string buffer */
+#define ACF_OUTTOBUF	2	/* automatically append output to a buffer ctx->bufnr */
+
+/*
+ * Async event types
+ */
+#define ACE_READ    1       /* can read from pipe */
+#define ACE_TERM    2       /* got an exception */
+
+/*
+ * Async context used internally to handle asystem() state.
+ */
+typedef struct _async_ctx {
+    struct _async_ctx *all_next;    /* list of all async jobs */
+    struct _async_ctx *act_next;    /* list of only those with events */
+    char_u	*cmd;               /* command being ran. Its set in start_async_task */
+    unsigned	flags;              /* collection of ACF_* flags */
+    typval_T    tv_dict;            /* vimscript context for func */
+    int		pid;                /* async process ID */
+    int		fd_pipe_fromshell;  /* fd reading from process */
+    int		fd_pipe_toshell;    /* fd for writing to STDIN of process */
+    unsigned	events;             /* collection of ACE_* flags */
+    char_u	*linefrag;          /* partial line when using ACF_LINELIST */
+    int		bufnr;              /* bufnr for output when using ACF_OUTTOBUF */
+#ifdef FEAT_GUI
+    long	gdk_input_tag;      /* used for gdk_input_remove(), not used if -1L */
+#endif
+} async_ctx_T;
+#endif

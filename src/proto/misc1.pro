@@ -96,4 +96,25 @@ void addfile __ARGS((garray_T *gap, char_u *f, int flags));
 char_u *get_cmd_output __ARGS((char_u *cmd, char_u *infile, int flags));
 void FreeWild __ARGS((int count, char_u **files));
 int goto_im __ARGS((void));
+#ifdef FEAT_ASYNC
+async_ctx_T *alloc_async_ctx __ARGS((void));
+void free_async_ctx __ARGS((async_ctx_T *ctx));
+int start_async_task __ARGS((async_ctx_T *ctx));
+void kill_async_task __ARGS((async_ctx_T *ctx));
+void call_async_callback __ARGS((async_ctx_T *ctx, u_char *name, int argcount, typval_T *argvars));
+int handle_async_events __ARGS((void));
+void async_call_receive __ARGS((async_ctx_T *ctx, char_u *data, int len));
+int async_assert_ctx __ARGS((typval_T *arg));
+typval_T* async_value_from_ctx __ARGS((typval_T *ctx, char_u * key));
+async_ctx_T* find_async_ctx_for_vim_ctx __ARGS((typval_T *arg));
+list_T* prepare_async_data_list __ARGS((async_ctx_T *ctx, char_u *data, int len));
+#endif
+#if HAVE_ASYNC_SHELL
+void async_task_list_add __ARGS((async_ctx_T *ctx));
+void async_task_list_remove __ARGS((async_ctx_T *ctx));
+async_ctx_T* async_task_list_head __ARGS((void));
+void async_active_task_list_add __ARGS((async_ctx_T *ctx));
+void async_active_task_list_remove __ARGS((async_ctx_T *ctx));
+async_ctx_T* async_active_task_list_remove_head __ARGS((void));
+#endif
 /* vim: set ft=c : */

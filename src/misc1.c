@@ -10295,6 +10295,539 @@ done:
 }
 #endif
 
+#ifdef FEAT_ASYNC
+/*
+ * Allocate and initialize a new async context structure.
+ * Returns pointer to new ctx, or NULL on failure.
+ */
+    async_ctx_T *
+alloc_async_ctx()
+{
+    async_ctx_T *ctx;
+
+    ctx = (async_ctx_T *)alloc_clear((unsigned)sizeof(async_ctx_T));
+    if (!ctx)
+	return NULL;
+
+    ctx->pid = -1;
+    ctx->fd_pipe_fromshell = -1;
+    ctx->fd_pipe_toshell = -1;
+#ifdef FEAT_GUI
+    ctx->gdk_input_tag = -1;
+#endif
+
+    return ctx;
+}
+
+/*
+ * Free resources associated with an async context.
+ */
+    void
+free_async_ctx(ctx)
+    async_ctx_T *ctx;
+{
+    if (ctx) {
+	async_task_list_remove(ctx);
+	async_active_task_list_remove(ctx);
+
+	if (ctx->fd_pipe_fromshell != -1) {
+	    close(ctx->fd_pipe_fromshell);
+	    ctx->fd_pipe_fromshell = -1;
+	}
+
+	if (ctx->fd_pipe_toshell != -1) {
+	    close(ctx->fd_pipe_toshell);
+	    ctx->fd_pipe_toshell = -1;
+	}
+
+	if (ctx->cmd) {
+	    vim_free(ctx->cmd);
+	    ctx->cmd = NULL;
+	}
+
+	if (ctx->linefrag) {
+	    vim_free(ctx->linefrag);
+	    ctx->linefrag = NULL;
+	}
+
+	if (!ctx->tv_dict.v_lock)
+	    clear_tv(&ctx->tv_dict);
+
+	gui_mch_unregister_async_task(ctx);
+
+	vim_free(ctx);
+    }
+}
+
+/*
+ * Start a new async task
+ * Returns -1 on failure, pid number on success
+ * On success the "pid" key will be set
+ * On failure, the ctx object cannot be used by the caller.
+ */
+    int
+start_async_task(ctx)
+    async_ctx_T *ctx;
+{
+    int pid = -1;
+
+#if HAVE_ASYNC_SHELL
+    typval_T *viml_ctx;
+    typval_T *cmd;
+    char_u *cmdstr = NULL;
+
+    viml_ctx = &ctx->tv_dict;
+
+    /* get cmd from Dictionary */
+    cmd = async_value_from_ctx(viml_ctx, (char_u*)"cmd");
+    if (!cmd) {
+        EMSG(_("E999: async: missing key cmd"));
+        return 0;
+    }
+
+    /* get the string value */
+    cmdstr = get_tv_string_chk(cmd);
+    if (!cmdstr) {
+        EMSG(_("E999: async: missing command at key cmd"));
+        return 0;
+    }
+    ctx->cmd = vim_strsave(cmdstr);
+
+    /* start a new async shell */
+    pid = mch_start_async_shell(ctx);
+
+    /* on success, assign pid to Dictionary */
+    if (pid != -1) {
+	dict_add_nr_str(viml_ctx->vval.v_dict, "pid", pid, NULL);
+	call_async_callback(ctx, (char_u*)"started", 0, NULL);
+    }
+#endif
+
+    /* return pid */
+    return pid;
+}
+
+
+/*
+ * Terminate an async task.
+ * On success, the ctx object cannot be used by the caller.
+ */
+    void
+kill_async_task(ctx)
+    async_ctx_T *ctx;
+{
+#if HAVE_ASYNC_SHELL
+    mch_kill_async_shell(ctx);
+#endif
+}
+
+/* run through all async events that need work,
+ * return number handled */
+    int
+handle_async_events()
+{
+    int		count = 0;
+#ifdef HAVE_ASYNC_SHELL
+    /* this function is modeled after eval_client_expr_to_string() */
+    int		save_dbl = debug_break_level;
+    int		save_ro = redir_off;
+    int		save_nfi = need_fileinfo;
+
+    if (handling_async_events)
+	return 0;
+
+    debug_break_level = -1;
+    redir_off = 0;
+    need_fileinfo = FALSE;
+    ++emsg_skip;
+
+    handling_async_events = TRUE;
+    count = mch_handle_async_events ();
+    handling_async_events = FALSE;
+
+    debug_break_level = save_dbl;
+    redir_off = save_ro;
+    need_fileinfo = save_nfi;
+    --emsg_skip;
+
+    /* A client can tell us to redraw, but not to display the cursor, so do
+     * that here. */
+    setcursor();
+    out_flush();
+#ifdef FEAT_GUI
+    if (gui.in_use)
+	gui_update_cursor(FALSE, FALSE);
+#endif
+#endif
+    return count;
+}
+
+    void
+async_call_receive(ctx, data, len)
+    async_ctx_T *ctx;
+    char_u      *data;
+    int		len;
+{
+    typval_T	funcargv[2];
+
+#ifdef USE_CR
+    /* translate <CR> into <NL> */
+    if (data != NULL)
+    {
+	char_u	*s;
+
+	for (s = data; *s; ++s)
+	{
+	    if (*s == CAR)
+		*s = NL;
+	}
+    }
+#else
+# ifdef USE_CRNL
+    /* translate <CR><NL> into <NL> */
+    if (data != NULL)
+    {
+	char_u	*s, *d;
+
+	d = data;
+	for (s = data; *s; ++s)
+	{
+	    if (s[0] == CAR && s[1] == NL)
+		++s;
+	    *d++ = *s;
+	}
+	*d = NUL;
+    }
+# endif
+#endif
+
+    /* first arg is the data */
+    if (ctx->flags & (ACF_LINELIST|ACF_OUTTOBUF)) {
+	/* we will return a list of lines */
+	list_T *l;
+
+	l = prepare_async_data_list(ctx, data, len);
+	if (l == NULL)
+	    return;
+
+	++l->lv_refcount;
+	funcargv[0].v_type = VAR_LIST;
+	funcargv[0].vval.v_list = l;
+
+    } else {
+	/* we return everything in one vimL string */
+	funcargv[0].v_type = VAR_STRING;
+	funcargv[0].vval.v_string = data;
+    }
+
+    if (ctx->flags & ACF_OUTTOBUF) {
+	/* we are appending to a buffer, not issuing a callback */
+	buf_T *buf = buflist_findnr(ctx->bufnr);
+	if (buf) {
+	    list_T *l = funcargv[0].vval.v_list;
+	    listitem_T *i;
+	    linenr_T	lnum = buf->b_ml.ml_line_count;
+	    long	lcnt = 0;
+
+	    for (i = l->lv_first; i != NULL; i = i->li_next) {
+		char_u *line;
+
+		/* should be a string, ignore anything else */
+		if (i->li_tv.v_type != VAR_STRING)
+		    continue;
+
+		line = i->li_tv.vval.v_string;
+
+		ml_append_buf(buf, buf->b_ml.ml_line_count, line,
+			STRLEN(line)+1, buf->b_ml.ml_line_count == 1);
+		lcnt ++;
+	    }
+	    changed_lines_buf(buf, lnum, buf->b_ml.ml_line_count, lcnt);
+	    redraw_buf_later(buf, NOT_VALID);
+	}
+    } else {
+	/* second arg is the file descriptor */
+	funcargv[1].v_type = VAR_NUMBER;
+	funcargv[1].vval.v_number = 1; // TODO: split stdin and stdout
+
+	call_async_callback(ctx, (char_u*)"receive", 2, &funcargv[0]);
+    }
+
+    /* cleanup */
+    if (funcargv[0].v_type == VAR_LIST) {
+	clear_tv(&funcargv[0]);
+    }
+}
+
+/* validate input, testing for a valid async context
+ * returns true if context if valid, otherwise
+ * outputs error message and returns false */
+    int
+async_assert_ctx(arg)
+    typval_T *arg;
+{
+    if (arg->v_type != VAR_DICT
+	    || arg->vval.v_dict == NULL) {
+	EMSG(_("E999: not a valid async context object"));
+	return 0;
+    }
+
+    /* TODO: should check for 'cmd', and perhaps other required keys */
+
+    return 1;
+}
+
+/* returns a value from an async context
+ * NULL if key does not exist.
+ * */
+    typval_T*
+async_value_from_ctx(ctx, key)
+    typval_T	*ctx;
+    char_u	*key;
+{
+    dictitem_T	*di;
+
+    if (!(async_assert_ctx(ctx)))
+	return NULL;
+
+    di = dict_find(ctx->vval.v_dict, key, -1);
+    if (di == NULL)
+	return NULL;
+
+    return &di->di_tv;
+}
+
+/* arg: vimL representation of the async context
+ * if it is a dict and has a pid assigned the corresponding c dict is returned
+ * returns: NULL or pointer to async_ctx_T
+ */
+    async_ctx_T*
+find_async_ctx_for_vim_ctx(arg)
+    typval_T *arg;
+{
+    int error;
+    int i_pid;
+    async_ctx_T *ctx = NULL;
+    typval_T *pid;
+
+    if (!(async_assert_ctx(arg)))
+	return NULL;
+
+    /* get pid */
+    pid = async_value_from_ctx(arg, (char_u*)"pid");
+    if (!pid){
+	EMSG(_("E999: async: no pid key found in ctx!"));
+	return NULL;
+    }
+
+    /* get pid as int from pid */
+    error = FALSE;
+    i_pid = get_tv_number_chk(pid, &error);
+    if (error == TRUE){
+	EMSG(_("E999: async: no valid pid found in dict!"));
+	return NULL;
+    }
+
+    for (ctx = async_task_list_head(); ctx; ctx = ctx->all_next) {
+	if (ctx->pid == i_pid)
+	    return ctx;
+    }
+
+    /* use format and add pid? */
+    EMSG(_("E999: async: process for pid not found. Has it died?"));
+    return NULL;
+}
+
+    list_T*
+prepare_async_data_list(ctx, data, len)
+    async_ctx_T	*ctx;
+    char_u	*data;
+    int		len;
+{
+    list_T *l = NULL;
+
+    if (len == 0) {
+	/* this happens when the task is finished,
+	 * we are to flush the pending buffer. */
+
+	if (!ctx->linefrag)
+	    return NULL;
+
+	l = list_alloc();
+	if (l == NULL)
+	    return NULL;
+
+	if (list_append_string(l, ctx->linefrag, 0) == FAIL) {
+	    list_free(l,0);
+	    return NULL;
+	}
+
+	vim_free(ctx->linefrag);
+	ctx->linefrag = NULL;
+
+    } else {
+	char_u *s, *p, *e;
+	unsigned count = 0;
+
+	l = list_alloc();
+	if (l == NULL)
+	    return NULL;
+
+	s = data;     /* start of line */
+	e = data+len; /* end of buffer */
+	while (s < e) {
+	    p = s;    /* end of line */
+	    while (s<e && *p && *p != NL)
+		p++;
+
+	    if (p==e) {
+		if (ctx->linefrag) {
+		    /* add to existing incomplete line */
+		    int olen = STRLEN(ctx->linefrag);
+		    char_u *nlf = vim_strnsave(ctx->linefrag,
+			    olen + (p-s) + 1);
+		    if (!nlf) {
+			list_free(l,0);
+			return NULL;
+		    }
+		    vim_free(ctx->linefrag);
+		    STRNCPY(nlf + olen, s, p-s);
+		    ctx->linefrag = nlf;
+		} else {
+		    /* store incomplete line */
+		    ctx->linefrag = vim_strnsave(s, p-s);
+		    if (!ctx->linefrag) {
+			list_free(l,0);
+			return NULL;
+		    }
+		}
+		break;
+	    }
+
+	    if (ctx->linefrag) {
+		/* we have a partial line left over from last run */
+		int olen = STRLEN(ctx->linefrag);
+		char_u *line = vim_strnsave(ctx->linefrag,
+			olen + (p-s) + 1);
+		if (!line) {
+		    list_free(l,0);
+		    return NULL;
+		}
+		STRNCPY(line + olen, s, p-s);
+		if (list_append_string(l, line, olen + p-s) == FAIL) {
+		    list_free(l,0);
+		    return NULL;
+		}
+		count ++;
+		vim_free(ctx->linefrag);
+		ctx->linefrag = NULL;
+		count ++;
+
+	    } else {
+		/* this is a complete line */
+		if (list_append_string(l, s, p-s) == FAIL) {
+		    list_free(l,0);
+		    return NULL;
+		}
+		count ++;
+	    }
+
+	    s = p + 1; /* advance to after the NL */
+	}
+    }
+
+    return l;
+}
+
+#endif
+
+#if HAVE_ASYNC_SHELL
+static async_ctx_T *async_all_task_list = NULL;
+static async_ctx_T *async_active_task_list = NULL;
+
+    void
+async_task_list_add(ctx)
+    async_ctx_T	*ctx;
+{
+    if (ctx->all_next)
+	return;
+
+    ctx->all_next = async_all_task_list;
+    async_all_task_list = ctx;
+}
+
+    void
+async_task_list_remove(ctx)
+    async_ctx_T	*ctx;
+{
+    async_ctx_T	**pprev=&async_all_task_list, *ent;
+
+    for (ent=async_all_task_list; ent; ent=ent->all_next) {
+	if (ent == ctx) {
+	    *pprev = ent->all_next;
+	    ent->all_next = NULL;
+	    return;
+	}
+
+	pprev = &ent->all_next;
+    }
+
+    return;
+}
+
+    async_ctx_T*
+async_task_list_head()
+{
+    return async_all_task_list;
+}
+
+    void
+async_active_task_list_add(ctx)
+    async_ctx_T	*ctx;
+{
+    if (ctx->act_next)
+	return;
+
+    ctx->act_next = async_active_task_list;
+    async_active_task_list = ctx;
+}
+
+    void
+async_active_task_list_remove(ctx)
+    async_ctx_T	*ctx;
+{
+    async_ctx_T	**pprev=&async_active_task_list, *ent;
+
+    for (ent=async_active_task_list; ent; ent=ent->act_next) {
+	if (ent == ctx) {
+	    *pprev = ent->act_next;
+	    ent->act_next = NULL;
+	    return;
+	}
+
+	pprev = &ent->act_next;
+    }
+
+    return;
+}
+
+    async_ctx_T*
+async_active_task_list_remove_head()
+{
+    async_ctx_T *ctx;
+
+    ctx = async_active_task_list;
+    if (!ctx)
+	return NULL;
+
+    async_active_task_list = ctx->act_next;
+    ctx->act_next = NULL;
+
+    return ctx;
+}
+
+#endif
+
 /*
  * Free the list of files returned by expand_wildcards() or other expansion
  * functions.

@@ -718,6 +718,12 @@ static void f_synIDtrans __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_synstack __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_synconcealed __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_system __ARGS((typval_T *argvars, typval_T *rettv));
+#ifdef FEAT_ASYNC
+static void f_async_exec __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_async_kill __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_async_list __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_async_write __ARGS((typval_T *argvars, typval_T *rettv));
+#endif
 static void f_tabpagebuflist __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_tabpagenr __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_tabpagewinnr __ARGS((typval_T *argvars, typval_T *rettv));
@@ -6644,6 +6650,9 @@ garbage_collect()
 #ifdef FEAT_WINDOWS
     tabpage_T	*tp;
 #endif
+#ifdef FEAT_ASYNC
+    async_ctx_T *actx;
+#endif
 
     /* Only do this once. */
     want_garbage_collect = FALSE;
@@ -6696,6 +6705,11 @@ garbage_collect()
 	set_ref_in_ht(&fc->l_vars.dv_hashtab, copyID);
 	set_ref_in_ht(&fc->l_avars.dv_hashtab, copyID);
     }
+
+#ifdef FEAT_ASYNC
+    for (actx=async_task_list_head(); actx; actx=actx->all_next)
+        set_ref_in_item(&actx->tv_dict, copyID);
+#endif
 
     /* v: vars */
     set_ref_in_ht(&vimvarht, copyID);
@@ -7721,6 +7735,14 @@ static struct fst
     {"argv",		0, 1, f_argv},
 #ifdef FEAT_FLOAT
     {"asin",		1, 1, f_asin},	/* WJMc */
+#endif
+#ifdef FEAT_ASYNC
+    {"async_exec",	1, 1, f_async_exec},
+    {"async_kill",	1, 1, f_async_kill},
+    {"async_list",	0, 0, f_async_list},
+    {"async_write",	2, 3, f_async_write},
+#endif
+#ifdef FEAT_FLOAT
     {"atan",		1, 1, f_atan},
     {"atan2",		2, 2, f_atan2},
 #endif
@@ -12254,6 +12276,9 @@ f_has(argvars, rettv)
 #endif
 #if defined(UNIX) && defined(FEAT_X11)
 	"X11",
+#endif
+#if defined(FEAT_ASYNC)
+	"async",
 #endif
 	NULL
     };
@@ -17498,6 +17523,216 @@ done:
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = res;
 }
+
+#ifdef FEAT_ASYNC
+/*
+ * "async_exec({ctx})" function
+ * see ../runtime/doc/async.txt
+ * returns 0 on failure, pid on success
+ */
+    static void
+f_async_exec(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    int		pid = -1;
+    typval_T	*viml_ctx;
+    async_ctx_T *ctx = NULL;
+    dictitem_T	*di;
+
+    viml_ctx = &argvars[0];
+
+    if (check_restricted() || check_secure())
+	goto done;
+
+    if (!async_assert_ctx(viml_ctx))
+	goto done;
+
+    ctx = alloc_async_ctx();
+    if (!ctx) {
+	EMSG(_("E999: Error allocating context"));
+	goto done;
+    }
+
+    di = dict_find(viml_ctx->vval.v_dict, (char_u*)"aslines" , -1);
+    if (di)
+	ctx->flags |= ACF_LINELIST;
+
+    di = dict_find(viml_ctx->vval.v_dict, (char_u*)"outtobufnr" , -1);
+    if (di) {
+	int error = FALSE;
+	ctx->flags |= ACF_OUTTOBUF;
+	ctx->bufnr = get_tv_number_chk(&di->di_tv, &error);
+	if (error) {
+	    EMSG(_("E999: async_exec: outtobufnr value must be a number"));
+	    goto done;
+	}
+    }
+
+    /* copy and refcount the vimL dict we were given */
+    copy_tv(viml_ctx, &ctx->tv_dict);
+
+    // not locking ctx->tv_dict
+    // so that users can add state to the VimL context easily
+    // There is the risk that users modify the pid and that the async_ctx_T can
+    // no longer be found. Users should know what they are doing.
+
+    pid = start_async_task(ctx);
+
+done:
+    /* on failure, free the new context */
+    if (pid == -1)
+	free_async_ctx(ctx);
+
+    rettv->v_type = VAR_NUMBER;
+    rettv->vval.v_number = pid;
+}
+
+/*
+ * "async_list()" function
+ * returns list of numbers representing PIDs of async processes
+ */
+    static void
+f_async_list (argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    async_ctx_T *ctx;
+
+    if (rettv_list_alloc(rettv) == FAIL)
+	return;
+
+    for (ctx = async_task_list_head(); ctx; ctx = ctx->all_next) {
+	if (list_append_tv(rettv->vval.v_list, &ctx->tv_dict) == FAIL)
+	    break;
+    }
+}
+
+/*
+ * "async_kill({ctx})" function
+ */
+    static void
+f_async_kill (argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    async_ctx_T *ctx;
+
+    ctx = find_async_ctx_for_vim_ctx(&argvars[0]);
+    if (!ctx){
+	// TODO: return 1 indicating failure?
+	return;
+    }
+
+    kill_async_task(ctx);
+}
+
+/*
+ * "async_write({ctx}, {data}, {fd})" function
+ * {data} can be a string or a list
+ * Returns bytes/lines written.
+ */
+    static void
+f_async_write (argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    async_ctx_T *ctx;
+    char_u	buf[NUMBUFLEN];
+    list_T	*lines = NULL;
+    u_char	*input;
+    size_t	len = 0;
+    size_t	written = (size_t)-1;
+    int		fd = 0;
+
+    ctx = find_async_ctx_for_vim_ctx(&argvars[0]);
+    if (!ctx) {
+	goto done;
+    }
+
+    switch (argvars[1].v_type) {
+    case VAR_STRING:
+	input = get_tv_string_buf_chk(&argvars[1], buf);
+	if (!input) {
+	    EMSG(_("E999: async_write: getting input failed"));
+	    goto done;
+	}
+	len = STRLEN(input);
+	break;
+    case VAR_LIST:
+	/* TODO: fix me */
+	lines = argvars[1].vval.v_list;
+	EMSG(_("E999: async_write doesn't take list yet"));
+	goto done;
+    default:
+	EMSG(_("E999: async_write expecting string or List for 2nd argument"));
+	goto done;
+    }
+
+    if (argvars[2].v_type != VAR_UNKNOWN) {
+	int error = FALSE;
+	fd = get_tv_number_chk(&argvars[2], &error);
+	if (error)
+	    goto done;
+	/* FIXME: should support other fd's at some point */
+	if (fd != 0) {
+	    EMSG(_("E999: async_write only support fd==0 "));
+	    goto done;
+	}
+    }
+
+#if 0
+    if (lines) {
+	... for each entery ...
+	    ... convert into string ...
+	    ... write it ...
+    } else {
+	... write the buffer ...
+    }
+#endif
+    // TODO: write() has to be wrapped in a mch function since we cannot assume
+    //       that all platforms will have simple posix semantics here
+    written = write(ctx->fd_pipe_toshell, input, len);
+    if (written != len)
+	EMSG(_("E999: async: failed writing all bytes"));
+
+done:
+    rettv->v_type = VAR_NUMBER;
+    rettv->vval.v_number = written;
+}
+
+/*
+ * call an async function
+ */
+    void
+call_async_callback(ctx, name, argcount, argvars)
+    async_ctx_T	*ctx;
+    u_char	*name;
+    int		argcount;
+    typval_T	*argvars;	/* arguments */
+{
+    typval_T	*viml_ctx;
+    typval_T	*f = NULL;
+    typval_T	rettv;
+    u_char	*func;
+    int		dummy;
+
+    viml_ctx = &ctx->tv_dict;
+
+    f = async_value_from_ctx(viml_ctx, name);
+    if (!f || f->v_type != VAR_FUNC) {
+	if (!f || f->v_type != VAR_UNKNOWN)
+	    EMSG2(_("E999: async: '%s' is not a function"),
+		    name);
+	return;
+    }
+
+    rettv.v_type = VAR_UNKNOWN;
+    func = f->vval.v_string;
+    call_func(func, STRLEN(func), &rettv, argcount, argvars, 0, 0, &dummy, TRUE, viml_ctx->vval.v_dict);
+    clear_tv(&rettv);
+}
+#endif
 
 /*
  * "tabpagebuflist()" function
