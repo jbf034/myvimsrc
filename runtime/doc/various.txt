@@ -1,4 +1,4 @@
-*various.txt*   For Vim version 7.3.  Last change: 2011 Mar 03
+*various.txt*   For Vim version 7.3.  Last change: 2011 Oct 1st
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -360,8 +360,6 @@ m  *+mzscheme*		Mzscheme interface |mzscheme|
 m  *+mzscheme/dyn*	Mzscheme interface |mzscheme-dynamic| |/dyn|
 m  *+netbeans_intg*	|netbeans|
 m  *+ole*		Win32 GUI only: |ole-interface|
-   *+osfiletype*	Support for the 'osfiletype' option and filetype
-			checking in automatic commands.  |autocmd-osfiletypes|
 N  *+path_extra*	Up/downwards search in 'path' and 'tags'
 m  *+perl*		Perl interface |perl|
 m  *+perl/dyn*		Perl interface |perl-dynamic| |/dyn|
@@ -604,6 +602,10 @@ K			Run a program to lookup the keyword under the
 			"gs" stands for "goto sleep".
 			While sleeping the cursor is positioned in the text,
 			if at a visible position.  {not in Vi}
+			Also process the received netbeans messages. {only
+			available when compiled with the |+netbeans_intg|
+			feature}
+
 
 							*g_CTRL-A*
 g CTRL-A		Only when Vim was compiled with MEM_PROFILING defined

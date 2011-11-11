@@ -380,9 +380,6 @@ static dictitem_T	vimvars_var;
 
 static void prepare_vimvar __ARGS((int idx, typval_T *save_tv));
 static void restore_vimvar __ARGS((int idx, typval_T *save_tv));
-#if defined(FEAT_USR_CMDS) && defined(FEAT_CMDL_COMPL)
-static int call_vim_function __ARGS((char_u *func, int argc, char_u **argv, int safe, typval_T *rettv));
-#endif
 static int ex_let_vars __ARGS((char_u *arg, typval_T *tv, int copy, int semicolon, int var_count, char_u *nextchars));
 static char_u *skip_var_list __ARGS((char_u *arg, int *var_count, int *semicolon));
 static char_u *skip_var_one __ARGS((char_u *arg));
@@ -451,7 +448,6 @@ static void set_ref_in_ht __ARGS((hashtab_T *ht, int copyID));
 static void set_ref_in_list __ARGS((list_T *l, int copyID));
 static void set_ref_in_item __ARGS((typval_T *tv, int copyID));
 static int rettv_dict_alloc __ARGS((typval_T *rettv));
-static void dict_unref __ARGS((dict_T *d));
 static void dict_free __ARGS((dict_T *d, int recurse));
 static dictitem_T *dictitem_copy __ARGS((dictitem_T *org));
 static void dictitem_remove __ARGS((dict_T *dict, dictitem_T *item));
@@ -1357,7 +1353,11 @@ eval_to_string(arg, nextcmd, convert)
 	{
 	    ga_init2(&ga, (int)sizeof(char), 80);
 	    if (tv.vval.v_list != NULL)
+	    {
 		list_join(&ga, tv.vval.v_list, (char_u *)"\n", TRUE, 0);
+		if (tv.vval.v_list->lv_len > 0)
+		    ga_append(&ga, NL);
+	    }
 	    ga_append(&ga, NUL);
 	    retval = (char_u *)ga.ga_data;
 	}
@@ -1559,7 +1559,7 @@ eval_expr(arg, nextcmd)
  * arguments are currently supported.
  * Returns OK or FAIL.
  */
-    static int
+    int
 call_vim_function(func, argc, argv, safe, rettv)
     char_u      *func;
     int		argc;
@@ -3377,7 +3377,10 @@ ex_call(eap)
 	/* trans_function_name() doesn't work well when skipping, use eval0()
 	 * instead to skip to any following command, e.g. for:
 	 *   :if 0 | call dict.foo().bar() | endif  */
-	eval0(eap->arg, &rettv, &eap->nextcmd, FALSE);
+	++emsg_skip;
+	if (eval0(eap->arg, &rettv, &eap->nextcmd, FALSE) != FAIL)
+	    clear_tv(&rettv);
+	--emsg_skip;
 	return;
     }
 
@@ -3430,6 +3433,9 @@ ex_call(eap)
 	{
 	    curwin->w_cursor.lnum = lnum;
 	    curwin->w_cursor.col = 0;
+#ifdef FEAT_VIRTUALEDIT
+	    curwin->w_cursor.coladd = 0;
+#endif
 	}
 	arg = startarg;
 	if (get_func_tv(name, (int)STRLEN(name), &rettv, &arg,
@@ -6896,7 +6902,7 @@ rettv_dict_alloc(rettv)
  * Unreference a Dictionary: decrement the reference count and free it when it
  * becomes zero.
  */
-    static void
+    void
 dict_unref(d)
     dict_T *d;
 {
@@ -7930,7 +7936,7 @@ static struct fst
     {"sin",		1, 1, f_sin},
     {"sinh",		1, 1, f_sinh},
 #endif
-    {"sort",		1, 2, f_sort},
+    {"sort",		1, 3, f_sort},
     {"soundfold",	1, 1, f_soundfold},
     {"spellbadword",	0, 1, f_spellbadword},
     {"spellsuggest",	1, 3, f_spellsuggest},
@@ -11931,7 +11937,7 @@ f_has(argvars, rettv)
 #ifdef FEAT_SEARCHPATH
 	"file_in_path",
 #endif
-#if defined(UNIX) && !defined(USE_SYSTEM)
+#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264)
 	"filterpipe",
 #endif
 #ifdef FEAT_FIND_ID
@@ -14318,7 +14324,7 @@ f_readfile(argvars, rettv)
 	tolist = 0;
 	for ( ; filtd < buflen || readlen <= 0; ++filtd)
 	{
-	    if (buf[filtd] == '\n' || readlen <= 0)
+	    if (readlen <= 0 || buf[filtd] == '\n')
 	    {
 		/* In binary mode add an empty list item when the last
 		 * non-empty line ends in a '\n'. */
@@ -16366,6 +16372,7 @@ static int
 
 static int	item_compare_ic;
 static char_u	*item_compare_func;
+static dict_T	*item_compare_selfdict;
 static int	item_compare_func_err;
 #define ITEM_COMPARE_FAIL 999
 
@@ -16425,7 +16432,8 @@ item_compare2(s1, s2)
 
     rettv.v_type = VAR_UNKNOWN;		/* clear_tv() uses this */
     res = call_func(item_compare_func, (int)STRLEN(item_compare_func),
-				 &rettv, 2, argv, 0L, 0L, &dummy, TRUE, NULL);
+				 &rettv, 2, argv, 0L, 0L, &dummy, TRUE,
+				 item_compare_selfdict);
     clear_tv(&argv[0]);
     clear_tv(&argv[1]);
 
@@ -16471,8 +16479,10 @@ f_sort(argvars, rettv)
 
 	item_compare_ic = FALSE;
 	item_compare_func = NULL;
+	item_compare_selfdict = NULL;
 	if (argvars[1].v_type != VAR_UNKNOWN)
 	{
+	    /* optional second argument: {func} */
 	    if (argvars[1].v_type == VAR_FUNC)
 		item_compare_func = argvars[1].vval.v_string;
 	    else
@@ -16486,6 +16496,17 @@ f_sort(argvars, rettv)
 		    item_compare_ic = TRUE;
 		else
 		    item_compare_func = get_tv_string(&argvars[1]);
+	    }
+
+	    if (argvars[2].v_type != VAR_UNKNOWN)
+	    {
+		/* optional third argument: {dict} */
+		if (argvars[2].v_type != VAR_DICT)
+		{
+		    EMSG(_(e_dictreq));
+		    return;
+		}
+		item_compare_selfdict = argvars[2].vval.v_dict;
 	    }
 	}
 
@@ -20443,6 +20464,7 @@ ex_function(eap)
     exarg_T	*eap;
 {
     char_u	*theline;
+    int		i;
     int		j;
     int		c;
     int		saved_did_emsg;
@@ -20689,6 +20711,15 @@ ex_function(eap)
 	    arg = vim_strsave(arg);
 	    if (arg == NULL)
 		goto erret;
+
+	    /* Check for duplicate argument name. */
+	    for (i = 0; i < newargs.ga_len; ++i)
+		if (STRCMP(((char_u **)(newargs.ga_data))[i], arg) == 0)
+		{
+		    EMSG2(_("E853: Duplicate argument name: %s"), arg);
+		    goto erret;
+		}
+
 	    ((char_u **)(newargs.ga_data))[newargs.ga_len] = arg;
 	    *p = c;
 	    newargs.ga_len++;
@@ -20764,7 +20795,8 @@ ex_function(eap)
     nesting = 0;
     for (;;)
     {
-	msg_scroll = TRUE;
+	if (KeyTyped)
+	    msg_scroll = TRUE;
 	need_wait_return = FALSE;
 	sourcing_lnum_off = sourcing_lnum;
 
@@ -20867,6 +20899,8 @@ ex_function(eap)
 				    && (!ASCII_ISALPHA(p[2]) || p[2] == 'r'))
 			|| (p[0] == 't' && p[1] == 'c'
 				    && (!ASCII_ISALPHA(p[2]) || p[2] == 'l'))
+			|| (p[0] == 'l' && p[1] == 'u' && p[2] == 'a'
+				    && !ASCII_ISALPHA(p[3]))
 			|| (p[0] == 'r' && p[1] == 'u' && p[2] == 'b'
 				    && (!ASCII_ISALPHA(p[3]) || p[3] == 'y'))
 			|| (p[0] == 'm' && p[1] == 'z'
@@ -23183,6 +23217,7 @@ modify_fname(src, usedlen, fnamep, bufp, fnamelen)
     int		c;
     int		has_fullname = 0;
 #ifdef WIN3264
+    char_u	*fname_start = *fnamep;
     int		has_shortname = 0;
 #endif
 
@@ -23357,24 +23392,25 @@ repeat:
     }
 
 #ifdef WIN3264
-    /* Check shortname after we have done 'heads' and before we do 'tails'
+    /*
+     * Handle ":8" after we have done 'heads' and before we do 'tails'.
      */
     if (has_shortname)
     {
-	pbuf = NULL;
-	/* Copy the string if it is shortened by :h */
-	if (*fnamelen < (int)STRLEN(*fnamep))
+	/* Copy the string if it is shortened by :h and when it wasn't copied
+	 * yet, because we are going to change it in place.  Avoids changing
+	 * the buffer name for "%:8". */
+	if (*fnamelen < (int)STRLEN(*fnamep) || *fnamep == fname_start)
 	{
 	    p = vim_strnsave(*fnamep, *fnamelen);
-	    if (p == 0)
+	    if (p == NULL)
 		return -1;
 	    vim_free(*bufp);
 	    *bufp = *fnamep = p;
 	}
 
 	/* Split into two implementations - makes it easier.  First is where
-	 * there isn't a full name already, second is where there is.
-	 */
+	 * there isn't a full name already, second is where there is. */
 	if (!has_fullname && !vim_isAbsName(*fnamep))
 	{
 	    if (shortpath_for_partial(fnamep, bufp, fnamelen) == FAIL)
@@ -23382,18 +23418,16 @@ repeat:
 	}
 	else
 	{
-	    int		l;
+	    int		l = *fnamelen;
 
-	    /* Simple case, already have the full-name
+	    /* Simple case, already have the full-name.
 	     * Nearly always shorter, so try first time. */
-	    l = *fnamelen;
 	    if (get_short_pathname(fnamep, bufp, &l) == FAIL)
 		return -1;
 
 	    if (l == 0)
 	    {
-		/* Couldn't find the filename.. search the paths.
-		 */
+		/* Couldn't find the filename, search the paths. */
 		l = *fnamelen;
 		if (shortpath_for_invalid_fname(fnamep, bufp, &l) == FAIL)
 		    return -1;
