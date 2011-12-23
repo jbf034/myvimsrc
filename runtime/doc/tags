@@ -154,12 +154,14 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'cscopepathcomp'	options.txt	/*'cscopepathcomp'*
 'cscopeprg'	options.txt	/*'cscopeprg'*
 'cscopequickfix'	options.txt	/*'cscopequickfix'*
+'cscoperelative'	options.txt	/*'cscoperelative'*
 'cscopetag'	options.txt	/*'cscopetag'*
 'cscopetagorder'	options.txt	/*'cscopetagorder'*
 'cscopeverbose'	options.txt	/*'cscopeverbose'*
 'cspc'	options.txt	/*'cspc'*
 'csprg'	options.txt	/*'csprg'*
 'csqf'	options.txt	/*'csqf'*
+'csre'	options.txt	/*'csre'*
 'cst'	options.txt	/*'cst'*
 'csto'	options.txt	/*'csto'*
 'csverb'	options.txt	/*'csverb'*
@@ -1182,6 +1184,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 +mouse_netterm	various.txt	/*+mouse_netterm*
 +mouse_pterm	various.txt	/*+mouse_pterm*
 +mouse_sysmouse	various.txt	/*+mouse_sysmouse*
++mouse_urxvt	various.txt	/*+mouse_urxvt*
 +mouse_xterm	various.txt	/*+mouse_xterm*
 +mouseshape	various.txt	/*+mouseshape*
 +multi_byte	various.txt	/*+multi_byte*
@@ -1191,7 +1194,6 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 +mzscheme/dyn	various.txt	/*+mzscheme\/dyn*
 +netbeans_intg	various.txt	/*+netbeans_intg*
 +ole	various.txt	/*+ole*
-+osfiletype	various.txt	/*+osfiletype*
 +path_extra	various.txt	/*+path_extra*
 +perl	various.txt	/*+perl*
 +perl/dyn	various.txt	/*+perl\/dyn*
@@ -2091,6 +2093,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :display	change.txt	/*:display*
 :dj	tagsrch.txt	/*:dj*
 :djump	tagsrch.txt	/*:djump*
+:dl	change.txt	/*:dl*
 :dli	tagsrch.txt	/*:dli*
 :dlist	tagsrch.txt	/*:dlist*
 :do	autocmd.txt	/*:do*
@@ -3705,7 +3708,6 @@ E362	term.txt	/*E362*
 E363	options.txt	/*E363*
 E364	eval.txt	/*E364*
 E365	print.txt	/*E365*
-E366	options.txt	/*E366*
 E367	autocmd.txt	/*E367*
 E368	eval.txt	/*E368*
 E369	pattern.txt	/*E369*
@@ -3970,8 +3972,6 @@ E607	eval.txt	/*E607*
 E608	eval.txt	/*E608*
 E609	if_cscop.txt	/*E609*
 E61	pattern.txt	/*E61*
-E610	options.txt	/*E610*
-E611	options.txt	/*E611*
 E612	sign.txt	/*E612*
 E613	print.txt	/*E613*
 E614	editing.txt	/*E614*
@@ -4235,6 +4235,10 @@ E848	syntax.txt	/*E848*
 E849	syntax.txt	/*E849*
 E85	options.txt	/*E85*
 E850	change.txt	/*E850*
+E851	gui_x11.txt	/*E851*
+E852	gui_x11.txt	/*E852*
+E853	eval.txt	/*E853*
+E854	options.txt	/*E854*
 E86	windows.txt	/*E86*
 E87	windows.txt	/*E87*
 E88	windows.txt	/*E88*
@@ -4304,6 +4308,7 @@ IME	mbyte.txt	/*IME*
 Insert	insert.txt	/*Insert*
 Insert-mode	insert.txt	/*Insert-mode*
 InsertChange	autocmd.txt	/*InsertChange*
+InsertCharPre	autocmd.txt	/*InsertCharPre*
 InsertEnter	autocmd.txt	/*InsertEnter*
 InsertLeave	autocmd.txt	/*InsertLeave*
 J	change.txt	/*J*
@@ -4683,6 +4688,7 @@ alt	intro.txt	/*alt*
 alt-input	debugger.txt	/*alt-input*
 alternate-file	editing.txt	/*alternate-file*
 amiga-window	starting.txt	/*amiga-window*
+and()	eval.txt	/*and()*
 anonymous-function	eval.txt	/*anonymous-function*
 ant.vim	syntax.txt	/*ant.vim*
 ap	motion.txt	/*ap*
@@ -4959,6 +4965,40 @@ charset-conversion	mbyte.txt	/*charset-conversion*
 chill.vim	syntax.txt	/*chill.vim*
 cindent()	eval.txt	/*cindent()*
 cinkeys-format	indent.txt	/*cinkeys-format*
+cino-#	indent.txt	/*cino-#*
+cino-(	indent.txt	/*cino-(*
+cino-)	indent.txt	/*cino-)*
+cino-+	indent.txt	/*cino-+*
+cino-/	indent.txt	/*cino-\/*
+cino-:	indent.txt	/*cino-:*
+cino-=	indent.txt	/*cino-=*
+cino->	indent.txt	/*cino->*
+cino-C	indent.txt	/*cino-C*
+cino-J	indent.txt	/*cino-J*
+cino-L	indent.txt	/*cino-L*
+cino-M	indent.txt	/*cino-M*
+cino-N	indent.txt	/*cino-N*
+cino-U	indent.txt	/*cino-U*
+cino-W	indent.txt	/*cino-W*
+cino-^	indent.txt	/*cino-^*
+cino-b	indent.txt	/*cino-b*
+cino-c	indent.txt	/*cino-c*
+cino-e	indent.txt	/*cino-e*
+cino-f	indent.txt	/*cino-f*
+cino-g	indent.txt	/*cino-g*
+cino-h	indent.txt	/*cino-h*
+cino-i	indent.txt	/*cino-i*
+cino-j	indent.txt	/*cino-j*
+cino-l	indent.txt	/*cino-l*
+cino-m	indent.txt	/*cino-m*
+cino-n	indent.txt	/*cino-n*
+cino-p	indent.txt	/*cino-p*
+cino-star	indent.txt	/*cino-star*
+cino-t	indent.txt	/*cino-t*
+cino-u	indent.txt	/*cino-u*
+cino-w	indent.txt	/*cino-w*
+cino-{	indent.txt	/*cino-{*
+cino-}	indent.txt	/*cino-}*
 cinoptions-values	indent.txt	/*cinoptions-values*
 clear-undo	undo.txt	/*clear-undo*
 clearmatches()	eval.txt	/*clearmatches()*
@@ -5063,6 +5103,7 @@ cpo-+	options.txt	/*cpo-+*
 cpo--	options.txt	/*cpo--*
 cpo-.	options.txt	/*cpo-.*
 cpo-/	options.txt	/*cpo-\/*
+cpo-;	options.txt	/*cpo-;*
 cpo-<	options.txt	/*cpo-<*
 cpo->	options.txt	/*cpo->*
 cpo-A	options.txt	/*cpo-A*
@@ -5132,6 +5173,7 @@ cscope_connection()	eval.txt	/*cscope_connection()*
 cscopepathcomp	if_cscop.txt	/*cscopepathcomp*
 cscopeprg	if_cscop.txt	/*cscopeprg*
 cscopequickfix	if_cscop.txt	/*cscopequickfix*
+cscoperelative	if_cscop.txt	/*cscoperelative*
 cscopetag	if_cscop.txt	/*cscopetag*
 cscopetagorder	if_cscop.txt	/*cscopetagorder*
 cscopeverbose	if_cscop.txt	/*cscopeverbose*
@@ -5139,6 +5181,7 @@ csh.vim	syntax.txt	/*csh.vim*
 cspc	if_cscop.txt	/*cspc*
 csprg	if_cscop.txt	/*csprg*
 csqf	if_cscop.txt	/*csqf*
+csre	if_cscop.txt	/*csre*
 cst	if_cscop.txt	/*cst*
 csto	if_cscop.txt	/*csto*
 csverb	if_cscop.txt	/*csverb*
@@ -5416,6 +5459,11 @@ expr-env	eval.txt	/*expr-env*
 expr-env-expand	eval.txt	/*expr-env-expand*
 expr-function	eval.txt	/*expr-function*
 expr-is	eval.txt	/*expr-is*
+expr-is#	eval.txt	/*expr-is#*
+expr-is?	eval.txt	/*expr-is?*
+expr-isnot	eval.txt	/*expr-isnot*
+expr-isnot#	eval.txt	/*expr-isnot#*
+expr-isnot?	eval.txt	/*expr-isnot?*
 expr-nesting	eval.txt	/*expr-nesting*
 expr-number	eval.txt	/*expr-number*
 expr-option	eval.txt	/*expr-option*
@@ -5649,6 +5697,7 @@ ft-ptcap-syntax	syntax.txt	/*ft-ptcap-syntax*
 ft-python-indent	indent.txt	/*ft-python-indent*
 ft-python-syntax	syntax.txt	/*ft-python-syntax*
 ft-quake-syntax	syntax.txt	/*ft-quake-syntax*
+ft-r-indent	indent.txt	/*ft-r-indent*
 ft-readline-syntax	syntax.txt	/*ft-readline-syntax*
 ft-rexx-syntax	syntax.txt	/*ft-rexx-syntax*
 ft-ruby-omni	insert.txt	/*ft-ruby-omni*
@@ -5715,6 +5764,7 @@ g-	undo.txt	/*g-*
 g0	motion.txt	/*g0*
 g8	various.txt	/*g8*
 g:NetrwTopLvlMenu	pi_netrw.txt	/*g:NetrwTopLvlMenu*
+g:Netrw_corehandler	pi_netrw.txt	/*g:Netrw_corehandler*
 g:Netrw_funcref	pi_netrw.txt	/*g:Netrw_funcref*
 g:ada#Comment	ft_ada.txt	/*g:ada#Comment*
 g:ada#Ctags_Kinds	ft_ada.txt	/*g:ada#Ctags_Kinds*
@@ -5744,6 +5794,8 @@ g:decada.Error_Format	ft_ada.txt	/*g:decada.Error_Format*
 g:decada.Make()	ft_ada.txt	/*g:decada.Make()*
 g:decada.Make_Command	ft_ada.txt	/*g:decada.Make_Command*
 g:decada.Unit_Name()	ft_ada.txt	/*g:decada.Unit_Name()*
+g:filetype_csh	syntax.txt	/*g:filetype_csh*
+g:filetype_r	syntax.txt	/*g:filetype_r*
 g:gnat	ft_ada.txt	/*g:gnat*
 g:gnat.Error_Format	ft_ada.txt	/*g:gnat.Error_Format*
 g:gnat.Find()	ft_ada.txt	/*g:gnat.Find()*
@@ -5800,9 +5852,11 @@ g:netrw_maxfilenamelen	pi_netrw.txt	/*g:netrw_maxfilenamelen*
 g:netrw_menu	pi_netrw.txt	/*g:netrw_menu*
 g:netrw_mkdir_cmd	pi_netrw.txt	/*g:netrw_mkdir_cmd*
 g:netrw_mousemaps	pi_netrw.txt	/*g:netrw_mousemaps*
+g:netrw_nobeval	pi_netrw.txt	/*g:netrw_nobeval*
 g:netrw_nogx	pi_netrw.txt	/*g:netrw_nogx*
 g:netrw_preview	pi_netrw.txt	/*g:netrw_preview*
 g:netrw_rcp_cmd	pi_netrw.txt	/*g:netrw_rcp_cmd*
+g:netrw_remote_mkdir	pi_netrw.txt	/*g:netrw_remote_mkdir*
 g:netrw_retmap	pi_netrw.txt	/*g:netrw_retmap*
 g:netrw_rm_cmd	pi_netrw.txt	/*g:netrw_rm_cmd*
 g:netrw_rmdir_cmd	pi_netrw.txt	/*g:netrw_rmdir_cmd*
@@ -5830,6 +5884,8 @@ g:netrw_use_nt_rcp	pi_netrw.txt	/*g:netrw_use_nt_rcp*
 g:netrw_win95ftp	pi_netrw.txt	/*g:netrw_win95ftp*
 g:netrw_winsize	pi_netrw.txt	/*g:netrw_winsize*
 g:netrw_xstrlen	pi_netrw.txt	/*g:netrw_xstrlen*
+g:sh_isk	syntax.txt	/*g:sh_isk*
+g:sh_noisk	syntax.txt	/*g:sh_noisk*
 g:syntax_on	syntax.txt	/*g:syntax_on*
 g:tar_browseoptions	pi_tar.txt	/*g:tar_browseoptions*
 g:tar_cmd	pi_tar.txt	/*g:tar_cmd*
@@ -5979,6 +6035,7 @@ gtk-tooltip-colors	gui_x11.txt	/*gtk-tooltip-colors*
 gu	change.txt	/*gu*
 gugu	change.txt	/*gugu*
 gui	gui.txt	/*gui*
+gui-IME	gui.txt	/*gui-IME*
 gui-clipboard	gui_w32.txt	/*gui-clipboard*
 gui-colors	syntax.txt	/*gui-colors*
 gui-extras	gui.txt	/*gui-extras*
@@ -6077,6 +6134,7 @@ helpfile_name.txt	helphelp.txt	/*helpfile_name.txt*
 helphelp	helphelp.txt	/*helphelp*
 helphelp.txt	helphelp.txt	/*helphelp.txt*
 hex-editing	tips.txt	/*hex-editing*
+hex-number	eval.txt	/*hex-number*
 hidden-buffer	windows.txt	/*hidden-buffer*
 hidden-changed	version5.txt	/*hidden-changed*
 hidden-menus	gui.txt	/*hidden-menus*
@@ -6187,6 +6245,7 @@ i)	motion.txt	/*i)*
 i<	motion.txt	/*i<*
 i>	motion.txt	/*i>*
 iB	motion.txt	/*iB*
+iBus	gui.txt	/*iBus*
 iW	motion.txt	/*iW*
 i[	motion.txt	/*i[*
 i]	motion.txt	/*i]*
@@ -6382,6 +6441,7 @@ internet	intro.txt	/*internet*
 intro	intro.txt	/*intro*
 intro.txt	intro.txt	/*intro.txt*
 inverse	syntax.txt	/*inverse*
+invert()	eval.txt	/*invert()*
 ip	motion.txt	/*ip*
 iquote	motion.txt	/*iquote*
 is	motion.txt	/*is*
@@ -6719,6 +6779,7 @@ netrw-browse-cmds	pi_netrw.txt	/*netrw-browse-cmds*
 netrw-browse-maps	pi_netrw.txt	/*netrw-browse-maps*
 netrw-browser	pi_netrw.txt	/*netrw-browser*
 netrw-browser-options	pi_netrw.txt	/*netrw-browser-options*
+netrw-browser-settings	pi_netrw.txt	/*netrw-browser-settings*
 netrw-browser-var	pi_netrw.txt	/*netrw-browser-var*
 netrw-browsing	pi_netrw.txt	/*netrw-browsing*
 netrw-c	pi_netrw.txt	/*netrw-c*
@@ -6767,6 +6828,7 @@ netrw-history	pi_netrw.txt	/*netrw-history*
 netrw-horiz	pi_netrw.txt	/*netrw-horiz*
 netrw-i	pi_netrw.txt	/*netrw-i*
 netrw-incompatible	pi_netrw.txt	/*netrw-incompatible*
+netrw-internal-variables	pi_netrw.txt	/*netrw-internal-variables*
 netrw-intro-browse	pi_netrw.txt	/*netrw-intro-browse*
 netrw-leftmouse	pi_netrw.txt	/*netrw-leftmouse*
 netrw-list	pi_netrw.txt	/*netrw-list*
@@ -6807,6 +6869,8 @@ netrw-p10	pi_netrw.txt	/*netrw-p10*
 netrw-p11	pi_netrw.txt	/*netrw-p11*
 netrw-p12	pi_netrw.txt	/*netrw-p12*
 netrw-p13	pi_netrw.txt	/*netrw-p13*
+netrw-p14	pi_netrw.txt	/*netrw-p14*
+netrw-p15	pi_netrw.txt	/*netrw-p15*
 netrw-p2	pi_netrw.txt	/*netrw-p2*
 netrw-p3	pi_netrw.txt	/*netrw-p3*
 netrw-p4	pi_netrw.txt	/*netrw-p4*
@@ -6842,8 +6906,10 @@ netrw-rexplore	pi_netrw.txt	/*netrw-rexplore*
 netrw-rightmouse	pi_netrw.txt	/*netrw-rightmouse*
 netrw-s	pi_netrw.txt	/*netrw-s*
 netrw-settings	pi_netrw.txt	/*netrw-settings*
+netrw-settings-window	pi_netrw.txt	/*netrw-settings-window*
 netrw-sexplore	pi_netrw.txt	/*netrw-sexplore*
 netrw-sort	pi_netrw.txt	/*netrw-sort*
+netrw-sort-sequence	pi_netrw.txt	/*netrw-sort-sequence*
 netrw-sortsequence	pi_netrw.txt	/*netrw-sortsequence*
 netrw-source	pi_netrw.txt	/*netrw-source*
 netrw-ssh-hack	pi_netrw.txt	/*netrw-ssh-hack*
@@ -6855,13 +6921,13 @@ netrw-start	pi_netrw.txt	/*netrw-start*
 netrw-t	pi_netrw.txt	/*netrw-t*
 netrw-texplore	pi_netrw.txt	/*netrw-texplore*
 netrw-todo	pi_netrw.txt	/*netrw-todo*
+netrw-trailingslash	pi_netrw.txt	/*netrw-trailingslash*
 netrw-transparent	pi_netrw.txt	/*netrw-transparent*
 netrw-u	pi_netrw.txt	/*netrw-u*
 netrw-updir	pi_netrw.txt	/*netrw-updir*
 netrw-urls	pi_netrw.txt	/*netrw-urls*
 netrw-userpass	pi_netrw.txt	/*netrw-userpass*
 netrw-v	pi_netrw.txt	/*netrw-v*
-netrw-var	pi_netrw.txt	/*netrw-var*
 netrw-variables	pi_netrw.txt	/*netrw-variables*
 netrw-vexplore	pi_netrw.txt	/*netrw-vexplore*
 netrw-write	pi_netrw.txt	/*netrw-write*
@@ -6975,6 +7041,7 @@ objects	index.txt	/*objects*
 obtaining-exted	netbeans.txt	/*obtaining-exted*
 ocaml.vim	syntax.txt	/*ocaml.vim*
 octal	eval.txt	/*octal*
+octal-number	eval.txt	/*octal-number*
 octal-number	options.txt	/*octal-number*
 oldfiles-variable	eval.txt	/*oldfiles-variable*
 ole-activation	if_ole.txt	/*ole-activation*
@@ -7000,6 +7067,7 @@ options	options.txt	/*options*
 options-changed	version5.txt	/*options-changed*
 options.txt	options.txt	/*options.txt*
 optwin	options.txt	/*optwin*
+or()	eval.txt	/*or()*
 oracle	ft_sql.txt	/*oracle*
 os2	os_os2.txt	/*os2*
 os2ansi	os_os2.txt	/*os2ansi*
@@ -7279,17 +7347,6 @@ right-justify	change.txt	/*right-justify*
 rileft	rileft.txt	/*rileft*
 rileft.txt	rileft.txt	/*rileft.txt*
 riscos	os_risc.txt	/*riscos*
-riscos-commandline	os_risc.txt	/*riscos-commandline*
-riscos-filetypes	os_risc.txt	/*riscos-filetypes*
-riscos-gui	os_risc.txt	/*riscos-gui*
-riscos-interrupt	os_risc.txt	/*riscos-interrupt*
-riscos-locations	os_risc.txt	/*riscos-locations*
-riscos-memory	os_risc.txt	/*riscos-memory*
-riscos-munging	os_risc.txt	/*riscos-munging*
-riscos-porting	os_risc.txt	/*riscos-porting*
-riscos-remote	os_risc.txt	/*riscos-remote*
-riscos-shell	os_risc.txt	/*riscos-shell*
-riscos-temp-files	os_risc.txt	/*riscos-temp-files*
 rot13	change.txt	/*rot13*
 round()	eval.txt	/*round()*
 rsync	pi_netrw.txt	/*rsync*
@@ -7407,6 +7464,8 @@ setuid	change.txt	/*setuid*
 setwinvar()	eval.txt	/*setwinvar()*
 sftp	pi_netrw.txt	/*sftp*
 sgml.vim	syntax.txt	/*sgml.vim*
+sh-awk	syntax.txt	/*sh-awk*
+sh-embed	syntax.txt	/*sh-embed*
 sh.vim	syntax.txt	/*sh.vim*
 shell-window	tips.txt	/*shell-window*
 shell_error-variable	eval.txt	/*shell_error-variable*
@@ -8015,6 +8074,7 @@ unix	os_unix.txt	/*unix*
 unlisted-buffer	windows.txt	/*unlisted-buffer*
 up-down-motions	motion.txt	/*up-down-motions*
 uppercase	change.txt	/*uppercase*
+urxvt-mouse	options.txt	/*urxvt-mouse*
 use-cpo-save	usr_41.txt	/*use-cpo-save*
 use-visual-cmds	version4.txt	/*use-visual-cmds*
 useful-mappings	tips.txt	/*useful-mappings*
@@ -8453,6 +8513,7 @@ xiterm	syntax.txt	/*xiterm*
 xml-folding	syntax.txt	/*xml-folding*
 xml-omni-datafile	insert.txt	/*xml-omni-datafile*
 xml.vim	syntax.txt	/*xml.vim*
+xor()	eval.txt	/*xor()*
 xpm.vim	syntax.txt	/*xpm.vim*
 xterm-8-bit	term.txt	/*xterm-8-bit*
 xterm-8bit	term.txt	/*xterm-8bit*

@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2011 May 19
+" Last Change:	2011 Oct 26
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -566,7 +566,10 @@ au BufNewFile,BufRead *.d			call s:DtraceCheck()
 
 func! s:DtraceCheck()
   let lines = getline(1, min([line("$"), 100]))
-  if match(lines, '^#!\S\+dtrace\|#pragma\s\+D\s\+option\|:\S\{-}:\S\{-}:') > -1
+  if match(lines, '^module\>\|^import\>') > -1
+    " D files often start with a module and/or import statement.
+    setf d
+  elseif match(lines, '^#!\S\+dtrace\|#pragma\s\+D\s\+option\|:\S\{-}:\S\{-}:') > -1
     setf dtrace
   else
     setf d
@@ -754,6 +757,11 @@ au BufNewFile,BufRead */usr/**/gnupg/options.skel setf gpg
 " gnash(1) configuration files
 au BufNewFile,BufRead gnashrc,.gnashrc,gnashpluginrc,.gnashpluginrc setf gnash
 
+" Gitolite
+au BufNewFile,BufRead gitolite.conf		setf gitolite
+au BufNewFile,BufRead */gitolite-admin/conf/*	call s:StarSetf('gitolite')
+au BufNewFile,BufRead {,.}gitolite.rc,example.gitolite.rc 	setf perl
+
 " Gnuplot scripts
 au BufNewFile,BufRead *.gpi			setf gnuplot
 
@@ -922,7 +930,7 @@ au BufNewFile,BufRead *.java,*.jav		setf java
 au BufNewFile,BufRead *.jj,*.jjt		setf javacc
 
 " JavaScript, ECMAScript
-au BufNewFile,BufRead *.js,*.javascript,*.es,*.jsx	setf javascript
+au BufNewFile,BufRead *.js,*.javascript,*.es,*.jsx,*.json   setf javascript
 
 " Java Server Pages
 au BufNewFile,BufRead *.jsp			setf jsp
@@ -936,6 +944,9 @@ au BufNewFile,BufRead *.clp			setf jess
 
 " Jgraph
 au BufNewFile,BufRead *.jgr			setf jgraph
+
+" Jovial
+au BufNewFile,BufRead *.jov,*.j73,*.jovial	setf jovial
 
 " Kixtart
 au BufNewFile,BufRead *.kix			setf kix
@@ -1585,8 +1596,13 @@ func! s:FTr()
     endif
   endfor
 
-  " Nothing recognized, assume Rexx
-  setf rexx
+  " Nothing recognized, use user default or assume Rexx
+  if exists("g:filetype_r")
+    exe "setf " . g:filetype_r
+  else
+    " Rexx used to be the default, but R appears to be much more popular.
+    setf r
+  endif
 endfunc
 
 " Remind
@@ -2337,6 +2353,9 @@ endfunc
 " Yaml
 au BufNewFile,BufRead *.yaml,*.yml		setf yaml
 
+" yum conf (close enough to dosini)
+au BufNewFile,BufRead */etc/yum.conf 		setf dosini
+
 " Zope
 "   dtml (zope dynamic template markup language), pt (zope page template),
 "   cpt (zope form controller page template)
@@ -2506,6 +2525,9 @@ au BufNewFile,BufRead *xmodmap*			call s:StarSetf('xmodmap')
 
 " Xinetd conf
 au BufNewFile,BufRead */etc/xinetd.d/*		call s:StarSetf('xinetd')
+
+" yum conf (close enough to dosini)
+au BufNewFile,BufRead */etc/yum.repos.d/* 	call s:StarSetf('dosini')
 
 " Z-Shell script
 au BufNewFile,BufRead zsh*,zlog*		call s:StarSetf('zsh')

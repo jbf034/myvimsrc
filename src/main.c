@@ -1009,6 +1009,7 @@ main_loop(cmdwin, noexmode)
 	skip_redraw = FALSE;
 	RedrawingDisabled = 0;
 	no_wait_return = 0;
+	vgetc_busy = 0;
 # ifdef FEAT_EVAL
 	emsg_skip = 0;
 # endif
@@ -3293,7 +3294,10 @@ usage()
 #ifdef FEAT_GUI_GNOME
     /* Gnome gives extra messages for --help if we continue, but not for -h. */
     if (gui.starting)
+    {
 	mch_msg("\n");
+	gui.dofork = FALSE;
+    }
     else
 #endif
 	mch_exit(0);

@@ -3216,7 +3216,7 @@ gui_mch_new_colors(void)
 {
     /* TODO:
      * This proc is called when Normal is set to a value
-     * so what msut be done? I don't know
+     * so what must be done? I don't know
      */
 }
 
@@ -3303,7 +3303,6 @@ gui_mch_get_winpos(int *x, int *y)
     *x = bounds.left;
     *y = bounds.top;
     return OK;
-    return FAIL;
 }
 
 /*
@@ -4671,7 +4670,7 @@ clip_mch_request_selection(VimClipboard *cbd)
     if (flavor)
 	type = **textOfClip;
     else
-	type = (strchr(*textOfClip, '\r') != NULL) ? MLINE : MCHAR;
+	type = MAUTO;
 
     tempclip = lalloc(scrapSize + 1, TRUE);
     mch_memmove(tempclip, *textOfClip + flavor, scrapSize);

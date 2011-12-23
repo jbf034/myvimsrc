@@ -1,4 +1,4 @@
-*mbyte.txt*     For Vim version 7.3.  Last change: 2011 Feb 01
+*mbyte.txt*     For Vim version 7.3.  Last change: 2011 Oct 15
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar et al.
@@ -797,8 +797,8 @@ is suitable for complex input, such as CJK.
   number of Hira-gana characters are 76.  So, first, we pre-input text as
   pronounced in Hira-gana, second, we convert Hira-gana to Kanji or Kata-Kana,
   if needed.  There are some Kana-Kanji conversion server: jserver
-  (distributed with Wnn, see below) and canna.  Canna could be found at:
-  ftp://ftp.nec.co.jp/pub/Canna/ (no longer works).
+  (distributed with Wnn, see below) and canna.  Canna can be found at:
+  http://canna.sourceforge.jp/
 
 There is a good input system: Wnn4.2.  Wnn 4.2 contains,
     xwnmo (|IM-server|)
@@ -1306,8 +1306,8 @@ character.  However, search patterns may not match on an overlong sequence.
 character.)  An exception is NUL (zero) which is displayed as "<00>".
 
 In the file and buffer the full range of Unicode characters can be used (31
-bits).  However, displaying only works for 16 bit characters, and only for the
-characters present in the selected font.
+bits).  However, displaying only works for the characters present in the
+selected font.
 
 Useful commands:
 - "ga" shows the decimal, hexadecimal and octal value of the character under

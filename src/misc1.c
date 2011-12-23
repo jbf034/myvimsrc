@@ -363,7 +363,7 @@ copy_indent(size, src)
 
 	/* Fill to next tabstop with a tab, if possible */
 	tab_pad = (int)curbuf->b_p_ts - (ind_done % (int)curbuf->b_p_ts);
-	if (todo >= tab_pad)
+	if (todo >= tab_pad && !curbuf->b_p_et)
 	{
 	    todo -= tab_pad;
 	    ++ind_len;
@@ -372,7 +372,7 @@ copy_indent(size, src)
 	}
 
 	/* Add tabs required for indent */
-	while (todo >= (int)curbuf->b_p_ts)
+	while (todo >= (int)curbuf->b_p_ts && !curbuf->b_p_et)
 	{
 	    todo -= (int)curbuf->b_p_ts;
 	    ++ind_len;
@@ -4943,7 +4943,7 @@ static int	cin_iscomment __ARGS((char_u *));
 static int	cin_islinecomment __ARGS((char_u *));
 static int	cin_isterminated __ARGS((char_u *, int, int));
 static int	cin_isinit __ARGS((void));
-static int	cin_isfuncdecl __ARGS((char_u **, linenr_T));
+static int	cin_isfuncdecl __ARGS((char_u **, linenr_T, linenr_T, int, int));
 static int	cin_isif __ARGS((char_u *));
 static int	cin_iselse __ARGS((char_u *));
 static int	cin_isdo __ARGS((char_u *));
@@ -5137,6 +5137,9 @@ cin_isinit(void)
 
     if (STRNCMP(s, "typedef", 7) == 0 && !vim_isIDc(s[7]))
 	s = cin_skipcomment(s + 7);
+
+    if (STRNCMP(s, "static", 6) == 0 && !vim_isIDc(s[6]))
+	s = cin_skipcomment(s + 6);
 
     if (STRNCMP(s, "enum", 4) == 0 && !vim_isIDc(s[4]))
 	return TRUE;
@@ -5582,20 +5585,36 @@ cin_isterminated(s, incl_open, incl_comma)
  * "sp" points to a string with the line.  When looking at other lines it must
  * be restored to the line.  When it's NULL fetch lines here.
  * "lnum" is where we start looking.
+ * "min_lnum" is the line before which we will not be looking.
  */
     static int
-cin_isfuncdecl(sp, first_lnum)
+cin_isfuncdecl(sp, first_lnum, min_lnum, ind_maxparen, ind_maxcomment)
     char_u	**sp;
     linenr_T	first_lnum;
+    linenr_T	min_lnum;
+    int		ind_maxparen;
+    int		ind_maxcomment;
 {
     char_u	*s;
     linenr_T	lnum = first_lnum;
     int		retval = FALSE;
+    pos_T	*trypos;
+    int		just_started = TRUE;
 
     if (sp == NULL)
 	s = ml_get(lnum);
     else
 	s = *sp;
+
+    if (find_last_paren(s, '(', ')')
+	&& (trypos = find_match_paren(ind_maxparen, ind_maxcomment)) != NULL)
+    {
+	lnum = trypos->lnum;
+	if (lnum < min_lnum)
+	    return FALSE;
+
+	s = ml_get(lnum);
+    }
 
     /* Ignore line starting with #. */
     if (cin_ispreproc(s))
@@ -5647,13 +5666,17 @@ cin_isfuncdecl(sp, first_lnum)
 	    /* Require a comma at end of the line or a comma or ')' at the
 	     * start of next line. */
 	    s = skipwhite(s);
-	    if (!comma && *s != ',' && *s != ')')
+	    if (!just_started && (!comma && *s != ',' && *s != ')'))
 		break;
+	    just_started = FALSE;
 	}
 	else if (cin_iscomment(s))	/* ignore comments */
 	    s = cin_skipcomment(s);
 	else
+	{
 	    ++s;
+	    just_started = FALSE;
+	}
     }
 
 done:
@@ -6127,7 +6150,7 @@ corr_ind_maxparen(ind_maxparen, startpos)
 
 /*
  * Set w_cursor.col to the column number of the last unmatched ')' or '{' in
- * line "l".
+ * line "l".  "l" must point to the start of the line.
  */
     static int
 find_last_paren(l, start, end)
@@ -6140,7 +6163,7 @@ find_last_paren(l, start, end)
 
     curwin->w_cursor.col = 0;		    /* default is start of line */
 
-    for (i = 0; l[i]; i++)
+    for (i = 0; l[i] != NUL; i++)
     {
 	i = (int)(cin_skipcomment(l + i) - l); /* ignore parens in comments */
 	i = (int)(skip_string(l + i) - l);    /* ignore parens in quotes */
@@ -6389,6 +6412,7 @@ get_c_indent()
     int		lookfor_cpp_namespace = FALSE;
     int		cont_amount = 0;    /* amount for continuation line */
     int		original_line_islabel;
+    int		added_to_amount = 0;
 
     for (options = curbuf->b_p_cino; *options; )
     {
@@ -7154,7 +7178,8 @@ get_c_indent()
 			 * (it's a variable declaration).
 			 */
 			if (start_brace != BRACE_IN_COL0
-				|| !cin_isfuncdecl(&l, curwin->w_cursor.lnum))
+				|| !cin_isfuncdecl(&l, curwin->w_cursor.lnum,
+					     0, ind_maxparen, ind_maxcomment))
 			{
 			    /* if the line is terminated with another ','
 			     * it is a continued variable initialization.
@@ -7216,52 +7241,59 @@ get_c_indent()
 			else
 			    amount += ind_continuation;
 		    }
-		    else if (lookfor_cpp_namespace)
+		    else
 		    {
-			if (curwin->w_cursor.lnum == ourscope)
-			    continue;
-
-			if (curwin->w_cursor.lnum == 0
-				|| curwin->w_cursor.lnum
-					      < ourscope - FIND_NAMESPACE_LIM)
-			    break;
-
-			l = ml_get_curline();
-
-			/*
-			 * If we're in a comment now, skip to the start of the
-			 * comment.
-			 */
-			trypos = find_start_comment(ind_maxcomment);
-			if (trypos != NULL)
-			{
-			    curwin->w_cursor.lnum = trypos->lnum + 1;
-			    curwin->w_cursor.col = 0;
-			    continue;
-			}
-
-			/*
-			 * Skip preprocessor directives and blank lines.
-			 */
-			if (cin_ispreproc_cont(&l, &curwin->w_cursor.lnum))
-			    continue;
-
-			if (cin_is_cpp_namespace(l))
-			{
-			    amount += ind_cpp_namespace;
-			    break;
-			}
-
-			if (cin_nocode(l))
-			    continue;
-
-		    }
-		    else if (lookfor != LOOKFOR_TERM
+			if (lookfor != LOOKFOR_TERM
 					  && lookfor != LOOKFOR_CPP_BASECLASS)
-		    {
-			amount = scope_amount;
-			if (theline[0] == '{')
-			    amount += ind_open_extra;
+			{
+			    amount = scope_amount;
+			    if (theline[0] == '{')
+			    {
+				amount += ind_open_extra;
+				added_to_amount = ind_open_extra;
+			    }
+			}
+
+			if (lookfor_cpp_namespace)
+			{
+			    /*
+			     * Looking for C++ namespace, need to look further
+			     * back.
+			     */
+			    if (curwin->w_cursor.lnum == ourscope)
+				continue;
+
+			    if (curwin->w_cursor.lnum == 0
+				    || curwin->w_cursor.lnum
+					      < ourscope - FIND_NAMESPACE_LIM)
+				break;
+
+			    l = ml_get_curline();
+
+			    /* If we're in a comment now, skip to the start of
+			     * the comment. */
+			    trypos = find_start_comment(ind_maxcomment);
+			    if (trypos != NULL)
+			    {
+				curwin->w_cursor.lnum = trypos->lnum + 1;
+				curwin->w_cursor.col = 0;
+				continue;
+			    }
+
+			    /* Skip preprocessor directives and blank lines. */
+			    if (cin_ispreproc_cont(&l, &curwin->w_cursor.lnum))
+				continue;
+
+			    /* Finally the actual check for "namespace". */
+			    if (cin_is_cpp_namespace(l))
+			    {
+				amount += ind_cpp_namespace - added_to_amount;
+				break;
+			    }
+
+			    if (cin_nocode(l))
+				continue;
+			}
 		    }
 		    break;
 		}
@@ -7945,8 +7977,8 @@ term_again:
 			 * If we're at the end of a block, skip to the start of
 			 * that block.
 			 */
-			curwin->w_cursor.col = 0;
-			if (*cin_skipcomment(l) == '}'
+			l = ml_get_curline();
+			if (find_last_paren(l, '{', '}')
 				&& (trypos = find_start_brace(ind_maxcomment))
 							    != NULL) /* XXX */
 			{
@@ -8008,7 +8040,9 @@ term_again:
 		&& vim_strchr(theline, '}') == NULL
 		&& !cin_ends_in(theline, (char_u *)":", NULL)
 		&& !cin_ends_in(theline, (char_u *)",", NULL)
-		&& cin_isfuncdecl(NULL, cur_curpos.lnum + 1)
+		&& cin_isfuncdecl(NULL, cur_curpos.lnum + 1,
+				  cur_curpos.lnum + 1,
+				  ind_maxparen, ind_maxcomment)
 		&& !cin_isterminated(theline, FALSE, TRUE))
 	{
 	    amount = ind_func_type;
@@ -8114,7 +8148,8 @@ term_again:
 		 * If the line looks like a function declaration, and we're
 		 * not in a comment, put it the left margin.
 		 */
-		if (cin_isfuncdecl(NULL, cur_curpos.lnum))  /* XXX */
+		if (cin_isfuncdecl(NULL, cur_curpos.lnum, 0,
+				   ind_maxparen, ind_maxcomment))  /* XXX */
 		    break;
 		l = ml_get_curline();
 
@@ -8135,11 +8170,35 @@ term_again:
 		    break;
 
 		/*
+		 * Find a line only has a semicolon that belongs to a previous
+		 * line ending in '}', e.g. before an #endif.  Don't increase
+		 * indent then.
+		 */
+		if (*(look = skipwhite(l)) == ';' && cin_nocode(look + 1))
+		{
+		    pos_T curpos_save = curwin->w_cursor;
+
+		    while (curwin->w_cursor.lnum > 1)
+		    {
+			look = ml_get(--curwin->w_cursor.lnum);
+			if (!(cin_nocode(look) || cin_ispreproc_cont(
+					      &look, &curwin->w_cursor.lnum)))
+			    break;
+		    }
+		    if (curwin->w_cursor.lnum > 0
+				    && cin_ends_in(look, (char_u *)"}", NULL))
+			break;
+
+		    curwin->w_cursor = curpos_save;
+		}
+
+		/*
 		 * If the PREVIOUS line is a function declaration, the current
 		 * line (and the ones that follow) needs to be indented as
 		 * parameters.
 		 */
-		if (cin_isfuncdecl(&l, curwin->w_cursor.lnum))
+		if (cin_isfuncdecl(&l, curwin->w_cursor.lnum, 0,
+				   ind_maxparen, ind_maxcomment))
 		{
 		    amount = ind_param;
 		    break;
@@ -9044,8 +9103,12 @@ dos_expandpath(
     }
 
     /* compile the regexp into a program */
+    if (flags & EW_NOERROR)
+	++emsg_silent;
     regmatch.rm_ic = TRUE;		/* Always ignore case */
     regmatch.regprog = vim_regcomp(pat, RE_MAGIC);
+    if (flags & EW_NOERROR)
+	--emsg_silent;
     vim_free(pat);
 
     if (regmatch.regprog == NULL)
@@ -9116,7 +9179,9 @@ dos_expandpath(
 	 * all entries found with "matchname". */
 	if ((p[0] != '.' || starts_with_dot)
 		&& (matchname == NULL
-		    || vim_regexec(&regmatch, p, (colnr_T)0)))
+		  || vim_regexec(&regmatch, p, (colnr_T)0)
+		  || ((flags & EW_NOTWILD)
+		     && fnamencmp(path + (s - buf), p, e - s) == 0)))
 	{
 #ifdef WIN3264
 	    STRCPY(s, p);
@@ -9320,7 +9385,7 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
     e = p;
     *e = NUL;
 
-    /* now we have one wildcard component between "s" and "e" */
+    /* Now we have one wildcard component between "s" and "e". */
     /* Remove backslashes between "wildoff" and the start of the wildcard
      * component. */
     for (p = buf + wildoff; p < s; ++p)
@@ -9387,7 +9452,9 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
 	    if (dp == NULL)
 		break;
 	    if ((dp->d_name[0] != '.' || starts_with_dot)
-		    && vim_regexec(&regmatch, (char_u *)dp->d_name, (colnr_T)0))
+		 && (vim_regexec(&regmatch, (char_u *)dp->d_name, (colnr_T)0)
+		   || ((flags & EW_NOTWILD)
+		     && fnamencmp(path + (s - buf), dp->d_name, e - s) == 0)))
 	    {
 		STRCPY(s, dp->d_name);
 		len = STRLEN(buf);
