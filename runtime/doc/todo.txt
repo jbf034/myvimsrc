@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3.  Last change: 2011 Dec 14
+*todo.txt*      For Vim version 7.3.  Last change: 2012 Jan 20
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,19 +38,34 @@ Go through more coverity reports.
 
 Discussion about canonicalization of Hebrew. (Ron Aaron, 2011 April 10)
 
-Patch to fix "Console prompts fail to reset the console pager".
-Issue 14 on googlecode
-
-Issue 33 on googlecode: feedkeys() leaks memory.
-
-Patch to support UTF-8 for Hangul. (Shawn Y.H. Kim, 2011 May 1)
-Needs more work.
-
 Once syntax and other runtime files have been fixed: add "set cp" to
 check.vim.  Use a function to run both with 'cp' and 'nocp'.
 
-Patch to make ":helpgrep" work with non-UTF-8 encoding. (Yasuhiro Matsumoto,
-2011 Nov 28, update later that day)
+Win32: When the taskbar is at the top of the screen creating the tabbar causes
+the window to move unnecessarily. (William E. Skeith III, 2012 Jan 12)
+Patch: 2012 Jan 13
+
+Patch for using DBCS encoding in user command. (Yasuhiro Matsumoto, 2012 Jan
+15)  Update Jan 17.
+
+Repeating search history entries. (Edwin Steiner, 2012 Jan 17)
+Jan 18: Caused by patch 7.3.265?
+
+Hang in using VimEnter. (Alex Efros, 2012 Jan 14)
+
+":cd" doesn't work when current directory path contains wildcards.
+finddir() has the same problem.  (Yukihiro Nakadaira, 2012 Jan 10)
+
+Win32: When a directory name contains an exclamation mark, completion doesn't
+complete the contents of the directory.  No escaping for the "!"? (Jan
+Stocker, 2012 Jan 5)
+
+Patch to add support for Solaris ZFS ACLs. (Danek Duvall, 2012 Jan 13)
+
+Patch to make continued lines work faster. (Yasuhiro Matsumoto, 2012 Jan 11)
+
+Also an idea to make join() faster. (Yasuhiro Matsumoto, 2012 Jan 11)
+Another one from Taro Muraoka, 2012 Jan 12.
 
 ":doau" says it triggers modeline.  Should this only happen for events used
 when loading a buffer?  (Kana Natsuno, 2011 Nov 7)
@@ -82,14 +97,24 @@ Patch to highlight cursor line number. (Howard Buchholz (lhb), 2011 Oct 18)
 
 Patch for urxvt mouse support after shell command. (Issue 31)
 
+When exiting with unsaved changes, selecting an existing file in the file
+dialog, there is no dialog to ask whether the existing file should be
+overwritten. (Felipe G. Nievinski, 2011 Dec 22)
+
 7   Setting an option always sets "w_set_curswant", while this is only
     required for a few options.  Only do it for those options to avoid the
     side effect.
 Patch by Kana Natsuno, 2011 Nov 12.
 
+Patch to fix member confusion in Lua interface. (Taro Muraoka, 2012 Jan 8)
+Update Jan 9.
+Carvalho merged the patch:  New version 2012 Jan 19.
+
 Patch for option in 'cino' to specify more indent for continued conditions.
 (Lech Lorens, 2011 Nov 27)
 Isn't this already possible?
+
+Patch for using objcpp file type for headers files. Issue 44.
 
 Docs fix for v:register. (Ingo Karkat, 2011 Sep 26, 27)
 v:register doesn't work exactly as expected. (David Fishburn, 2011 Sep 20)
@@ -104,6 +129,9 @@ Patch for: (Christian Brabandt, 2011 Aug 24, updated patch)
 
 Patch to add "onselected" callback for completion. (Taro Muraoka, 2011 Sep 24)
 
+Use a count before "v" and "V" to select that many characters or lines?
+(Kikyous)
+
 ":tab drop buffer.c" always opens a new tab, also if buffer.c is already in an
 open window. (Herb Sitz, 2011 Nov 17)
 
@@ -114,6 +142,8 @@ Patch for has('unnamedplus') docs. (Tony Mechelynck, 2011 Sep 27)
 And one for gui_x11.txt.
 
 Problem with l: dictionary being locked in a function. (ZyX, 2011 Jul 21)
+
+Issue 48: foldopen error can't be caught by try/catch
 
 Patch to sort functions starting with '<' after others.  Omit dict functions,
 they can't be called. (Yasuhiro Matsumoto, 2011 Oct 11)
@@ -135,6 +165,11 @@ characters.  Patch by Christian Brabandt, 2011 Oct 11)
 Patch for 'transparency' option. (Sergiu Dotenco, 2011 Sep 17)
 Only for MS-Windows.  No documentation.  Do we want this?
 
+Patch to support cursor shape in Cygwin console. (Ben bgold, 2011 Dec 27)
+
+Patch to support UTF-8 for Hangul. (Shawn Y.H. Kim, 2011 May 1)
+Needs more work.  Pinged 2012 Jan 4.
+
 'cursorline' is displayed too short when there are concealed characters and
 'list' is set.  (Dennis Preiser)
 Patch 7.3.116 was the wrong solution.
@@ -153,6 +188,9 @@ New feature, requires testing.  Made some remarks.
 
 Win32: Patch for alpha-blended icons and toolbar height. (Sergiu Dotenco, 2011
 Sep 17)  Asked for feedback from others.
+
+Win32: Cannot cd into a directory that starts with a space. (Andy Wokula, 2012
+Jan 19)
 
 Need to escape $HOME on Windows?  (ZyX, 2011 Jul 21)
 
@@ -381,6 +419,10 @@ mkdir().
 
 'cindent' not correct when 'list' is set. (Zdravi Korusef, 2010 Apr 15)
 
+C-indenting: A matching { in a comment is ignored, but intermediate { are not
+checked to be in a comment.  Implement FM_SKIPCOMM flag of findmatchlimit().
+Issue 46.
+
 When 'paste' is changed with 'pastetoggle', the ruler doesn't reflect this
 right away. (Samuel Ferencik, 2010 Dec 7)
 
@@ -471,10 +513,6 @@ Patch to support :undo absolute jump to file save number. (Christian Brabandt,
 
 Patch to use 'foldnextmax' also for "marker" foldmethod. (Arnaud Lacombe, 2011
 Jan 7)
-
-When setting 'undofile' while the file is already loaded, but unchanged, try
-to read the undo file.  Requires computing a checksum of the text. (Andy
-Wokula)
 
 Bug with 'incsearch' going to wrong line. (Wolfram Kresse, 2009 Aug 17)
 Only with "vim -u NONE".
@@ -777,8 +815,6 @@ the buffer to be unmodified.
 Unfinished patch by Ian Kelling, 2008 Jul 11.  Followup Jul 14, need to have
 another look at it.
 
-Patch for c.vim and cpp.vim syntax files. (Chung-chieh Shan, 2008 Nov 26)
-
 c.vim: XXX in a comment is colored yellow, but not when it's after "#if 0".
 (Ilya Dogolazky, 2009 Aug 7)
 
@@ -1055,6 +1091,15 @@ Latest version: 2011 May 18
     http://nsis.sourceforge.net/Docs/Chapter4.html#4.12
     Version from Guopeng Wen that does this (2010 Dec 27)
 
+Windows installer should install 32-bit version of right-click handler also on
+64-bit systems. (Brian Cunningham, 2011 Dec 28)
+
+Windows installer could add a "open in new tab of existing Vim" menu entry.
+Gvimext: patch to add "Edit with single Vim &tabbed" menu entry.
+Just have two choices, always using one Vim and selecting between using an
+argument list or opening each file in a separate tab.
+(Erik Falor, 2008 May 21, 2008 Jun 26)
+
 Windows installer: licence text should not use indent, causes bad word wrap.
 (Benjamin Fritz, 2010 Aug 16)
 
@@ -1214,12 +1259,6 @@ When unloading a buffer in a BufHidden autocommand the hidden flag is reset?
 
 Substituting an area with a line break with almost the same area does change
 the Visual area.  Can this be fixed? (James Vega, 2006 Sept 15)
-
-Windows installer could add a "open in new tab of existing Vim" menu entry.
-Gvimext: patch to add "Edit with single Vim &tabbed" menu entry.
-Just have two choices, always using one Vim and selecting between using an
-argument list or opening each file in a separate tab.
-(Erik Falor, 2008 May 21, 2008 Jun 26)
 
 GUI: When combining fg en bg make sure they are not equal.
 
@@ -1719,18 +1758,6 @@ Win32 GUI known bugs:
     the wide functions.
 8   On Windows 98 the unicows library is needed to support functions with UCS2
     file names.  Can we load unicows.dll dynamically?
-8   Win32: With two monitors, gvim partly on both, and adding/removing a
-    scrollbar Vim resizes and moves to one of the monitors. (Chris Monkiewicz,
-    2008 Oct)
-8   When the primary monitor is below or right of the secondary monitor and
-    Vim is on the secondary monitor it will often move to the primary monitor.
-    Window position coordinates can be negative. (James Harvey)
-    When the primary monitor is on the right, coordinates on the left monitor
-    are negative.  Clamping to zero means gvim jups to the primary monitor.
-    (Michael Wookey, 2010 Aug 17)
-    Probably the same issue: When the GUI tab pages line is displayed Vim
-    jumps from the secondary to the primary monitor. (Afton Lewis, 2007 Mar 9)
-    Possible solution using GetSystemMetrics() (Sergey Khorev, 2010 Aug 18)
 8   The -P argument doesn't work very well with many MDI applications.
     The last argument of CreateWindowEx() should be used, see MSDN docs.
     Tutorial: http://win32assembly.online.fr/tut32.html

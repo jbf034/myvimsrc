@@ -419,6 +419,8 @@ close_buffer(win, buf, action)
     if (
 #ifdef FEAT_WINDOWS
 	win_valid(win) &&
+#else
+	win != NULL &&
 #endif
 			  win->w_buffer == buf)
 	win->w_buffer = NULL;  /* make sure we don't use the buffer now */
@@ -3256,9 +3258,8 @@ maketitle()
 	    if (maxlen > 0)
 	    {
 		/* make it shorter by removing a bit in the middle */
-		len = vim_strsize(buf);
-		if (len > maxlen)
-		    trunc_string(buf, buf, maxlen);
+		if (vim_strsize(buf) > maxlen)
+		    trunc_string(buf, buf, maxlen, IOSIZE);
 	    }
 	}
     }

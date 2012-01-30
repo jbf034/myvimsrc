@@ -7516,6 +7516,31 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	compatible_set();
     }
 
+#ifdef FEAT_PERSISTENT_UNDO
+    /* 'undofile' */
+    else if ((int *)varp == &curbuf->b_p_udf || (int *)varp == &p_udf)
+    {
+	char_u	hash[UNDO_HASH_SIZE];
+	buf_T	*save_curbuf = curbuf;
+
+	for (curbuf = firstbuf; curbuf != NULL; curbuf = curbuf->b_next)
+	{
+	    /* When 'undofile' is set globally: for every buffer, otherwise
+	     * only for the current buffer: Try to read in the undofile, if
+	     * one exists and the buffer wasn't changed and the buffer was
+	     * loaded. */
+	    if ((curbuf == save_curbuf
+				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
+		    && !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
+	    {
+		u_compute_hash(hash);
+		u_read_undo(NULL, hash, curbuf->b_fname);
+	    }
+	}
+	curbuf = save_curbuf;
+    }
+#endif
+
     /* 'list', 'number' */
     else if ((int *)varp == &curwin->w_p_list
 	  || (int *)varp == &curwin->w_p_nu
@@ -8560,8 +8585,8 @@ check_redraw(flags)
     long_u	flags;
 {
     /* Careful: P_RCLR and P_RALL are a combination of other P_ flags */
-    int		clear = (flags & P_RCLR) == P_RCLR;
-    int		all = ((flags & P_RALL) == P_RALL || clear);
+    int		doclear = (flags & P_RCLR) == P_RCLR;
+    int		all = ((flags & P_RALL) == P_RALL || doclear);
 
 #ifdef FEAT_WINDOWS
     if ((flags & P_RSTAT) || all)	/* mark all status lines dirty */
@@ -8572,7 +8597,7 @@ check_redraw(flags)
 	changed_window_setting();
     if (flags & P_RBUF)
 	redraw_curbuf_later(NOT_VALID);
-    if (clear)
+    if (doclear)
 	redraw_all_later(CLEAR);
     else if (all)
 	redraw_all_later(NOT_VALID);
