@@ -3105,8 +3105,9 @@ ask_yesno(str, direct)
     int
 get_keystroke()
 {
-#define CBUFLEN 151
-    char_u	buf[CBUFLEN];
+    char_u	*buf = NULL;
+    int		buflen = 150;
+    int		maxlen;
     int		len = 0;
     int		n;
     int		save_mapped_ctrl_c = mapped_ctrl_c;
@@ -3118,12 +3119,29 @@ get_keystroke()
 	cursor_on();
 	out_flush();
 
+	/* Leave some room for check_termcode() to insert a key code into (max
+	 * 5 chars plus NUL).  And fix_input_buffer() can triple the number of
+	 * bytes. */
+	maxlen = (buflen - 6 - len) / 3;
+	if (buf == NULL)
+	    buf = alloc(buflen);
+	else if (maxlen < 10)
+	{
+	    /* Need some more space. This migth happen when receiving a long
+	     * escape sequence. */
+	    buflen += 100;
+	    buf = vim_realloc(buf, buflen);
+	    maxlen = (buflen - 6 - len) / 3;
+	}
+	if (buf == NULL)
+	{
+	    do_outofmem_msg((long_u)buflen);
+	    return ESC;  /* panic! */
+	}
+
 	/* First time: blocking wait.  Second time: wait up to 100ms for a
-	 * terminal code to complete.  Leave some room for check_termcode() to
-	 * insert a key code into (max 5 chars plus NUL).  And
-	 * fix_input_buffer() can triple the number of bytes. */
-	n = ui_inchar(buf + len, (CBUFLEN - 6 - len) / 3,
-						    len == 0 ? -1L : 100L, 0);
+	 * terminal code to complete. */
+	n = ui_inchar(buf + len, maxlen, len == 0 ? -1L : 100L, 0);
 	if (n > 0)
 	{
 	    /* Replace zero and CSI by a special key code. */
@@ -3135,7 +3153,7 @@ get_keystroke()
 	    ++waited;	    /* keep track of the waiting time */
 
 	/* Incomplete termcode and not timed out yet: get more characters */
-	if ((n = check_termcode(1, buf, len)) < 0
+	if ((n = check_termcode(1, buf, buflen, &len)) < 0
 	       && (!p_ttimeout || waited * 100L < (p_ttm < 0 ? p_tm : p_ttm)))
 	    continue;
 
@@ -3203,7 +3221,7 @@ get_keystroke()
 	{
 	    if (MB_BYTE2LEN(n) > len)
 		continue;	/* more bytes to get */
-	    buf[len >= CBUFLEN ? CBUFLEN - 1 : len] = NUL;
+	    buf[len >= buflen ? buflen - 1 : len] = NUL;
 	    n = (*mb_ptr2char)(buf);
 	}
 #endif
@@ -3213,6 +3231,7 @@ get_keystroke()
 #endif
 	break;
     }
+    vim_free(buf);
 
     mapped_ctrl_c = save_mapped_ctrl_c;
     return n;
@@ -4943,7 +4962,7 @@ static int	cin_iscomment __ARGS((char_u *));
 static int	cin_islinecomment __ARGS((char_u *));
 static int	cin_isterminated __ARGS((char_u *, int, int));
 static int	cin_isinit __ARGS((void));
-static int	cin_isfuncdecl __ARGS((char_u **, linenr_T));
+static int	cin_isfuncdecl __ARGS((char_u **, linenr_T, linenr_T, int, int));
 static int	cin_isif __ARGS((char_u *));
 static int	cin_iselse __ARGS((char_u *));
 static int	cin_isdo __ARGS((char_u *));
@@ -5137,6 +5156,9 @@ cin_isinit(void)
 
     if (STRNCMP(s, "typedef", 7) == 0 && !vim_isIDc(s[7]))
 	s = cin_skipcomment(s + 7);
+
+    if (STRNCMP(s, "static", 6) == 0 && !vim_isIDc(s[6]))
+	s = cin_skipcomment(s + 6);
 
     if (STRNCMP(s, "enum", 4) == 0 && !vim_isIDc(s[4]))
 	return TRUE;
@@ -5582,20 +5604,36 @@ cin_isterminated(s, incl_open, incl_comma)
  * "sp" points to a string with the line.  When looking at other lines it must
  * be restored to the line.  When it's NULL fetch lines here.
  * "lnum" is where we start looking.
+ * "min_lnum" is the line before which we will not be looking.
  */
     static int
-cin_isfuncdecl(sp, first_lnum)
+cin_isfuncdecl(sp, first_lnum, min_lnum, ind_maxparen, ind_maxcomment)
     char_u	**sp;
     linenr_T	first_lnum;
+    linenr_T	min_lnum;
+    int		ind_maxparen;
+    int		ind_maxcomment;
 {
     char_u	*s;
     linenr_T	lnum = first_lnum;
     int		retval = FALSE;
+    pos_T	*trypos;
+    int		just_started = TRUE;
 
     if (sp == NULL)
 	s = ml_get(lnum);
     else
 	s = *sp;
+
+    if (find_last_paren(s, '(', ')')
+	&& (trypos = find_match_paren(ind_maxparen, ind_maxcomment)) != NULL)
+    {
+	lnum = trypos->lnum;
+	if (lnum < min_lnum)
+	    return FALSE;
+
+	s = ml_get(lnum);
+    }
 
     /* Ignore line starting with #. */
     if (cin_ispreproc(s))
@@ -5647,13 +5685,17 @@ cin_isfuncdecl(sp, first_lnum)
 	    /* Require a comma at end of the line or a comma or ')' at the
 	     * start of next line. */
 	    s = skipwhite(s);
-	    if (!comma && *s != ',' && *s != ')')
+	    if (!just_started && (!comma && *s != ',' && *s != ')'))
 		break;
+	    just_started = FALSE;
 	}
 	else if (cin_iscomment(s))	/* ignore comments */
 	    s = cin_skipcomment(s);
 	else
+	{
 	    ++s;
+	    just_started = FALSE;
+	}
     }
 
 done:
@@ -7155,7 +7197,8 @@ get_c_indent()
 			 * (it's a variable declaration).
 			 */
 			if (start_brace != BRACE_IN_COL0
-				|| !cin_isfuncdecl(&l, curwin->w_cursor.lnum))
+				|| !cin_isfuncdecl(&l, curwin->w_cursor.lnum,
+					     0, ind_maxparen, ind_maxcomment))
 			{
 			    /* if the line is terminated with another ','
 			     * it is a continued variable initialization.
@@ -8016,7 +8059,9 @@ term_again:
 		&& vim_strchr(theline, '}') == NULL
 		&& !cin_ends_in(theline, (char_u *)":", NULL)
 		&& !cin_ends_in(theline, (char_u *)",", NULL)
-		&& cin_isfuncdecl(NULL, cur_curpos.lnum + 1)
+		&& cin_isfuncdecl(NULL, cur_curpos.lnum + 1,
+				  cur_curpos.lnum + 1,
+				  ind_maxparen, ind_maxcomment)
 		&& !cin_isterminated(theline, FALSE, TRUE))
 	{
 	    amount = ind_func_type;
@@ -8122,7 +8167,8 @@ term_again:
 		 * If the line looks like a function declaration, and we're
 		 * not in a comment, put it the left margin.
 		 */
-		if (cin_isfuncdecl(NULL, cur_curpos.lnum))  /* XXX */
+		if (cin_isfuncdecl(NULL, cur_curpos.lnum, 0,
+				   ind_maxparen, ind_maxcomment))  /* XXX */
 		    break;
 		l = ml_get_curline();
 
@@ -8170,7 +8216,8 @@ term_again:
 		 * line (and the ones that follow) needs to be indented as
 		 * parameters.
 		 */
-		if (cin_isfuncdecl(&l, curwin->w_cursor.lnum))
+		if (cin_isfuncdecl(&l, curwin->w_cursor.lnum, 0,
+				   ind_maxparen, ind_maxcomment))
 		{
 		    amount = ind_param;
 		    break;
@@ -9075,15 +9122,15 @@ dos_expandpath(
     }
 
     /* compile the regexp into a program */
-    if (flags & EW_NOERROR)
+    if (flags & (EW_NOERROR | EW_NOTWILD))
 	++emsg_silent;
     regmatch.rm_ic = TRUE;		/* Always ignore case */
     regmatch.regprog = vim_regcomp(pat, RE_MAGIC);
-    if (flags & EW_NOERROR)
+    if (flags & (EW_NOERROR | EW_NOTWILD))
 	--emsg_silent;
     vim_free(pat);
 
-    if (regmatch.regprog == NULL)
+    if (regmatch.regprog == NULL && (flags & EW_NOTWILD) == 0)
     {
 	vim_free(buf);
 	return 0;
@@ -9151,7 +9198,8 @@ dos_expandpath(
 	 * all entries found with "matchname". */
 	if ((p[0] != '.' || starts_with_dot)
 		&& (matchname == NULL
-		  || vim_regexec(&regmatch, p, (colnr_T)0)
+		  || (regmatch.regprog != NULL
+				     && vim_regexec(&regmatch, p, (colnr_T)0))
 		  || ((flags & EW_NOTWILD)
 		     && fnamencmp(path + (s - buf), p, e - s) == 0)))
 	{
@@ -9391,10 +9439,14 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
     else
 	regmatch.rm_ic = FALSE;		/* Don't ignore case */
 #endif
+    if (flags & (EW_NOERROR | EW_NOTWILD))
+	++emsg_silent;
     regmatch.regprog = vim_regcomp(pat, RE_MAGIC);
+    if (flags & (EW_NOERROR | EW_NOTWILD))
+	--emsg_silent;
     vim_free(pat);
 
-    if (regmatch.regprog == NULL)
+    if (regmatch.regprog == NULL && (flags & EW_NOTWILD) == 0)
     {
 	vim_free(buf);
 	return 0;
@@ -9424,7 +9476,8 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
 	    if (dp == NULL)
 		break;
 	    if ((dp->d_name[0] != '.' || starts_with_dot)
-		 && (vim_regexec(&regmatch, (char_u *)dp->d_name, (colnr_T)0)
+		 && ((regmatch.regprog != NULL && vim_regexec(&regmatch,
+					     (char_u *)dp->d_name, (colnr_T)0))
 		   || ((flags & EW_NOTWILD)
 		     && fnamencmp(path + (s - buf), dp->d_name, e - s) == 0)))
 	    {

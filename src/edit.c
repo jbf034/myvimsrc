@@ -1763,9 +1763,9 @@ display_dollar(col)
     static void
 undisplay_dollar()
 {
-    if (dollar_vcol)
+    if (dollar_vcol >= 0)
     {
-	dollar_vcol = 0;
+	dollar_vcol = -1;
 	redrawWinline(curwin->w_cursor.lnum, FALSE);
     }
 }
@@ -2183,7 +2183,7 @@ vim_is_ctrl_x_key(c)
 		    || c == Ctrl_I || c == Ctrl_D || c == Ctrl_P
 		    || c == Ctrl_N || c == Ctrl_T || c == Ctrl_V
 		    || c == Ctrl_Q || c == Ctrl_U || c == Ctrl_O
-		    || c == Ctrl_S || c == 's');
+		    || c == Ctrl_S || c == Ctrl_K || c == 's');
 	case CTRL_X_SCROLL:
 	    return (c == Ctrl_Y || c == Ctrl_E);
 	case CTRL_X_WHOLE_LINE:
@@ -3465,11 +3465,17 @@ ins_compl_addleader(c)
     if (ins_compl_need_restart())
 	ins_compl_restart();
 
-    vim_free(compl_leader);
-    compl_leader = vim_strnsave(ml_get_curline() + compl_col,
+    /* When 'always' is set, don't reset compl_leader. While completing,
+     * cursor don't point original position, changing compl_leader would
+     * break redo. */
+    if (!compl_opt_refresh_always)
+    {
+	vim_free(compl_leader);
+	compl_leader = vim_strnsave(ml_get_curline() + compl_col,
 				     (int)(curwin->w_cursor.col - compl_col));
-    if (compl_leader != NULL)
-	ins_compl_new_leader();
+	if (compl_leader != NULL)
+	    ins_compl_new_leader();
+    }
 }
 
 /*
@@ -4003,24 +4009,24 @@ ins_compl_add_list(list)
 ins_compl_add_dict(dict)
     dict_T	*dict;
 {
-    dictitem_T	*refresh;
-    dictitem_T	*words;
+    dictitem_T	*di_refresh;
+    dictitem_T	*di_words;
 
     /* Check for optional "refresh" item. */
     compl_opt_refresh_always = FALSE;
-    refresh = dict_find(dict, (char_u *)"refresh", 7);
-    if (refresh != NULL && refresh->di_tv.v_type == VAR_STRING)
+    di_refresh = dict_find(dict, (char_u *)"refresh", 7);
+    if (di_refresh != NULL && di_refresh->di_tv.v_type == VAR_STRING)
     {
-	char_u	*v = refresh->di_tv.vval.v_string;
+	char_u	*v = di_refresh->di_tv.vval.v_string;
 
 	if (v != NULL && STRCMP(v, (char_u *)"always") == 0)
 	    compl_opt_refresh_always = TRUE;
     }
 
     /* Add completions from a "words" list. */
-    words = dict_find(dict, (char_u *)"words", 5);
-    if (words != NULL && words->di_tv.v_type == VAR_LIST)
-	ins_compl_add_list(words->di_tv.vval.v_list);
+    di_words = dict_find(dict, (char_u *)"words", 5);
+    if (di_words != NULL && di_words->di_tv.v_type == VAR_LIST)
+	ins_compl_add_list(di_words->di_tv.vval.v_list);
 }
 
 /*
@@ -4553,6 +4559,11 @@ ins_compl_next(allow_get_expansion, count, insert_match)
     compl_T *found_compl = NULL;
     int	    found_end = FALSE;
     int	    advance;
+
+    /* When user complete function return -1 for findstart which is next
+     * time of 'always', compl_shown_match become NULL. */
+    if (compl_shown_match == NULL)
+	return -1;
 
     if (compl_leader != NULL
 			&& (compl_shown_match->cp_flags & ORIGINAL_TEXT) == 0)
@@ -5178,6 +5189,11 @@ ins_complete(c)
 		return FAIL;
 	    }
 
+	    /* Return value -2 means the user complete function wants to
+	     * cancel the complete without an error. */
+	    if (col == -2)
+		return FAIL;
+
 	    /*
 	     * Reset extended parameters of completion, when start new
 	     * completion.
@@ -5425,7 +5441,7 @@ ins_complete(c)
 				compl_curr_match->cp_number);
 		edit_submode_extra = match_ref;
 		edit_submode_highl = HLF_R;
-		if (dollar_vcol)
+		if (dollar_vcol >= 0)
 		    curs_columns(FALSE);
 	    }
 	}
@@ -8945,7 +8961,7 @@ ins_bs(c, mode, inserted_space_p)
      * We can emulate the vi behaviour by pretending there is a dollar
      * displayed even when there isn't.
      *  --pkv Sun Jan 19 01:56:40 EST 2003 */
-    if (vim_strchr(p_cpo, CPO_BACKSPACE) != NULL && dollar_vcol == 0)
+    if (vim_strchr(p_cpo, CPO_BACKSPACE) != NULL && dollar_vcol == -1)
 	dollar_vcol = curwin->w_virtcol;
 
 #ifdef FEAT_FOLDING

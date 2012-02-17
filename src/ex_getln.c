@@ -645,7 +645,11 @@ getcmdline(firstc, count, indent)
 		}
 		else if (ccline.cmdpos > i)
 		    cmdline_del(i);
+
+		/* Now complete in the new directory. Set KeyTyped in case the
+		 * Up key came from a mapping. */
 		c = p_wc;
+		KeyTyped = TRUE;
 	    }
 	}
 
@@ -5919,7 +5923,7 @@ ex_history(eap)
 							      hist[i].hisnum);
 		    if (vim_strsize(hist[i].hisstr) > (int)Columns - 10)
 			trunc_string(hist[i].hisstr, IObuff + STRLEN(IObuff),
-							   (int)Columns - 10);
+			     (int)Columns - 10, IOSIZE - (int)STRLEN(IObuff));
 		    else
 			STRCAT(IObuff, hist[i].hisstr);
 		    msg_outtrans(IObuff);
@@ -6023,8 +6027,10 @@ read_viminfo_history(virp)
 	val = viminfo_readstring(virp, 1, TRUE);
 	if (val != NULL && *val != NUL)
 	{
+	    int sep = (*val == ' ' ? NUL : *val);
+
 	    if (!in_history(type, val + (type == HIST_SEARCH),
-						  viminfo_add_at_front, *val))
+						   viminfo_add_at_front, sep))
 	    {
 		/* Need to re-allocate to append the separator byte. */
 		len = STRLEN(val);
@@ -6036,7 +6042,7 @@ read_viminfo_history(virp)
 			/* Search entry: Move the separator from the first
 			 * column to after the NUL. */
 			mch_memmove(p, val + 1, (size_t)len);
-			p[len] = (*val == ' ' ? NUL : *val);
+			p[len] = sep;
 		    }
 		    else
 		    {

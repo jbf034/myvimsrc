@@ -3883,7 +3883,8 @@ set_init_3()
 
 #if defined(MSDOS) || defined(WIN3264) || defined(OS2)
     /*
-     * Set 'shellcmdflag and 'shellquote' depending on the 'shell' option.
+     * Set 'shellcmdflag', 'shellxquote', and 'shellquote' depending on the
+     * 'shell' option.
      * This is done after other initializations, where 'shell' might have been
      * set, but only if they have not been set before.  Default for p_shcf is
      * "/c", for p_shq is "".  For "sh" like  shells it is changed here to
@@ -3919,6 +3920,42 @@ set_init_3()
 	}
 #  endif
 # endif
+    }
+    else if (strstr((char *)gettail(p_sh), "cmd.exe") != NULL)
+    {
+	int	idx3;
+
+	/*
+	 * cmd.exe on Windows will strip the first and last double quote given
+	 * on the command line, e.g. most of the time things like:
+	 *   cmd /c "my path/to/echo" "my args to echo"
+	 * become:
+	 *   my path/to/echo" "my args to echo
+	 * when executed.
+	 *
+	 * To avoid this, use the /s argument in addition to /c to force the
+	 * stripping behavior, and also set shellxquote to automatically
+	 * surround the entire command in quotes (which get stripped as
+	 * noted).
+	 */
+
+	/* Set shellxquote default to add the quotes to be stripped. */
+	idx3 = findoption((char_u *)"sxq");
+	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
+	{
+	    p_sxq = (char_u *)"\"";
+	    options[idx3].def_val[VI_DEFAULT] = p_sxq;
+	}
+
+	/* Set shellcmdflag default to always strip the quotes, note the order
+	 * between /s and /c is important or cmd.exe will treat the /s as part
+	 * of the command to be executed.  */
+	idx3 = findoption((char_u *)"shcf");
+	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
+	{
+	    p_shcf = (char_u *)"/s /c";
+	    options[idx3].def_val[VI_DEFAULT] = p_shcf;
+	}
     }
 #endif
 
@@ -7516,6 +7553,31 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	compatible_set();
     }
 
+#ifdef FEAT_PERSISTENT_UNDO
+    /* 'undofile' */
+    else if ((int *)varp == &curbuf->b_p_udf || (int *)varp == &p_udf)
+    {
+	char_u	hash[UNDO_HASH_SIZE];
+	buf_T	*save_curbuf = curbuf;
+
+	for (curbuf = firstbuf; curbuf != NULL; curbuf = curbuf->b_next)
+	{
+	    /* When 'undofile' is set globally: for every buffer, otherwise
+	     * only for the current buffer: Try to read in the undofile, if
+	     * one exists and the buffer wasn't changed and the buffer was
+	     * loaded. */
+	    if ((curbuf == save_curbuf
+				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
+		    && !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
+	    {
+		u_compute_hash(hash);
+		u_read_undo(NULL, hash, curbuf->b_fname);
+	    }
+	}
+	curbuf = save_curbuf;
+    }
+#endif
+
     /* 'list', 'number' */
     else if ((int *)varp == &curwin->w_p_list
 	  || (int *)varp == &curwin->w_p_nu
@@ -8560,8 +8622,8 @@ check_redraw(flags)
     long_u	flags;
 {
     /* Careful: P_RCLR and P_RALL are a combination of other P_ flags */
-    int		clear = (flags & P_RCLR) == P_RCLR;
-    int		all = ((flags & P_RALL) == P_RALL || clear);
+    int		doclear = (flags & P_RCLR) == P_RCLR;
+    int		all = ((flags & P_RALL) == P_RALL || doclear);
 
 #ifdef FEAT_WINDOWS
     if ((flags & P_RSTAT) || all)	/* mark all status lines dirty */
@@ -8572,7 +8634,7 @@ check_redraw(flags)
 	changed_window_setting();
     if (flags & P_RBUF)
 	redraw_curbuf_later(NOT_VALID);
-    if (clear)
+    if (doclear)
 	redraw_all_later(CLEAR);
     else if (all)
 	redraw_all_later(NOT_VALID);
