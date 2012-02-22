@@ -2273,6 +2273,15 @@ static struct vimoption
 			    (char_u *)"",
 #endif
 				(char_u *)0L} SCRIPTID_INIT},
+    {"shellxescape", "sxe", P_STRING|P_VI_DEF|P_SECURE,
+			    (char_u *)&p_sxe, PV_NONE,
+			    {
+#if defined(MSDOS) || defined(WIN16) || defined(WIN3264)
+			    (char_u *)"\"&|<>()@^",
+#else
+			    (char_u *)"",
+#endif
+				(char_u *)0L} SCRIPTID_INIT},
     {"shiftround",  "sr",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_sr, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -3933,27 +3942,22 @@ set_init_3()
 	 *   my path/to/echo" "my args to echo
 	 * when executed.
 	 *
-	 * To avoid this, use the /s argument in addition to /c to force the
-	 * stripping behavior, and also set shellxquote to automatically
-	 * surround the entire command in quotes (which get stripped as
-	 * noted).
+	 * To avoid this, set shellxquote to surround the command in
+	 * parenthesis.  This appears to make most commands work, without
+	 * breaking commands that worked previously, such as
+	 * '"path with spaces/cmd" "a&b"'.
 	 */
-
-	/* Set shellxquote default to add the quotes to be stripped. */
 	idx3 = findoption((char_u *)"sxq");
 	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
 	{
-	    p_sxq = (char_u *)"\"";
+	    p_sxq = (char_u *)"(";
 	    options[idx3].def_val[VI_DEFAULT] = p_sxq;
 	}
 
-	/* Set shellcmdflag default to always strip the quotes, note the order
-	 * between /s and /c is important or cmd.exe will treat the /s as part
-	 * of the command to be executed.  */
 	idx3 = findoption((char_u *)"shcf");
 	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
 	{
-	    p_shcf = (char_u *)"/s /c";
+	    p_shcf = (char_u *)"/c";
 	    options[idx3].def_val[VI_DEFAULT] = p_shcf;
 	}
     }
