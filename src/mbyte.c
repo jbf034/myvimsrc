@@ -5012,60 +5012,8 @@ xim_reset(void)
 {
     if (xic != NULL)
     {
-	/*
-	 * The third-party imhangul module (and maybe others too) ignores
-	 * gtk_im_context_reset() or at least doesn't reset the active state.
-	 * Thus sending imactivatekey would turn it off if it was on before,
-	 * which is clearly not what we want.  Fortunately we can work around
-	 * that for imhangul by sending GDK_Escape, but I don't know if it
-	 * works with all IM modules that support an activation key :/
-	 *
-	 * An alternative approach would be to destroy the IM context and
-	 * recreate it.  But that means loading/unloading the IM module on
-	 * every mode switch, which causes a quite noticeable delay even on
-	 * my rather fast box...
-	 * *
-	 * Moreover, there are some XIM which cannot respond to
-	 * im_synthesize_keypress(). we hope that they reset by
-	 * xim_shutdown().
-	 */
-	if (im_activatekey_keyval != GDK_VoidSymbol && im_is_active)
-	    im_synthesize_keypress(GDK_Escape, 0U);
-
+        /* NO HACKING! Fix it if there is a bug! */
 	gtk_im_context_reset(xic);
-
-	/*
-	 * HACK for Ami: This sequence of function calls makes Ami handle
-	 * the IM reset graciously, without breaking loads of other stuff.
-	 * It seems to force English mode as well, which is exactly what we
-	 * want because it makes the Ami status display work reliably.
-	 */
-	gtk_im_context_set_use_preedit(xic, FALSE);
-
-	if (p_imdisable)
-	    im_shutdown();
-	else
-	{
-	    gtk_im_context_set_use_preedit(xic, TRUE);
-	    xim_set_focus(gui.in_focus);
-
-	    if (im_activatekey_keyval != GDK_VoidSymbol)
-	    {
-		if (im_is_active)
-		{
-		    g_signal_handler_block(xic, im_commit_handler_id);
-		    im_synthesize_keypress(im_activatekey_keyval,
-						    im_activatekey_state);
-		    g_signal_handler_unblock(xic, im_commit_handler_id);
-		}
-	    }
-	    else
-	    {
-		im_shutdown();
-		xim_init();
-		xim_set_focus(gui.in_focus);
-	    }
-	}
     }
 
     preedit_start_col = MAXCOL;
