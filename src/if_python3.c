@@ -800,7 +800,7 @@ ex_py3file(exarg_T *eap)
 void ex_py3do(exarg_T *eap)
 {
     linenr_T i;
-    const char *code_hdr = "def " DOPY_FUNC "(line): ";
+    const char *code_hdr = "def " DOPY_FUNC "(line):\n ";
     const char *s = (const char *) eap->arg;
     size_t len;
     char *code;
