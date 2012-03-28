@@ -841,12 +841,14 @@ void ex_py3do(exarg_T *eap)
 	pyline = PyUnicode_Decode(line, strlen(line),
 		(char *)ENC_OPT, CODEC_ERROR_HANDLER);
 	pyret = PyObject_CallFunctionObjArgs(pyfunc, pyline, NULL);
-	if (PyErr_Occurred()){
+	Py_DECREF(pyline);
+	if (!pyret){
 	    PyErr_PrintEx(0);
 	    PythonIO_Flush();
+	    status = 1;
+	    goto out;
 	}
 
-	Py_DECREF(pyline);
 	if (pyret && pyret != Py_None) {
 	    if (!PyUnicode_Check(pyret)) {
 		/* TODO: a proper error number */
