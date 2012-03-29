@@ -805,6 +805,7 @@ void ex_py3do(exarg_T *eap)
     size_t len;
     char *code;
     int status;
+    linenr_T save;
     PyObject *pyfunc, *pymain;
 
     if (Python3_Init())
@@ -832,21 +833,25 @@ void ex_py3do(exarg_T *eap)
     pyfunc = PyObject_GetAttrString(pymain, DOPY_FUNC);
     PyGILState_Release(pygilstate);
 
+    save = curwin->w_cursor.lnum;
     for (i = eap->line1; i <= eap->line2; i++) {
 	const char *line;
 	PyObject *pyline, *pyret, *pybytes;
 
 	line = (char *)ml_get(i);
+	curwin->w_cursor.lnum = i;
 	pygilstate = PyGILState_Ensure();
 	pyline = PyUnicode_Decode(line, strlen(line),
 		(char *)ENC_OPT, CODEC_ERROR_HANDLER);
 	pyret = PyObject_CallFunctionObjArgs(pyfunc, pyline, NULL);
-	if (PyErr_Occurred()){
+	Py_DECREF(pyline);
+	if (!pyret){
 	    PyErr_PrintEx(0);
 	    PythonIO_Flush();
+	    status = 1;
+	    goto out;
 	}
 
-	Py_DECREF(pyline);
 	if (pyret && pyret != Py_None) {
 	    if (!PyUnicode_Check(pyret)) {
 		/* TODO: a proper error number */
@@ -873,6 +878,7 @@ out:
     Py_DECREF(pyfunc);
     PyObject_SetAttrString(pymain, DOPY_FUNC, NULL);
     PyGILState_Release(pygilstate);
+    curwin->w_cursor.lnum = save;
     if(status)
 	return;
     check_cursor();
