@@ -880,6 +880,7 @@ eval_init()
 	    hash_add(&compat_hashtab, p->vv_di.di_key);
     }
     set_vim_var_nr(VV_SEARCHFORWARD, 1L);
+    set_reg_var(0);  /* default for v:register is not 0 but '"' */
 
 #ifdef EBCDIC
     /*
@@ -12090,7 +12091,7 @@ f_has(argvars, rettv)
 #ifdef FEAT_SEARCHPATH
 	"file_in_path",
 #endif
-#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264)
+#ifdef FEAT_FILTERPIPE
 	"filterpipe",
 #endif
 #ifdef FEAT_FIND_ID
