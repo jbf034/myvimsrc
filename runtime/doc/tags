@@ -2581,6 +2581,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :pwd	editing.txt	/*:pwd*
 :py	if_pyth.txt	/*:py*
 :py3	if_pyth.txt	/*:py3*
+:py3do	if_pyth.txt	/*:py3do*
 :py3file	if_pyth.txt	/*:py3file*
 :pyf	if_pyth.txt	/*:pyf*
 :pyfile	if_pyth.txt	/*:pyfile*
