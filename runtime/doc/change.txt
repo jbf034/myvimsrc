@@ -1525,6 +1525,12 @@ B	When joining lines, don't insert a space between two multi-byte
 ]	Respect textwidth rigorously. With this flag set, no line can be
 	longer than textwidth, unless line-break-prohibition rules make this
 	impossible.  Mainly for multi-byte scripts.
+j	Where it makes sense, remove a comment leader when joining lines.  For
+	example, joining:
+		int i;   // the index ~
+		         // in the list ~
+	Becomes:
+		int i;   // the index in the list ~
 
 
 With 't' and 'c' you can specify when Vim performs auto-wrapping:
