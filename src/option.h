@@ -109,7 +109,6 @@
 
 #define DFLT_FO_VI	"vt"
 #define DFLT_FO_VIM	"tcq"
-
 #define FO_ALL		"tcroq2vlb1mMBn,aw]j"	/* for do_set() */
 
 /* characters for the p_cpo option: */
