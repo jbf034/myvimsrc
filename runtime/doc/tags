@@ -281,6 +281,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'go-F'	options.txt	/*'go-F'*
 'go-L'	options.txt	/*'go-L'*
 'go-M'	options.txt	/*'go-M'*
+'go-P'	options.txt	/*'go-P'*
 'go-R'	options.txt	/*'go-R'*
 'go-T'	options.txt	/*'go-T'*
 'go-a'	options.txt	/*'go-a'*
@@ -4976,7 +4977,6 @@ cino-(	indent.txt	/*cino-(*
 cino-)	indent.txt	/*cino-)*
 cino-+	indent.txt	/*cino-+*
 cino-/	indent.txt	/*cino-\/*
-cino-2	indent.txt	/*cino-2*
 cino-:	indent.txt	/*cino-:*
 cino-=	indent.txt	/*cino-=*
 cino->	indent.txt	/*cino->*
@@ -5013,6 +5013,11 @@ clearmatches()	eval.txt	/*clearmatches()*
 client-server	remote.txt	/*client-server*
 clientserver	remote.txt	/*clientserver*
 clipboard	gui.txt	/*clipboard*
+clipboard-autoselectml	options.txt	/*clipboard-autoselectml*
+clipboard-autoselectplus	options.txt	/*clipboard-autoselectplus*
+clipboard-exclude	options.txt	/*clipboard-exclude*
+clipboard-html	options.txt	/*clipboard-html*
+clipboard-unnamed	options.txt	/*clipboard-unnamed*
 cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*
