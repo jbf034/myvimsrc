@@ -596,10 +596,15 @@ ex_breakdel(eap)
     garray_T	*gap;
 
     gap = &dbg_breakp;
-#ifdef FEAT_PROFILE
     if (eap->cmdidx == CMD_profdel)
+    {
+#ifdef FEAT_PROFILE
 	gap = &prof_ga;
+#else
+	ex_ni(eap);
+	return;
 #endif
+    }
 
     if (vim_isdigit(*eap->arg))
     {
@@ -1489,6 +1494,7 @@ dialog_changed(buf, checkall)
     char_u	buff[DIALOG_MSG_SIZE];
     int		ret;
     buf_T	*buf2;
+    exarg_T     ea;
 
     dialog_msg(buff, _("Save changes to \"%s\"?"),
 			(buf->b_fname != NULL) ?
@@ -1498,13 +1504,19 @@ dialog_changed(buf, checkall)
     else
 	ret = vim_dialog_yesnocancel(VIM_QUESTION, NULL, buff, 1);
 
+    /* Init ea pseudo-structure, this is needed for the check_overwrite()
+     * function. */
+    ea.append = ea.forceit = FALSE;
+
     if (ret == VIM_YES)
     {
 #ifdef FEAT_BROWSE
 	/* May get file name, when there is none */
 	browse_save_fname(buf);
 #endif
-	if (buf->b_fname != NULL)   /* didn't hit Cancel */
+	if (buf->b_fname != NULL && check_overwrite(&ea, buf,
+				    buf->b_fname, buf->b_ffname, FALSE) == OK)
+	    /* didn't hit Cancel */
 	    (void)buf_write_all(buf, FALSE);
     }
     else if (ret == VIM_NO)
@@ -1532,7 +1544,9 @@ dialog_changed(buf, checkall)
 		/* May get file name, when there is none */
 		browse_save_fname(buf2);
 #endif
-		if (buf2->b_fname != NULL)   /* didn't hit Cancel */
+		if (buf2->b_fname != NULL && check_overwrite(&ea, buf2,
+				  buf2->b_fname, buf2->b_ffname, FALSE) == OK)
+		    /* didn't hit Cancel */
 		    (void)buf_write_all(buf2, FALSE);
 #ifdef FEAT_AUTOCMD
 		/* an autocommand may have deleted the buffer */
@@ -1836,22 +1850,28 @@ get_arglist(gap, str)
 #if defined(FEAT_QUICKFIX) || defined(FEAT_SYN_HL) || defined(PROTO)
 /*
  * Parse a list of arguments (file names), expand them and return in
- * "fnames[fcountp]".
+ * "fnames[fcountp]".  When "wig" is TRUE, removes files matching 'wildignore'.
  * Return FAIL or OK.
  */
     int
-get_arglist_exp(str, fcountp, fnamesp)
+get_arglist_exp(str, fcountp, fnamesp, wig)
     char_u	*str;
     int		*fcountp;
     char_u	***fnamesp;
+    int		wig;
 {
     garray_T	ga;
     int		i;
 
     if (get_arglist(&ga, str) == FAIL)
 	return FAIL;
-    i = gen_expand_wildcards(ga.ga_len, (char_u **)ga.ga_data,
-				       fcountp, fnamesp, EW_FILE|EW_NOTFOUND);
+    if (wig == TRUE)
+	i = expand_wildcards(ga.ga_len, (char_u **)ga.ga_data,
+					fcountp, fnamesp, EW_FILE|EW_NOTFOUND);
+    else
+	i = gen_expand_wildcards(ga.ga_len, (char_u **)ga.ga_data,
+					fcountp, fnamesp, EW_FILE|EW_NOTFOUND);
+
     ga_clear(&ga);
     return i;
 }
@@ -2467,7 +2487,7 @@ ex_listdo(eap)
 		/* go to window "tp" */
 		if (!valid_tabpage(tp))
 		    break;
-		goto_tabpage_tp(tp);
+		goto_tabpage_tp(tp, TRUE);
 		tp = tp->tp_next;
 	    }
 #endif
