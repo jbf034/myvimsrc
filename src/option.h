@@ -113,6 +113,10 @@
 
 #define DFLT_FO_VI	"vt"
 #define DFLT_FO_VIM	"tcq"
+#define FO_REMOVE_COMS	'j'	/* remove comment leaders when joining lines */
+
+#define DFLT_FO_VI	"vt"
+#define DFLT_FO_VIM	"tcq"
 #define FO_ALL		"tcroq2vlb1mMBn,awj"	/* for do_set() */
 
 /* characters for the p_cpo option: */

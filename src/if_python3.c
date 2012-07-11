@@ -79,6 +79,9 @@ static void init_structs(void);
 /* Python 3 does not support CObjects, always use Capsules */
 #define PY_USE_CAPSULE
 
+/* Python 3 does not support CObjects, always use Capsules */
+#define PY_USE_CAPSULE
+
 #define PyInt Py_ssize_t
 #define PyString_Check(obj) PyUnicode_Check(obj)
 #define PyString_AsBytes(obj) PyUnicode_AsEncodedString(obj, (char *)ENC_OPT, CODEC_ERROR_HANDLER)

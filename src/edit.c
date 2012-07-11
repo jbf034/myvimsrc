@@ -6431,6 +6431,7 @@ internal_format(textwidth, second_indent, flags, format_only, c)
 #ifdef FEAT_COMMENTS
 		    }
 #endif
+#endif
 		}
 	    }
 	    first_line = FALSE;
