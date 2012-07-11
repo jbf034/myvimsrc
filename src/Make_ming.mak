@@ -51,7 +51,9 @@ POSTSCRIPT=no
 # set to yes to enable OLE support
 OLE=no
 # Set the default $(WINVER) to make it work with pre-Win2k
-WINVER = 0x0400
+ifndef WINVER
+WINVER = 0x0500
+endif
 # Set to yes to enable Cscope support
 CSCOPE=yes
 # Set to yes to enable Netbeans support
