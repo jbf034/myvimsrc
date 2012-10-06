@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3.  Last change: 2012 Jul 25
+*todo.txt*      For Vim version 7.3.  Last change: 2012 Oct 04
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -34,54 +34,121 @@ not be repeated below, unless there is extra information.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
+Patch with Test for patch  7.3.673 (Christian Brabandt, 2012 Oct 3)
+
+Patch for C-\ e when editing expression. (Christian Brabandt, 2012 Oct 3)
+Correction by ZyX.
+
 Go through more coverity reports.
 
 Discussion about canonicalization of Hebrew. (Ron Aaron, 2011 April 10)
 
+Checking runtime scripts: Thilo Six, 2012 Jun 6.
+
+Crash with 1023 byte directory name. (Danek Duvall, 2012 Sep 19)
+
+Patch for wrong text in balloon, Issue 58. (Dominique Pelle)
+
+Patch for menu.vim to correct message about adding spell file.
+(Jiri Sedlak, 2012 Sep 24)
+
 GTK: problem with 'L' in 'guioptions' changing the window width.
 (Aaron Cornelius, 2012 Feb 6)
 
-Checking runtime scripts: Thilo Six, 2012 Jun 6.
+Patch for SGR mouse with older xterm. (Hayaki Saito, 2012 Sep 19)
 
-List of broken mirrors. (Chris Pentago, 2012 Jun 15)
-/tmp/broken-mirrors.csv
+Patch for crash with an autocommand. (ZyX, 2012 Sep 6, second one)
+Also patch for garbage, but use vim_strncpy() instead.
+
+Patch to fix crash on Win32 when setting 'encoding'. (Jiri Sedlak, 2012 Sep
+12)
+
+Patch to update example using empty(). (ZyX, 2012 Sep 13)
 
 Javascript file where indent gets stuck on: GalaxyMaster, 2012 May 3.
+
+Updated French and Esperanto files. (Dominique Pelle, 2012 Aug 19)
+
+When showing diffs filler lines may be hidden at first.
+Patch by Christian Brabandt, 2012 Sep 6.
+
+Patch for memory leaks on exception. (ZyX, 2012 Sep 9)
 
 The CompleteDone autocommand needs some info passed to it:
 - The word that was selected (empty if abandoned complete)
 - Type of completion: tag, omnifunc, user func.
 
+mouse_sgr is not ordered alphabetically in :version output.
+Docs list mouse_urxvt as normal feature, should be big. (Hayaki Saito, 2012
+Aug 16)
+
 ":gundo" command: global undo.  Undoes changes spread over multiple files in
 the order they were made.  Also ":gredo".  Both with a count.  Useful when
 tests fail after making changes and you forgot in which files.
+
+Patch to make updating tabline faster. (Arseny Kapoulkine, 2012 Oct 3)
+
+Crash with vimdiff. (Don Cruickshank, 2012 Sep 23)
+
+Win32: use 'guifontwide' for IME composition. (Taro Muraoka, 2012 Sep 30)
+Update Oct 2.
+
+Patch to make multibyte input work on Win32 console when codepage differs from
+'encoding'. (Ken Takata, 2012 Sep 29)
+
+It's possible to defined an input() function that overrides the built-in one.
+(ZyX, 2012 Sep 28)
 
 Win32: When a directory name contains an exclamation mark, completion doesn't
 complete the contents of the directory.  No escaping for the "!"? (Jan
 Stocker, 2012 Jan 5)
 
-Help for v/V is not quite right. (Ben Fritz, 2012 Jun 4)
-Change [count]v to select last visual area [count] times?
+Patch to support 'u' in interactive substitute. (Christian Brabandt, 2012 Sep
+28)  Asked for tests.
+
+Patch for IME handling, adds 'imactivatefunc' and 'imstatusfunc' option.
+(Yukihiro Nakadaira, 2012 Aug 16)
+Patch to improve IME handling. (Yasuhiro Matsumoto, 2012 Jul 18)
 
 Issue 54: document behavior of -complete, also expands arg.
 
-Issue 72: 'autochdir' causes problems for :vimgrep.
+New syntax files for apt. (quidame, 2012 Sep 21)
 
-Patch for SGR mouse support. (Hayaki Saito, mail from Yakuhiro Matsumoto, 2012
-Jul 13)
+Patch for if_lua. (Luis Carvalho, 2012 Aug 26, update Aug 29, another Aug 30,
+then Sep 1)
+
+Issue 72: 'autochdir' causes problems for :vimgrep.
 
 MS-Windows: Crash opening very long file name starting with "\\".
 (Christian Brock, 2012 Jun 29)
 
-Patch to fix assigning to scope dictionaries for Python. (ZyX, 2012 Jul 16)
+Win32: patch for current directory, "loading iof conv". (Ken Takata, 2012 Sep
+15)
+
+It's probably a good idea to make a negative value for 'sts' use the value of
+'sw'.  Patch by So8res, Oct 3 2012
 
 Syntax update problem in one buffer opened in two windows, bottom window is
 not correctly updated. (Paul Harris, 2012 Feb 27)
 
+Patch to add assignments in cscope. (Uli Meis, Estabrooks, 2012 Sep 1)
+Alternate patch by Gary Johnson, Sep 4.
+
 Patch to add getsid(). (Tyru, 2011 Oct 2)  Do we want this?  Update Oct 4.
 Or use expand('<sid>')?
 
-Patch to improve IME handling. (Yasuhiro Matsumoto, 2012 Jul 18)
+Patch for :tabcloseleft, after closing a tab go to left tab. (William Bowers,
+2012 Aug 4)
+
+Patch for Tab behavior with 'conceal'. (Dominique Pelle, 2012 Mar 18)
+Patch to test functionality of 'conceal' with tabs. (Simon Ruderich, 2012 Sep
+5)  Update with screencol() and screenrow() functions: Sep 7.
+
+Crash in autocmd that unloads buffers in a BufUnload event. (Andrew Pimlott,
+2012 Aug 11)  Disallow :new when BufUnload is being handled?
+
+MS-Windows ACL support doesn't work well.  Patch from Ken Takata, 2012 Aug 29.
+Update Aug 31.
 
 MS-Windows resizing problems:
 - Windows window on screen positioning: Patch by Yukihiro Nakadaira, 2012 Jun
@@ -99,6 +166,9 @@ The input map for CTRL-O in mswin.vim causes problems after CTRL-X CTRL-O.
 Suggestion for another map. (Philip Mat, 2012 Jun 18)
 But use "gi" instead of "a".  Or use CTRL-\ CTRL-O.
 
+Patch to support user name completion on MS-Windows. (Yasuhiro Matsumoto, 2012
+Aug 16)
+
 URXVT:
 - will get stuck if byte sequence does not containe expected semicolon.
 - Use urxvt mouse support also in xterm.  Explanations:
@@ -111,21 +181,25 @@ When running Vim in silent ex mode, an existing swapfile causes Vim to wait
 for a user action without a prompt. (Maarten Billemont, 2012 Feb 3)
 Do give the prompt? Quit with an error?
 
-Patch for Make_mvc.mak and Make_ming.mak for Ruby support. (Yasuhiro
-Matsumoto, 2012 Jan 30)
-
 Patch for 'backupcopy' default behavior for symlinks on Windows. (David Pope,
 2012 Mar 21, update Mar 31)
+With fix for memory leak: Ken Takata, 2012 Aug 24
+Another update Sep 24.
 
 Patch to list user digraphs. (Christian Brabandt, 2012 Apr 14)
 
 Patch for input method status. (Hirohito Higashi, 2012 Apr 18)
+
+Patch to print the result of a :python command. (Maxim Philippov
+<philippovmi@gmail.com>, 2012 Aug 16)  Update Aug 17.
 
 Problem with winfixheight and resizing. (Yukihiro Nakadaira, 2011 Sep 17)
 Patch Sep 18.
 
 Patch for IME problems. Remove hacking code for old IM. (Yukihiro Nakadaira,
 2012 Jul 20)
+
+/[^\n] does match at a line break.  Expected to do the same as /.
 
 Patch for has('unnamedplus') docs. (Tony Mechelynck, 2011 Sep 27)
 And one for gui_x11.txt.
@@ -169,9 +243,6 @@ Patch to add ":py3do". (Lilydjwg, 2012 Apr 7)
 (Yukihiro Nakadaira, 2011 Dec 9)
 
 Plugin for Modeleasy. (Massimiliano Tripoli, 2011 Nov 29)
-
-When using remote-silent the -R flag is not passed on. (Axel Bender, 2012 May
-31)
 
 Updated syntax file for ssh_config, maintainer doesn't respond.
 (Leonard Ehrenfried, 2011 Sep 26)
@@ -289,6 +360,10 @@ Vim using lots of memory when joining lines. (John Little, 2010 Dec 3)
 
 Changes to manpage plugin. (Elias Toivanen, 2011 Jul 25)
 
+Patch to make "z=" work when 'spell' is off.  Does this have nasty side
+effects?  (Christian Brabandt, 2012 Aug 5)
+Would also need to do this for spellbadword() and spellsuggest().
+
 On 64 bit MS-Windows "long" is only 32 bits, but we sometimes need to store a
 64 bits value.  Change all number options to use nropt_T and define it to the
 right type.
@@ -394,7 +469,7 @@ Searching mixed with Visual mode doesn't redraw properly. (James Vega, 2010 Nov
 
 New esperanto spell file can't be processed. (Dominique Pelle, 2011 Jan 30)
 - move compflags to separate growarray?
-- instead of a regexp use a hashtable.  Expand '?', '*", '+'.  What would be
+- instead of a regexp use a hashtable.  Expand '?', '*', '+'.  What would be
   the maximum repeat for * and +?
 
 "L'Italie" noted as a spell error at start of the sentence. (Dominique Pelle,
@@ -547,7 +622,7 @@ Find tail?  Might have a / in argument.  Find space?  Might have space in
 path.
 
 Test 51 fails when language set to German. (Marco, 2011 Jan 9)
-Dominique can't reproduc it.
+Dominique can't reproduce it.
 
 'ambiwidth' should be global-local.
 
@@ -601,9 +676,6 @@ echo, just not for  ":call" and ":call call()". (Ted, 2011 Mar 17)
 When a:base in 'completefunc' starts with a number it's passed as a number,
 not a string. (Sean Ma)  Need to add flag to call_func_retlist() to force a
 string value.
-
-":e ~br<Tab>" does not complete to ":e /home/bram/".  Would need to use
-getpwent() to find all the matches.
 
 Invalid read error in Farsi mode. (Dominique Pelle, 2009 Aug 2)
 
@@ -731,10 +803,6 @@ Diff mode out of sync. (Gary Johnson, 2010 Aug 4)
 Support a 'systemencoding' option (for Unix).  It specifies the encoding of
 file names. (Kikuchan, 2010 Oct 5).  Useful on a latin1 or double-byte Asian
 system when 'encoding' is "utf-8".
-
-Win32: A --remote command that has a directory name starting with a ( doesn't
-work, the backslash is removed, assuming that it escapes the (. (Valery
-Kondakoff, 2009 May 13)
 
 Win32 GUI: Changing manifest helps for dpi changes (Joe Castro, 2009 Mar 27)
 
@@ -921,6 +989,15 @@ escaping characters where the backslash is not removed later.  Asked Chris for
 an alternate solution, also for src/ex_getln.c.
 This also fails when the file or directory name contains "%". (Thoml, 2008
 July 7)
+Using --remote-silent while the current directory has a # in the name does not
+work, the # needs to be escaped. (Tramblay Bruno, 2012 Sep 15)
+
+When using remote-silent the -R flag is not passed on. (Axel Bender, 2012 May
+31)
+
+Win32: A --remote command that has a directory name starting with a ( doesn't
+work, the backslash is removed, assuming that it escapes the (. (Valery
+Kondakoff, 2009 May 13)
 
 Problem with 'langmap' being used on the rhs of a mapping. (Nikolai Weibull,
 2008 May 14)

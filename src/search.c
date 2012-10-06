@@ -4526,6 +4526,8 @@ current_quote(oap, count, include, quotechar)
 #endif /* FEAT_TEXTOBJ */
 
 #if defined(FEAT_VISUAL) || defined(PROTO)
+static int is_zerowidth __ARGS((char_u *pattern));
+
 /*
  * Find next search match under cursor, cursor at end.
  * Used while an operator is pending, and in Visual mode.
@@ -4543,10 +4545,9 @@ current_search(count, forward)
     int		dir;
     int		result;		/* result of various function calls */
     char_u	old_p_ws = p_ws;
-    int		visual_active = FALSE;
     int		flags = 0;
     pos_T	save_VIsual;
-
+    int		zerowidth = FALSE;
 
     /* wrapping should not occur */
     p_ws = FALSE;
@@ -4559,11 +4560,6 @@ current_search(count, forward)
     {
 	orig_pos = curwin->w_cursor;
 	save_VIsual = VIsual;
-	visual_active = TRUE;
-
-	/* just started visual selection, only one character */
-	if (equalpos(VIsual, curwin->w_cursor))
-	    visual_active = FALSE;
 
 	pos = curwin->w_cursor;
 	start_pos = VIsual;
@@ -4580,6 +4576,11 @@ current_search(count, forward)
     else
 	orig_pos = pos = start_pos = curwin->w_cursor;
 
+    /* Is the pattern is zero-width? */
+    zerowidth = is_zerowidth(spats[last_idx].pat);
+    if (zerowidth == -1)
+	return FAIL;
+
     /*
      * The trick is to first search backwards and then search forward again,
      * so that a match at the current cursor position will be correctly
@@ -4587,17 +4588,18 @@ current_search(count, forward)
      */
     for (i = 0; i < 2; i++)
     {
-	if (i && count == 1)
-	    flags = SEARCH_START;
-
 	if (forward)
 	    dir = i;
 	else
 	    dir = !i;
+
+	flags = 0;
+	if (!dir && !zerowidth)
+	    flags = SEARCH_END;
+
 	result = searchit(curwin, curbuf, &pos, (dir ? FORWARD : BACKWARD),
 		spats[last_idx].pat, (long) (i ? count : 1),
-		SEARCH_KEEP | flags | (dir ? 0 : SEARCH_END),
-		RE_SEARCH, 0, NULL);
+		SEARCH_KEEP | flags, RE_SEARCH, 0, NULL);
 
 	/* First search may fail, but then start searching from the
 	 * beginning of the file (cursor might be on the search match)
@@ -4611,7 +4613,7 @@ current_search(count, forward)
 	    p_ws = old_p_ws;
 	    return FAIL;
 	}
-	else if (!i && !result && !visual_active)
+	else if (!i && !result)
 	{
 	    if (forward) /* try again from start of buffer */
 	    {
@@ -4629,10 +4631,12 @@ current_search(count, forward)
     }
 
     start_pos = pos;
-    flags = (forward ? SEARCH_END : 0);
+    flags = forward ? SEARCH_END : 0;
 
-    /* move to match */
-    result = searchit(curwin, curbuf, &pos, (forward ? FORWARD : BACKWARD),
+    /* move to match, except for zero-width matches, in which case, we are
+     * already on the next match */
+    if (!zerowidth)
+	result = searchit(curwin, curbuf, &pos, (forward ? FORWARD : BACKWARD),
 	    spats[last_idx].pat, 0L, flags | SEARCH_KEEP, RE_SEARCH, 0, NULL);
 
     if (!VIsual_active)
@@ -4646,8 +4650,15 @@ current_search(count, forward)
     if (VIsual_active)
     {
 	redraw_curbuf_later(INVERTED);	/* update the inversion */
-	if (*p_sel == 'e' && ltoreq(VIsual, curwin->w_cursor))
-	    inc_cursor();
+	if (*p_sel == 'e')
+	{
+	    /* Correction for exclusive selection depends on the direction. */
+	    if (forward && ltoreq(VIsual, curwin->w_cursor))
+		inc_cursor();
+	    else if (!forward && ltoreq(curwin->w_cursor, VIsual))
+		inc(&VIsual);
+	}
+
     }
 
 #ifdef FEAT_FOLDING
@@ -4668,6 +4679,46 @@ current_search(count, forward)
     showmode();
 
     return OK;
+}
+
+/*
+ * Check if the pattern is zero-width.
+ * Returns TRUE, FALSE or -1 for failure.
+ */
+    static int
+is_zerowidth(pattern)
+    char_u	*pattern;
+{
+    regmmatch_T	regmatch;
+    int		nmatched = 0;
+    int		result = -1;
+    pos_T	pos;
+    int		save_called_emsg = called_emsg;
+
+    if (search_regcomp(pattern, RE_SEARCH, RE_SEARCH,
+					      SEARCH_KEEP, &regmatch) == FAIL)
+	return -1;
+
+    /* move to match */
+    clearpos(&pos);
+    if (searchit(curwin, curbuf, &pos, FORWARD, spats[last_idx].pat, 1,
+				     SEARCH_KEEP, RE_SEARCH, 0, NULL) != FAIL)
+    {
+	/* Zero-width pattern should match somewhere, then we can check if
+	 * start and end are in the same position. */
+	called_emsg = FALSE;
+	nmatched = vim_regexec_multi(&regmatch, curwin, curbuf,
+						  pos.lnum, (colnr_T)0, NULL);
+
+	if (!called_emsg)
+	    result = (nmatched != 0
+		&& regmatch.startpos[0].lnum == regmatch.endpos[0].lnum
+		&& regmatch.startpos[0].col == regmatch.endpos[0].col);
+    }
+
+    called_emsg |= save_called_emsg;
+    vim_free(regmatch.regprog);
+    return result;
 }
 #endif /* FEAT_VISUAL */
 
