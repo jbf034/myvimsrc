@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2012 Sep 05
+*eval.txt*	For Vim version 7.3.  Last change: 2012 Oct 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -91,8 +91,8 @@ For boolean operators Numbers are used.  Zero is FALSE, non-zero is TRUE.
 Note that in the command >
 	:if "foo"
 "foo" is converted to 0, which means FALSE.  To test for a non-empty string,
-use strlen(): >
-	:if strlen("foo")
+use empty(): >
+	:if !empty("foo")
 <				*E745* *E728* *E703* *E729* *E730* *E731*
 List, Dictionary and Funcref types are not automatically converted.
 
@@ -1932,6 +1932,7 @@ setwinvar( {nr}, {varname}, {val})	set {varname} in window {nr} to {val}
 shellescape( {string} [, {special}])
 				String	escape {string} for use as shell
 					command argument
+shiftwidth()			Number	effective value of 'shiftwidth'
 simplify( {filename})		String	simplify filename as much as possible
 sin( {expr})			Float	sine of {expr}
 sinh( {expr})			Float	hyperbolic sine of {expr}
@@ -3754,10 +3755,10 @@ inputdialog({prompt} [, {text} [, {cancelreturn}]])		*inputdialog()*
 		Like |input()|, but when the GUI is running and text dialogs
 		are supported, a dialog window pops up to input the text.
 		Example: >
-			:let n = inputdialog("value for shiftwidth", &sw)
-			:if n != ""
-			:  let &sw = n
-			:endif
+		   :let n = inputdialog("value for shiftwidth", shiftwidth())
+		   :if n != ""
+		   :  let &sw = n
+		   :endif
 <		When the dialog is cancelled {cancelreturn} is returned.  When
 		omitted an empty string is returned.
 		Hitting <Enter> works like pressing the OK button.  Hitting
@@ -5329,6 +5330,23 @@ shellescape({string} [, {special}])			*shellescape()*
 <		This results in a directory listing for the file under the
 		cursor.  Example of use with |system()|: >
 		    :call system("chmod +w -- " . shellescape(expand("%")))
+
+
+shiftwidth()						*shiftwidth()*
+		Returns the effective value of 'shiftwidth'. This is the
+		'shiftwidth' value unless it is zero, in which case it is the
+		'tabstop' value.  To be backwards compatible in indent
+		plugins, use this: >
+			if exists('*shiftwidth')
+			  func s:sw()
+			    return shiftwidth()
+			  endfunc
+			else
+			  func s:sw()
+			    return &sw
+			  endfunc
+			endif
+<		And then use s:sw() instead of &sw.
 
 
 simplify({filename})					*simplify()*
