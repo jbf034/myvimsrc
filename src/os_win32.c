@@ -287,19 +287,40 @@ unescape_shellxquote(char_u *p, char_u *escaped)
     HINSTANCE
 vimLoadLib(char *name)
 {
-    HINSTANCE dll = NULL;
-    char old_dir[MAXPATHL];
+    HINSTANCE	dll = NULL;
+    char	old_dir[MAXPATHL];
 
+    /* NOTE: Do not use mch_dirname() and mch_chdir() here, they may call
+     * vimLoadLib() recursively, which causes a stack overflow. */
     if (exe_path == NULL)
 	get_exe_name();
-    if (exe_path != NULL && mch_dirname(old_dir, MAXPATHL) == OK)
+    if (exe_path != NULL)
     {
-	/* Change directory to where the executable is, both to make sure we
-	 * find a .dll there and to avoid looking for a .dll in the current
-	 * directory. */
-	mch_chdir(exe_path);
-	dll = LoadLibrary(name);
-	mch_chdir(old_dir);
+#ifdef FEAT_MBYTE
+	WCHAR old_dirw[MAXPATHL];
+
+	if (GetCurrentDirectoryW(MAXPATHL, old_dirw) != 0)
+	{
+	    /* Change directory to where the executable is, both to make
+	     * sure we find a .dll there and to avoid looking for a .dll
+	     * in the current directory. */
+	    SetCurrentDirectory(exe_path);
+	    dll = LoadLibrary(name);
+	    SetCurrentDirectoryW(old_dirw);
+	    return dll;
+	}
+	/* Retry with non-wide function (for Windows 98). */
+	if (GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
+#endif
+	    if (GetCurrentDirectory(MAXPATHL, old_dir) != 0)
+	    {
+		/* Change directory to where the executable is, both to make
+		 * sure we find a .dll there and to avoid looking for a .dll
+		 * in the current directory. */
+		SetCurrentDirectory(exe_path);
+		dll = LoadLibrary(name);
+		SetCurrentDirectory(old_dir);
+	    }
     }
     return dll;
 }
@@ -3319,6 +3340,8 @@ mch_system_classic(char *cmd, int options)
 	    {
 		TranslateMessage(&msg);
 		pDispatchMessage(&msg);
+		delay = 1;
+		continue;
 	    }
 	    if (WaitForSingleObject(pi.hProcess, delay) != WAIT_TIMEOUT)
 		break;
@@ -4999,21 +5022,26 @@ mch_breakcheck(void)
     long_u
 mch_avail_mem(int special)
 {
-    if (g_PlatformId != VER_PLATFORM_WIN32_NT)
+#ifdef MEMORYSTATUSEX
+    PlatformId();
+    if (g_PlatformId == VER_PLATFORM_WIN32_NT)
+    {
+	MEMORYSTATUSEX	ms;
+
+	/* Need to use GlobalMemoryStatusEx() when there is more memory than
+	 * what fits in 32 bits. But it's not always available. */
+	ms.dwLength = sizeof(MEMORYSTATUSEX);
+	GlobalMemoryStatusEx(&ms);
+	return (long_u)((ms.ullAvailPhys + ms.ullAvailPageFile) >> 10);
+    }
+    else
+#endif
     {
 	MEMORYSTATUS	ms;
 
 	ms.dwLength = sizeof(MEMORYSTATUS);
 	GlobalMemoryStatus(&ms);
 	return (long_u)((ms.dwAvailPhys + ms.dwAvailPageFile) >> 10);
-    }
-    else
-    {
-	MEMORYSTATUSEX	ms;
-
-	ms.dwLength = sizeof(MEMORYSTATUSEX);
-	GlobalMemoryStatusEx(&ms);
-	return (long_u)((ms.ullAvailPhys + ms.ullAvailPageFile) >> 10);
     }
 }
 

@@ -42,8 +42,6 @@
 # undef _DEBUG
 #endif
 
-#define PY_SSIZE_T_CLEAN
-
 #ifdef F_BLANK
 # undef F_BLANK
 #endif
@@ -66,6 +64,10 @@
 #undef main /* Defined in python.h - aargh */
 #undef HAVE_FCNTL_H /* Clash with os_win32.h */
 
+#if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x02050000
+# define PY_SSIZE_T_CLEAN
+#endif
+
 static void init_structs(void);
 
 /* The "surrogateescape" error handler is new in Python 3.1 */
@@ -86,6 +88,10 @@ static void init_structs(void);
 #define PyString_AsString(obj) PyBytes_AsString(obj)
 #define PyString_Size(obj) PyBytes_GET_SIZE(bytes)
 #define PyString_FromString(repr) PyUnicode_FromString(repr)
+#define PyString_AsStringAndSize(obj, buffer, len) PyBytes_AsStringAndSize(obj, buffer, len)
+#define PyInt_Check(obj) PyLong_Check(obj)
+#define PyInt_FromLong(i) PyLong_FromLong(i)
+#define PyInt_AsLong(obj) PyLong_AsLong(obj)
 
 #if defined(DYNAMIC_PYTHON3) || defined(PROTO)
 
@@ -162,7 +168,6 @@ static void init_structs(void);
 # define PyRun_String py3_PyRun_String
 # define PySys_SetObject py3_PySys_SetObject
 # define PySys_SetArgv py3_PySys_SetArgv
-# define PyType_Type (*py3_PyType_Type)
 # define PyType_Ready py3_PyType_Ready
 #undef Py_BuildValue
 # define Py_BuildValue py3_Py_BuildValue
@@ -171,22 +176,32 @@ static void init_structs(void);
 # define Py_Finalize py3_Py_Finalize
 # define Py_IsInitialized py3_Py_IsInitialized
 # define _Py_NoneStruct (*py3__Py_NoneStruct)
+# define _Py_FalseStruct (*py3__Py_FalseStruct)
+# define _Py_TrueStruct (*py3__Py_TrueStruct)
 # define _PyObject_NextNotImplemented (*py3__PyObject_NextNotImplemented)
 # define PyModule_AddObject py3_PyModule_AddObject
 # define PyImport_AppendInittab py3_PyImport_AppendInittab
 # define PyImport_AddModule py3_PyImport_AddModule
-# define _PyUnicode_AsString py3__PyUnicode_AsString
+# if PY_VERSION_HEX >= 0x030300f0
+#  undef _PyUnicode_AsString
+#  define _PyUnicode_AsString py3_PyUnicode_AsUTF8String
+# else
+#  define _PyUnicode_AsString py3__PyUnicode_AsString
+# endif
 # undef PyUnicode_AsEncodedString
 # define PyUnicode_AsEncodedString py3_PyUnicode_AsEncodedString
 # undef PyBytes_AsString
 # define PyBytes_AsString py3_PyBytes_AsString
+# define PyBytes_AsStringAndSize py3_PyBytes_AsStringAndSize
 # undef PyBytes_FromString
 # define PyBytes_FromString py3_PyBytes_FromString
 # define PyFloat_FromDouble py3_PyFloat_FromDouble
 # define PyFloat_AsDouble py3_PyFloat_AsDouble
 # define PyObject_GenericGetAttr py3_PyObject_GenericGetAttr
+# define PyType_Type (*py3_PyType_Type)
 # define PySlice_Type (*py3_PySlice_Type)
 # define PyFloat_Type (*py3_PyFloat_Type)
+# define PyBool_Type (*py3_PyBool_Type)
 # define PyErr_NewException py3_PyErr_NewException
 # ifdef Py_DEBUG
 #  define _Py_NegativeRefcount py3__Py_NegativeRefcount
@@ -251,7 +266,6 @@ static PyObject* (*py3_PyList_GetItem)(PyObject *, Py_ssize_t);
 static PyObject* (*py3_PyImport_ImportModule)(const char *);
 static PyObject* (*py3_PyImport_AddModule)(const char *);
 static int (*py3_PyErr_BadArgument)(void);
-static PyTypeObject* py3_PyType_Type;
 static PyObject* (*py3_PyErr_Occurred)(void);
 static void (*py3_PyErr_PrintEx)(int);
 static PyObject* (*py3_PyModule_GetDict)(PyObject *);
@@ -282,12 +296,19 @@ static void (*py3_PyErr_Clear)(void);
 static PyObject*(*py3__PyObject_Init)(PyObject *, PyTypeObject *);
 static iternextfunc py3__PyObject_NextNotImplemented;
 static PyObject* py3__Py_NoneStruct;
+static PyObject* py3__Py_FalseStruct;
+static PyObject* py3__Py_TrueStruct;
 static int (*py3_PyModule_AddObject)(PyObject *m, const char *name, PyObject *o);
 static int (*py3_PyImport_AppendInittab)(const char *name, PyObject* (*initfunc)(void));
 static PyObject* (*py3_PyImport_AddModule)(const char *);
+#if PY_VERSION_HEX >= 0x030300f0
+static char* (*py3_PyUnicode_AsUTF8String)(PyObject *unicode);
+#else
 static char* (*py3__PyUnicode_AsString)(PyObject *unicode);
+#endif
 static PyObject* (*py3_PyUnicode_AsEncodedString)(PyObject *unicode, const char* encoding, const char* errors);
 static char* (*py3_PyBytes_AsString)(PyObject *bytes);
+static int (*py3_PyBytes_AsStringAndSize)(PyObject *bytes, char **buffer, int *length);
 static PyObject* (*py3_PyBytes_FromString)(char *str);
 static PyObject* (*py3_PyFloat_FromDouble)(double num);
 static double (*py3_PyFloat_AsDouble)(PyObject *);
@@ -295,8 +316,10 @@ static PyObject* (*py3_PyObject_GenericGetAttr)(PyObject *obj, PyObject *name);
 static PyObject* (*py3_PyModule_Create2)(struct PyModuleDef* module, int module_api_version);
 static PyObject* (*py3_PyType_GenericAlloc)(PyTypeObject *type, Py_ssize_t nitems);
 static PyObject* (*py3_PyType_GenericNew)(PyTypeObject *type, PyObject *args, PyObject *kwds);
+static PyTypeObject* py3_PyType_Type;
 static PyTypeObject* py3_PySlice_Type;
 static PyTypeObject* py3_PyFloat_Type;
+static PyTypeObject* py3_PyBool_Type;
 static PyObject* (*py3_PyErr_NewException)(char *name, PyObject *base, PyObject *dict);
 static PyObject* (*py3_PyCapsule_New)(void *, char *, PyCapsule_Destructor);
 static void* (*py3_PyCapsule_GetPointer)(PyObject *, char *);
@@ -340,7 +363,13 @@ static struct
     {"PySys_SetArgv", (PYTHON_PROC*)&py3_PySys_SetArgv},
     {"Py_SetPythonHome", (PYTHON_PROC*)&py3_Py_SetPythonHome},
     {"Py_Initialize", (PYTHON_PROC*)&py3_Py_Initialize},
+#ifndef PY_SSIZE_T_CLEAN
     {"PyArg_ParseTuple", (PYTHON_PROC*)&py3_PyArg_ParseTuple},
+    {"Py_BuildValue", (PYTHON_PROC*)&py3_Py_BuildValue},
+#else
+    {"_PyArg_ParseTuple_SizeT", (PYTHON_PROC*)&py3_PyArg_ParseTuple},
+    {"_Py_BuildValue_SizeT", (PYTHON_PROC*)&py3_Py_BuildValue},
+#endif
     {"PyMem_Free", (PYTHON_PROC*)&py3_PyMem_Free},
     {"PyMem_Malloc", (PYTHON_PROC*)&py3_PyMem_Malloc},
     {"PyList_New", (PYTHON_PROC*)&py3_PyList_New},
@@ -369,7 +398,6 @@ static struct
     {"PyImport_ImportModule", (PYTHON_PROC*)&py3_PyImport_ImportModule},
     {"PyImport_AddModule", (PYTHON_PROC*)&py3_PyImport_AddModule},
     {"PyErr_BadArgument", (PYTHON_PROC*)&py3_PyErr_BadArgument},
-    {"PyType_Type", (PYTHON_PROC*)&py3_PyType_Type},
     {"PyErr_Occurred", (PYTHON_PROC*)&py3_PyErr_Occurred},
     {"PyErr_PrintEx", (PYTHON_PROC*)&py3_PyErr_PrintEx},
     {"PyModule_GetDict", (PYTHON_PROC*)&py3_PyModule_GetDict},
@@ -382,7 +410,6 @@ static struct
     {"PyObject_GetIter", (PYTHON_PROC*)&py3_PyObject_GetIter},
     {"PyLong_FromLong", (PYTHON_PROC*)&py3_PyLong_FromLong},
     {"PyDict_New", (PYTHON_PROC*)&py3_PyDict_New},
-    {"Py_BuildValue", (PYTHON_PROC*)&py3_Py_BuildValue},
     {"PyType_Ready", (PYTHON_PROC*)&py3_PyType_Ready},
     {"PyDict_SetItemString", (PYTHON_PROC*)&py3_PyDict_SetItemString},
     {"PyLong_AsLong", (PYTHON_PROC*)&py3_PyLong_AsLong},
@@ -394,13 +421,20 @@ static struct
     {"Py_IsInitialized", (PYTHON_PROC*)&py3_Py_IsInitialized},
     {"_PyObject_NextNotImplemented", (PYTHON_PROC*)&py3__PyObject_NextNotImplemented},
     {"_Py_NoneStruct", (PYTHON_PROC*)&py3__Py_NoneStruct},
+    {"_Py_FalseStruct", (PYTHON_PROC*)&py3__Py_FalseStruct},
+    {"_Py_TrueStruct", (PYTHON_PROC*)&py3__Py_TrueStruct},
     {"PyErr_Clear", (PYTHON_PROC*)&py3_PyErr_Clear},
     {"PyObject_Init", (PYTHON_PROC*)&py3__PyObject_Init},
     {"PyModule_AddObject", (PYTHON_PROC*)&py3_PyModule_AddObject},
     {"PyImport_AppendInittab", (PYTHON_PROC*)&py3_PyImport_AppendInittab},
     {"PyImport_AddModule", (PYTHON_PROC*)&py3_PyImport_AddModule},
+#if PY_VERSION_HEX >= 0x030300f0
+    {"PyUnicode_AsUTF8String", (PYTHON_PROC*)&py3_PyUnicode_AsUTF8String},
+#else
     {"_PyUnicode_AsString", (PYTHON_PROC*)&py3__PyUnicode_AsString},
+#endif
     {"PyBytes_AsString", (PYTHON_PROC*)&py3_PyBytes_AsString},
+    {"PyBytes_AsStringAndSize", (PYTHON_PROC*)&py3_PyBytes_AsStringAndSize},
     {"PyBytes_FromString", (PYTHON_PROC*)&py3_PyBytes_FromString},
     {"PyFloat_FromDouble", (PYTHON_PROC*)&py3_PyFloat_FromDouble},
     {"PyFloat_AsDouble", (PYTHON_PROC*)&py3_PyFloat_AsDouble},
@@ -408,8 +442,10 @@ static struct
     {"PyModule_Create2", (PYTHON_PROC*)&py3_PyModule_Create2},
     {"PyType_GenericAlloc", (PYTHON_PROC*)&py3_PyType_GenericAlloc},
     {"PyType_GenericNew", (PYTHON_PROC*)&py3_PyType_GenericNew},
+    {"PyType_Type", (PYTHON_PROC*)&py3_PyType_Type},
     {"PySlice_Type", (PYTHON_PROC*)&py3_PySlice_Type},
     {"PyFloat_Type", (PYTHON_PROC*)&py3_PyFloat_Type},
+    {"PyBool_Type", (PYTHON_PROC*)&py3_PyBool_Type},
     {"PyErr_NewException", (PYTHON_PROC*)&py3_PyErr_NewException},
 # ifdef Py_DEBUG
     {"_Py_NegativeRefcount", (PYTHON_PROC*)&py3__Py_NegativeRefcount},
@@ -489,6 +525,12 @@ py3_runtime_link_init(char *libname, int verbose)
 
     /* Load unicode functions separately as only the ucs2 or the ucs4 functions
      * will be present in the library. */
+#if PY_VERSION_HEX >= 0x030300f0
+    ucs_from_string = symbol_from_dll(hinstPy3, "PyUnicode_FromString");
+    ucs_decode = symbol_from_dll(hinstPy3, "PyUnicode_Decode");
+    ucs_as_encoded_string = symbol_from_dll(hinstPy3,
+	    "PyUnicode_AsEncodedString");
+#else
     ucs_from_string = symbol_from_dll(hinstPy3, "PyUnicodeUCS2_FromString");
     ucs_decode = symbol_from_dll(hinstPy3,
 	    "PyUnicodeUCS2_Decode");
@@ -503,6 +545,7 @@ py3_runtime_link_init(char *libname, int verbose)
 	ucs_as_encoded_string = symbol_from_dll(hinstPy3,
 		"PyUnicodeUCS4_AsEncodedString");
     }
+#endif
     if (ucs_from_string && ucs_decode && ucs_as_encoded_string)
     {
 	py3_PyUnicode_FromString = ucs_from_string;
@@ -566,17 +609,20 @@ static int py3initialised = 0;
 
 #define PYINITIALISED py3initialised
 
-/* Add conversion from PyInt? */
+#define DICTKEY_DECL PyObject *bytes = NULL;
+
 #define DICTKEY_GET(err) \
     if (PyBytes_Check(keyObject)) \
-	key = (char_u *) PyBytes_AsString(keyObject); \
+    { \
+	if (PyString_AsStringAndSize(keyObject, (char **) &key, NULL) == -1) \
+	    return err; \
+    } \
     else if (PyUnicode_Check(keyObject)) \
     { \
 	bytes = PyString_AsBytes(keyObject); \
 	if (bytes == NULL) \
 	    return err; \
-	key = (char_u *) PyBytes_AsString(bytes); \
-	if (key == NULL) \
+	if (PyString_AsStringAndSize(bytes, (char **) &key, NULL) == -1) \
 	    return err; \
     } \
     else \
@@ -584,16 +630,20 @@ static int py3initialised = 0;
 	PyErr_SetString(PyExc_TypeError, _("only string keys are allowed")); \
 	return err; \
     }
+
 #define DICTKEY_UNREF \
     if (bytes != NULL) \
 	Py_XDECREF(bytes);
-
-#define DICTKEY_DECL PyObject *bytes = NULL;
 
 /*
  * Include the code shared with if_python.c
  */
 #include "if_py_both.h"
+
+#define GET_ATTR_STRING(name, nameobj) \
+    char	*name = ""; \
+    if (PyUnicode_Check(nameobj)) \
+	name = _PyUnicode_AsString(nameobj)
 
 #define PY3OBJ_DELETED(obj) (obj->ob_base.ob_refcnt<=0)
 
@@ -696,13 +746,19 @@ Python3_Init(void)
 	Py_SetPythonHome(PYTHON3_HOME);
 #endif
 
+	PyImport_AppendInittab("vim", Py3Init_vim);
+
 #if !defined(MACOS) || defined(MACOS_X_UNIX)
 	Py_Initialize();
 #else
 	PyMac_Initialize();
 #endif
-	/* initialise threads, must be after Py_Initialize() */
+	/* Initialise threads, and save the state using PyGILState_Ensure.
+	 * Without the call to PyGILState_Ensure, thread specific state (such
+	 * as the system trace hook), will be lost between invocations of
+	 * Python code. */
 	PyEval_InitThreads();
+	pygilstate = PyGILState_Ensure();
 
 #ifdef DYNAMIC_PYTHON3
 	get_py3_exceptions();
@@ -710,8 +766,6 @@ Python3_Init(void)
 
 	if (PythonIO_Init())
 	    goto fail;
-
-	PyImport_AppendInittab("vim", Py3Init_vim);
 
 	globals = PyModule_GetDict(PyImport_AddModule("__main__"));
 
@@ -1022,9 +1076,7 @@ theend:
     static PyObject *
 OutputGetattro(PyObject *self, PyObject *nameobj)
 {
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
     if (strcmp(name, "softspace") == 0)
 	return PyLong_FromLong(((OutputObject *)(self))->softspace);
@@ -1035,30 +1087,9 @@ OutputGetattro(PyObject *self, PyObject *nameobj)
     static int
 OutputSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
-    if (val == NULL)
-    {
-	PyErr_SetString(PyExc_AttributeError, _("can't delete OutputObject attributes"));
-	return -1;
-    }
-
-    if (strcmp(name, "softspace") == 0)
-    {
-	if (!PyLong_Check(val))
-	{
-	    PyErr_SetString(PyExc_TypeError, _("softspace must be an integer"));
-	    return -1;
-	}
-
-	((OutputObject *)(self))->softspace = PyLong_AsLong(val);
-	return 0;
-    }
-
-    PyErr_SetString(PyExc_AttributeError, _("invalid attribute"));
-    return -1;
+    return OutputSetattr(self, name, val);
 }
 
 /***************/
@@ -1190,9 +1221,7 @@ BufferGetattro(PyObject *self, PyObject*nameobj)
 {
     BufferObject *this = (BufferObject *)(self);
 
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
     if (CheckBuffer(this))
 	return NULL;
@@ -1356,9 +1385,7 @@ RangeDestructor(PyObject *self)
     static PyObject *
 RangeGetattro(PyObject *self, PyObject *nameobj)
 {
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
     if (strcmp(name, "start") == 0)
 	return Py_BuildValue("n", ((RangeObject *)(self))->start - 1);
@@ -1529,10 +1556,7 @@ WindowGetattro(PyObject *self, PyObject *nameobj)
 {
     WindowObject *this = (WindowObject *)(self);
 
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
-
+    GET_ATTR_STRING(name, nameobj);
 
     if (CheckWindow(this))
 	return NULL;
@@ -1560,10 +1584,7 @@ WindowGetattro(PyObject *self, PyObject *nameobj)
     static int
 WindowSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
-    char *name = "";
-
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
     return WindowSetattr(self, name, val);
 }
@@ -1607,9 +1628,7 @@ static PyTypeObject CurrentType;
     static PyObject *
 CurrentGetattro(PyObject *self UNUSED, PyObject *nameobj)
 {
-    char *name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+    GET_ATTR_STRING(name, nameobj);
 
     if (strcmp(name, "buffer") == 0)
 	return (PyObject *)BufferNew(curbuf);
@@ -1659,6 +1678,28 @@ static PyMappingMethods DictionaryAsMapping = {
     /* mp_subscript     */ (binaryfunc) DictionaryItem,
     /* mp_ass_subscript */ (objobjargproc) DictionaryAssItem,
 };
+
+    static PyObject *
+DictionaryGetattro(PyObject *self, PyObject *nameobj)
+{
+    DictionaryObject	*this = ((DictionaryObject *) (self));
+
+    GET_ATTR_STRING(name, nameobj);
+
+    if (strcmp(name, "locked") == 0)
+	return PyLong_FromLong(this->dict->dv_lock);
+    else if (strcmp(name, "scope") == 0)
+	return PyLong_FromLong(this->dict->dv_scope);
+
+    return PyObject_GenericGetAttr(self, nameobj);
+}
+
+    static int
+DictionarySetattro(PyObject *self, PyObject *nameobj, PyObject *val)
+{
+    GET_ATTR_STRING(name, nameobj);
+    return DictionarySetattr((DictionaryObject *) self, name, val);
+}
 
 static PyTypeObject DictionaryType;
 
@@ -1751,6 +1792,24 @@ ListAsSubscript(PyObject *self, PyObject *idxObject, PyObject *obj)
     }
 }
 
+    static PyObject *
+ListGetattro(PyObject *self, PyObject *nameobj)
+{
+    GET_ATTR_STRING(name, nameobj);
+
+    if (strcmp(name, "locked") == 0)
+	return PyLong_FromLong(((ListObject *) (self))->list->lv_lock);
+
+    return PyObject_GenericGetAttr(self, nameobj);
+}
+
+    static int
+ListSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
+{
+    GET_ATTR_STRING(name, nameobj);
+    return ListSetattr((ListObject *) self, name, val);
+}
+
     static void
 ListDestructor(PyObject *self)
 {
@@ -1780,9 +1839,8 @@ FunctionDestructor(PyObject *self)
 FunctionGetattro(PyObject *self, PyObject *nameobj)
 {
     FunctionObject	*this = (FunctionObject *)(self);
-    char	*name = "";
-    if (PyUnicode_Check(nameobj))
-	name = _PyUnicode_AsString(nameobj);
+
+    GET_ATTR_STRING(name, nameobj);
 
     if (strcmp(name, "name") == 0)
 	return PyUnicode_FromString((char *)(this->name));
@@ -1840,6 +1898,7 @@ static struct PyModuleDef vimmodule;
 PyMODINIT_FUNC Py3Init_vim(void)
 {
     PyObject *mod;
+    PyObject *tmp;
     /* The special value is removed from sys.path in Python3_Init(). */
     static wchar_t *(argv[2]) = {L"/must>not&exist/foo", NULL};
 
@@ -1870,6 +1929,16 @@ PyMODINIT_FUNC Py3Init_vim(void)
     PyModule_AddObject(mod, "current", (PyObject *)(void *)&TheCurrent);
     Py_INCREF((PyObject *)(void *)&TheWindowList);
     PyModule_AddObject(mod, "windows", (PyObject *)(void *)&TheWindowList);
+
+#define ADD_INT_CONSTANT(name, value) \
+    tmp = PyLong_FromLong(value); \
+    Py_INCREF(tmp); \
+    PyModule_AddObject(mod, name, tmp)
+
+    ADD_INT_CONSTANT("VAR_LOCKED",     VAR_LOCKED);
+    ADD_INT_CONSTANT("VAR_FIXED",      VAR_FIXED);
+    ADD_INT_CONSTANT("VAR_SCOPE",      VAR_SCOPE);
+    ADD_INT_CONSTANT("VAR_DEF_SCOPE",  VAR_DEF_SCOPE);
 
     if (PyErr_Occurred())
 	return NULL;
@@ -1929,6 +1998,10 @@ do_py3eval (char_u *str, typval_T *rettv)
 	case VAR_DICT: ++rettv->vval.v_dict->dv_refcount; break;
 	case VAR_LIST: ++rettv->vval.v_list->lv_refcount; break;
 	case VAR_FUNC: func_ref(rettv->vval.v_string);    break;
+	case VAR_UNKNOWN:
+	    rettv->v_type = VAR_NUMBER;
+	    rettv->vval.v_number = 0;
+	    break;
     }
 }
 
@@ -2022,6 +2095,8 @@ init_structs(void)
     vim_memset(&DictionaryType, 0, sizeof(DictionaryType));
     DictionaryType.tp_name = "vim.dictionary";
     DictionaryType.tp_basicsize = sizeof(DictionaryObject);
+    DictionaryType.tp_getattro = DictionaryGetattro;
+    DictionaryType.tp_setattro = DictionarySetattro;
     DictionaryType.tp_dealloc = DictionaryDestructor;
     DictionaryType.tp_as_mapping = &DictionaryAsMapping;
     DictionaryType.tp_flags = Py_TPFLAGS_DEFAULT;
@@ -2032,6 +2107,8 @@ init_structs(void)
     ListType.tp_name = "vim.list";
     ListType.tp_dealloc = ListDestructor;
     ListType.tp_basicsize = sizeof(ListObject);
+    ListType.tp_getattro = ListGetattro;
+    ListType.tp_setattro = ListSetattro;
     ListType.tp_as_sequence = &ListAsSeq;
     ListType.tp_as_mapping = &ListAsMapping;
     ListType.tp_flags = Py_TPFLAGS_DEFAULT;
