@@ -185,7 +185,12 @@ static void init_structs(void);
 # define PyModule_AddObject py3_PyModule_AddObject
 # define PyImport_AppendInittab py3_PyImport_AppendInittab
 # define PyImport_AddModule py3_PyImport_AddModule
-# define _PyUnicode_AsString py3__PyUnicode_AsString
+# if PY_VERSION_HEX >= 0x030300f0
+#  undef _PyUnicode_AsString
+#  define _PyUnicode_AsString py3_PyUnicode_AsUTF8String
+# else
+#  define _PyUnicode_AsString py3__PyUnicode_AsString
+# endif
 # undef PyUnicode_AsEncodedString
 # define PyUnicode_AsEncodedString py3_PyUnicode_AsEncodedString
 # undef PyBytes_AsString
@@ -299,7 +304,11 @@ static PyObject* py3__Py_TrueStruct;
 static int (*py3_PyModule_AddObject)(PyObject *m, const char *name, PyObject *o);
 static int (*py3_PyImport_AppendInittab)(const char *name, PyObject* (*initfunc)(void));
 static PyObject* (*py3_PyImport_AddModule)(const char *);
+#if PY_VERSION_HEX >= 0x030300f0
+static char* (*py3_PyUnicode_AsUTF8String)(PyObject *unicode);
+#else
 static char* (*py3__PyUnicode_AsString)(PyObject *unicode);
+#endif
 static PyObject* (*py3_PyUnicode_AsEncodedString)(PyObject *unicode, const char* encoding, const char* errors);
 static char* (*py3_PyBytes_AsString)(PyObject *bytes);
 static int (*py3_PyBytes_AsStringAndSize)(PyObject *bytes, char **buffer, int *length);
@@ -422,7 +431,11 @@ static struct
     {"PyModule_AddObject", (PYTHON_PROC*)&py3_PyModule_AddObject},
     {"PyImport_AppendInittab", (PYTHON_PROC*)&py3_PyImport_AppendInittab},
     {"PyImport_AddModule", (PYTHON_PROC*)&py3_PyImport_AddModule},
+#if PY_VERSION_HEX >= 0x030300f0
+    {"PyUnicode_AsUTF8String", (PYTHON_PROC*)&py3_PyUnicode_AsUTF8String},
+#else
     {"_PyUnicode_AsString", (PYTHON_PROC*)&py3__PyUnicode_AsString},
+#endif
     {"PyBytes_AsString", (PYTHON_PROC*)&py3_PyBytes_AsString},
     {"PyBytes_AsStringAndSize", (PYTHON_PROC*)&py3_PyBytes_AsStringAndSize},
     {"PyBytes_FromString", (PYTHON_PROC*)&py3_PyBytes_FromString},
@@ -515,6 +528,12 @@ py3_runtime_link_init(char *libname, int verbose)
 
     /* Load unicode functions separately as only the ucs2 or the ucs4 functions
      * will be present in the library. */
+#if PY_VERSION_HEX >= 0x030300f0
+    ucs_from_string = symbol_from_dll(hinstPy3, "PyUnicode_FromString");
+    ucs_decode = symbol_from_dll(hinstPy3, "PyUnicode_Decode");
+    ucs_as_encoded_string = symbol_from_dll(hinstPy3,
+	    "PyUnicode_AsEncodedString");
+#else
     ucs_from_string = symbol_from_dll(hinstPy3, "PyUnicodeUCS2_FromString");
     ucs_decode = symbol_from_dll(hinstPy3,
 	    "PyUnicodeUCS2_Decode");
@@ -529,6 +548,7 @@ py3_runtime_link_init(char *libname, int verbose)
 	ucs_as_encoded_string = symbol_from_dll(hinstPy3,
 		"PyUnicodeUCS4_AsEncodedString");
     }
+#endif
     if (ucs_from_string && ucs_decode && ucs_as_encoded_string)
     {
 	py3_PyUnicode_FromString = ucs_from_string;
@@ -625,8 +645,8 @@ static int py3initialised = 0;
 
 #define GET_ATTR_STRING(name, nameobj) \
     char	*name = ""; \
-    if(PyUnicode_Check(nameobj)) \
-        name = _PyUnicode_AsString(nameobj)
+    if (PyUnicode_Check(nameobj)) \
+	name = _PyUnicode_AsString(nameobj)
 
 #define PY3OBJ_DELETED(obj) (obj->ob_base.ob_refcnt<=0)
 
@@ -729,13 +749,19 @@ Python3_Init(void)
 	Py_SetPythonHome(PYTHON3_HOME);
 #endif
 
+	PyImport_AppendInittab("vim", Py3Init_vim);
+
 #if !defined(MACOS) || defined(MACOS_X_UNIX)
 	Py_Initialize();
 #else
 	PyMac_Initialize();
 #endif
-	/* initialise threads, must be after Py_Initialize() */
+	/* Initialise threads, and save the state using PyGILState_Ensure.
+	 * Without the call to PyGILState_Ensure, thread specific state (such
+	 * as the system trace hook), will be lost between invocations of
+	 * Python code. */
 	PyEval_InitThreads();
+	pygilstate = PyGILState_Ensure();
 
 #ifdef DYNAMIC_PYTHON3
 	get_py3_exceptions();
@@ -743,8 +769,6 @@ Python3_Init(void)
 
 	if (PythonIO_Init())
 	    goto fail;
-
-	PyImport_AppendInittab("vim", Py3Init_vim);
 
 	globals = PyModule_GetDict(PyImport_AddModule("__main__"));
 
