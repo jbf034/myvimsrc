@@ -491,4 +491,3 @@ let b:current_syntax = "aptconf"
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
-
