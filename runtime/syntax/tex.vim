@@ -1,8 +1,8 @@
 " Vim syntax file
 " Language:	TeX
 " Maintainer:	Dr. Charles E. Campbell, Jr. <NdrchipO@ScampbellPfamily.AbizM>
-" Last Change:	Dec 07, 2010 
-" Version:	64
+" Last Change:	Apr 24, 2012
+" Version:	73
 " URL:		http://mysite.verizon.net/astronaut/vim/index.html#vimlinks_syntax
 "
 " Notes: {{{1
@@ -37,6 +37,8 @@ if version < 600
 elseif exists("b:current_syntax")
   finish
 endif
+let s:keepcpo= &cpo
+set cpo&vim
 scriptencoding utf-8
 
 " Define the default highlighting. {{{1
@@ -57,7 +59,7 @@ endif
 " let user determine which classes of concealment will be supported
 "   a=accents/ligatures d=delimiters m=math symbols  g=Greek  s=superscripts/subscripts
 if !exists("g:tex_conceal")
- let s:tex_conceal= 'admgs'
+ let s:tex_conceal= 'abdmgs'
 else
  let s:tex_conceal= g:tex_conceal
 endif
@@ -101,17 +103,28 @@ endif
 if b:tex_stylish
   setlocal isk+=@-@
 endif
+if exists("g:tex_nospell") && g:tex_nospell && !exists("g:tex_comment_nospell")
+ let g:tex_comment_nospell= 1
+endif
 
 " Clusters: {{{1
 " --------
-syn cluster texCmdGroup		contains=texCmdBody,texComment,texDefParm,texDelimiter,texDocType,texInput,texLength,texLigature,texMathDelim,texMathOper,texNewCmd,texNewEnv,texRefZone,texSection,texSectionMarker,texSectionName,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle
+syn cluster texCmdGroup		contains=texCmdBody,texComment,texDefParm,texDelimiter,texDocType,texInput,texLength,texLigature,texMathDelim,texMathOper,texNewCmd,texNewEnv,texRefZone,texSection,texBeginEnd,texBeginEndName,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle
 if !exists("g:tex_no_error")
  syn cluster texCmdGroup	add=texMathError
 endif
 syn cluster texEnvGroup		contains=texMatcher,texMathDelim,texSpecialChar,texStatement
-syn cluster texFoldGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texInputFile,texLength,texLigature,texMatcher,texMathZoneV,texMathZoneW,texMathZoneX,texMathZoneY,texMathZoneZ,texNewCmd,texNewEnv,texOnlyMath,texOption,texParen,texRefZone,texSection,texSectionMarker,texSectionZone,texSpaceCode,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,@texMathZones,texTitle,texAbstract
-syn cluster texMatchGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texMatcher,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption,@Spell
-syn cluster texStyleGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption,texStyleStatement,@Spell,texStyleMatcher
+syn cluster texFoldGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texInputFile,texLength,texLigature,texMatcher,texMathZoneV,texMathZoneW,texMathZoneX,texMathZoneY,texMathZoneZ,texNewCmd,texNewEnv,texOnlyMath,texOption,texParen,texRefZone,texSection,texBeginEnd,texSectionZone,texSpaceCode,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,@texMathZones,texTitle,texAbstract,texBoldStyle,texItalStyle,texNoSpell
+syn cluster texBoldGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texInputFile,texLength,texLigature,texMatcher,texMathZoneV,texMathZoneW,texMathZoneX,texMathZoneY,texMathZoneZ,texNewCmd,texNewEnv,texOnlyMath,texOption,texParen,texRefZone,texSection,texBeginEnd,texSectionZone,texSpaceCode,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,@texMathZones,texTitle,texAbstract,texBoldStyle,texBoldItalStyle,texNoSpell
+syn cluster texItalGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texInputFile,texLength,texLigature,texMatcher,texMathZoneV,texMathZoneW,texMathZoneX,texMathZoneY,texMathZoneZ,texNewCmd,texNewEnv,texOnlyMath,texOption,texParen,texRefZone,texSection,texBeginEnd,texSectionZone,texSpaceCode,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,@texMathZones,texTitle,texAbstract,texItalStyle,texItalBoldStyle,texNoSpell
+if !exists("g:tex_nospell") || !g:tex_nospell
+ syn cluster texMatchGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texMatcher,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption,@Spell
+ syn cluster texStyleGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption,texStyleStatement,@Spell,texStyleMatcher
+else
+ syn cluster texMatchGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texMatcher,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption
+ syn cluster texStyleGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption,texStyleStatement,texStyleMatcher
+endif
+syn cluster texPreambleMatchGroup	contains=texAccent,texBadMath,texComment,texDefCmd,texDelimiter,texDocType,texInput,texLength,texLigature,texMatcher,texNewCmd,texNewEnv,texOnlyMath,texParen,texRefZone,texSection,texSpecialChar,texStatement,texString,texTypeSize,texTypeStyle,texZone,texInputFile,texOption
 syn cluster texRefGroup		contains=texMatcher,texComment,texDelimiter
 if !exists("tex_no_math")
  syn cluster texMathZones	contains=texMathZoneV,texMathZoneW,texMathZoneX,texMathZoneY,texMathZoneZ
@@ -147,7 +160,11 @@ else
  syn region texMatcher		matchgroup=Delimiter start="{" skip="\\\\\|\\[{}]"	end="}"		contains=@texMatchGroup
  syn region texMatcher		matchgroup=Delimiter start="\["				end="]"		contains=@texMatchGroup
 endif
-syn region texParen		start="("						end=")"		contains=@texMatchGroup,@Spell
+if !exists("g:tex_nospell") || !g:tex_nospell
+ syn region texParen		start="("						end=")"		contains=@texMatchGroup,@Spell
+else
+ syn region texParen		start="("						end=")"		contains=@texMatchGroup
+endif
 if !exists("g:tex_no_error")
  syn match  texError		"[}\])]"
 endif
@@ -155,7 +172,7 @@ if !exists("tex_no_math")
  if !exists("g:tex_no_error")
   syn match  texMathError	"}"	contained
  endif
- syn region texMathMatcher	matchgroup=Delimiter start="{"  skip="\\\\\|\\}"  end="}" end="%stopzone\>" contained contains=@texMathMatchGroup
+ syn region texMathMatcher	matchgroup=Delimiter	start="{"          skip="\\\\\|\\}"     end="}" end="%stopzone\>"	contained contains=@texMathMatchGroup
 endif
 
 " TeX/LaTeX keywords: {{{1
@@ -173,9 +190,10 @@ endif
 " TeX/LaTeX delimiters: {{{1
 syn match texDelimiter		"&"
 syn match texDelimiter		"\\\\"
+syn match texDelimiter		"[{}]"
 
 " Tex/Latex Options: {{{1
-syn match texOption	"[^\\]\zs#\d\+\|^#\d\+"
+syn match texOption		"[^\\]\zs#\d\+\|^#\d\+"
 
 " texAccent (tnx to Karim Belabas) avoids annoying highlighting for accents: {{{1
 if b:tex_stylish
@@ -191,17 +209,17 @@ syn match texAccent		+\\['=t'.c^ud"vb~Hr]{\a}+
 syn match texLigature		"\\\([ijolL]\|ae\|oe\|ss\|AA\|AE\|OE\)$"
 
 " \begin{}/\end{} section markers: {{{1
-syn match  texSectionMarker	"\\begin\>\|\\end\>" nextgroup=texSectionName
-syn region texSectionName	matchgroup=Delimiter start="{" end="}"  contained	nextgroup=texSectionModifier	contains=texComment
-syn region texSectionModifier	matchgroup=Delimiter start="\[" end="]" contained	contains=texComment
+syn match  texBeginEnd		"\\begin\>\|\\end\>" nextgroup=texBeginEndName
+syn region texBeginEndName	matchgroup=Delimiter	start="{"		end="}"	contained	nextgroup=texBeginEndModifier	contains=texComment
+syn region texBeginEndModifier	matchgroup=Delimiter	start="\["		end="]"	contained	contains=texComment,@NoSpell
 
 " \documentclass, \documentstyle, \usepackage: {{{1
-syn match  texDocType		"\\documentclass\>\|\\documentstyle\>\|\\usepackage\>"	nextgroup=texSectionName,texDocTypeArgs
-syn region texDocTypeArgs	matchgroup=Delimiter start="\[" end="]"			contained	nextgroup=texSectionName	contains=texComment
+syn match  texDocType		"\\documentclass\>\|\\documentstyle\>\|\\usepackage\>"	nextgroup=texBeginEndName,texDocTypeArgs
+syn region texDocTypeArgs	matchgroup=Delimiter start="\[" end="]"			contained	nextgroup=texBeginEndName	contains=texComment,@NoSpell
 
 " Preamble syntax-based folding support: {{{1
 if g:tex_fold_enabled && has("folding")
- syn region texPreamble	transparent fold	start='\zs\\documentclass\>' end='\ze\\begin{document}'	contains=texStyle,@texMatchGroup
+ syn region texPreamble	transparent fold	start='\zs\\documentclass\>' end='\ze\\begin{document}'	contains=texStyle,@texPreambleMatchGroup
 endif
 
 " TeX input: {{{1
@@ -222,8 +240,10 @@ syn match texTypeStyle		"\\sc\>"
 syn match texTypeStyle		"\\tt\>"
 
 " Type Styles: attributes, commands, families, etc (LaTeX2E): {{{1
-syn match texTypeStyle		"\\textbf\>"
-syn match texTypeStyle		"\\textit\>"
+if s:tex_conceal !~ 'b'
+ syn match texTypeStyle		"\\textbf\>"
+ syn match texTypeStyle		"\\textit\>"
+endif
 syn match texTypeStyle		"\\textmd\>"
 syn match texTypeStyle		"\\textrm\>"
 syn match texTypeStyle		"\\textsc\>"
@@ -273,33 +293,67 @@ syn match texSpaceCode		"\\\(math\|cat\|del\|lc\|sf\|uc\)code`"me=e-1 nextgroup=
 syn match texSpaceCodeChar    "`\\\=.\(\^.\)\==\(\d\|\"\x\{1,6}\|`.\)"	contained
 
 " Sections, subsections, etc: {{{1
-if g:tex_fold_enabled && has("folding")
- syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											fold contains=@texFoldGroup,@texDocGroup,@Spell
- syn region texPartZone			matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								fold contains=@texFoldGroup,@texPartGroup,@Spell
- syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							fold contains=@texFoldGroup,@texChapterGroup,@Spell
- syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					fold contains=@texFoldGroup,@texSectionGroup,@Spell
- syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSectionGroup,@Spell
- syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSubSectionGroup,@Spell
- syn region texParaZone			matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			fold contains=@texFoldGroup,@texParaGroup,@Spell
- syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	fold contains=@texFoldGroup,@Spell
- syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													fold contains=@texFoldGroup,@Spell
- syn region texAbstract			matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											fold contains=@texFoldGroup,@Spell
+if !exists("g:tex_nospell") || !g:tex_nospell
+ if g:tex_fold_enabled && has("folding")
+  syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											fold contains=@texFoldGroup,@texDocGroup,@Spell
+  syn region texPartZone		matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								fold contains=@texFoldGroup,@texPartGroup,@Spell
+  syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							fold contains=@texFoldGroup,@texChapterGroup,@Spell
+  syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					fold contains=@texFoldGroup,@texSectionGroup,@Spell
+  syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSectionGroup,@Spell
+  syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSubSectionGroup,@Spell
+  syn region texParaZone		matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			fold contains=@texFoldGroup,@texParaGroup,@Spell
+  syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	fold contains=@texFoldGroup,@Spell
+  syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													fold contains=@texFoldGroup,@Spell
+  syn region texAbstract		matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											fold contains=@texFoldGroup,@Spell
+ else
+  syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											contains=@texFoldGroup,@texDocGroup,@Spell
+  syn region texPartZone		matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								contains=@texFoldGroup,@texPartGroup,@Spell
+  syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							contains=@texFoldGroup,@texChapterGroup,@Spell
+  syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					contains=@texFoldGroup,@texSectionGroup,@Spell
+  syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSectionGroup,@Spell
+  syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSubSectionGroup,@Spell
+  syn region texParaZone		matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			contains=@texFoldGroup,@texParaGroup,@Spell
+  syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	contains=@texFoldGroup,@Spell
+  syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													contains=@texFoldGroup,@Spell
+  syn region texAbstract		matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											contains=@texFoldGroup,@Spell
+ endif
 else
- syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											contains=@texFoldGroup,@texDocGroup,@Spell
- syn region texPartZone			matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								contains=@texFoldGroup,@texPartGroup,@Spell
- syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							contains=@texFoldGroup,@texChapterGroup,@Spell
- syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					contains=@texFoldGroup,@texSectionGroup,@Spell
- syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSectionGroup,@Spell
- syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSubSectionGroup,@Spell
- syn region texParaZone			matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			contains=@texFoldGroup,@texParaGroup,@Spell
- syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	contains=@texFoldGroup,@Spell
- syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													contains=@texFoldGroup,@Spell
- syn region texAbstract			matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											contains=@texFoldGroup,@Spell
+ if g:tex_fold_enabled && has("folding")
+  syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											fold contains=@texFoldGroup,@texDocGroup
+  syn region texPartZone		matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								fold contains=@texFoldGroup,@texPartGroup
+  syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							fold contains=@texFoldGroup,@texChapterGroup
+  syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					fold contains=@texFoldGroup,@texSectionGroup
+  syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSectionGroup
+  syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				fold contains=@texFoldGroup,@texSubSubSectionGroup
+  syn region texParaZone		matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			fold contains=@texFoldGroup,@texParaGroup
+  syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	fold contains=@texFoldGroup
+  syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													fold contains=@texFoldGroup
+  syn region texAbstract		matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											fold contains=@texFoldGroup
+ else
+  syn region texDocZone			matchgroup=texSection start='\\begin\s*{\s*document\s*}' end='\\end\s*{\s*document\s*}'											contains=@texFoldGroup,@texDocGroup
+  syn region texPartZone		matchgroup=texSection start='\\part\>'			 end='\ze\s*\\\%(part\>\|end\s*{\s*document\s*}\)'								contains=@texFoldGroup,@texPartGroup
+  syn region texChapterZone		matchgroup=texSection start='\\chapter\>'		 end='\ze\s*\\\%(chapter\>\|part\>\|end\s*{\s*document\s*}\)'							contains=@texFoldGroup,@texChapterGroup
+  syn region texSectionZone		matchgroup=texSection start='\\section\>'		 end='\ze\s*\\\%(section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'					contains=@texFoldGroup,@texSectionGroup
+  syn region texSubSectionZone		matchgroup=texSection start='\\subsection\>'		 end='\ze\s*\\\%(\%(sub\)\=section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSectionGroup
+  syn region texSubSubSectionZone	matchgroup=texSection start='\\subsubsection\>'		 end='\ze\s*\\\%(\%(sub\)\{,2}section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'				contains=@texFoldGroup,@texSubSubSectionGroup
+  syn region texParaZone		matchgroup=texSection start='\\paragraph\>'		 end='\ze\s*\\\%(paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'			contains=@texFoldGroup,@texParaGroup
+  syn region texSubParaZone		matchgroup=texSection start='\\subparagraph\>'		 end='\ze\s*\\\%(\%(sub\)\=paragraph\>\|\%(sub\)*section\>\|chapter\>\|part\>\|end\s*{\s*document\s*}\)'	contains=@texFoldGroup
+  syn region texTitle			matchgroup=texSection start='\\\%(author\|title\)\>\s*{' end='}'													contains=@texFoldGroup
+  syn region texAbstract		matchgroup=texSection start='\\begin\s*{\s*abstract\s*}' end='\\end\s*{\s*abstract\s*}'											contains=@texFoldGroup
+ endif
+endif
+
+" particular support for bold and italic {{{1
+if s:tex_conceal =~ 'b'
+ syn region texBoldStyle	matchgroup=texTypeStyle start="\\textbf\s*{" end="}" concealends contains=@texBoldGroup
+ syn region texBoldItalStyle	matchgroup=texTypeStyle start="\\textit\s*{" end="}" concealends contains=@texItalGroup
+ syn region texItalStyle	matchgroup=texTypeStyle start="\\textit\s*{" end="}" concealends contains=@texItalGroup
+ syn region texItalBoldStyle	matchgroup=texTypeStyle start="\\textbf\s*{" end="}" concealends contains=@texBoldGroup
 endif
 
 " Bad Math (mismatched): {{{1
 if !exists("tex_no_math")
- syn match texBadMath		"\\end\s*{\s*\(array\|gathered\|bBpvV]matrix\|split\|smallmatrix\|xxalignat\)\s*}"
+ syn match texBadMath		"\\end\s*{\s*\(array\|gathered\|bBpvV]matrix\|split\|subequations\|smallmatrix\|xxalignat\)\s*}"
  syn match texBadMath		"\\end\s*{\s*\(align\|alignat\|displaymath\|displaymath\|eqnarray\|equation\|flalign\|gather\|math\|multline\|xalignat\)\*\=\s*}"
  syn match texBadMath		"\\[\])]"
 endif
@@ -344,6 +398,7 @@ if !exists("tex_no_math")
  call TexNewMathZone("G","gather",1)
  call TexNewMathZone("H","math",1)
  call TexNewMathZone("I","multline",1)
+ call TexNewMathZone("J","subequations",0)
  call TexNewMathZone("K","xalignat",1)
  call TexNewMathZone("L","xxalignat",0)
 
@@ -364,7 +419,11 @@ if !exists("tex_no_math")
  syn match texMathOper		"[_^=]" contained
 
  " Text Inside Math Zones: {{{2
- syn region texMathText matchgroup=texStatement start='\\\(\(inter\)\=text\|mbox\)\s*{'	end='}'	contains=@texFoldGroup,@Spell
+ if !exists("g:tex_nospell") || !g:tex_nospell
+  syn region texMathText matchgroup=texStatement start='\\\(\(inter\)\=text\|mbox\)\s*{'	end='}'	contains=@texFoldGroup,@Spell
+ else
+  syn region texMathText matchgroup=texStatement start='\\\(\(inter\)\=text\|mbox\)\s*{'	end='}'	contains=@texFoldGroup
+ endif
 
  " \left..something.. and \right..something.. support: {{{2
  syn match   texMathDelimBad	contained		"\S"
@@ -452,10 +511,12 @@ else
   if g:tex_fold_enabled
    " allows syntax-folding of 2 or more contiguous comment lines
    " single-line comments are not folded
-   syn match  texComment	"%.*$"		contains=@texCommentGroup
+   syn match  texComment	"%.*$"			contains=@texCommentGroup
    syn region texComment	start="^\zs\s*%.*\_s*%"	skip="^\s*%"	end='^\ze\s*[^%]' fold
+   syn region texNoSpell	contained fold		matchgroup=texComment start="%\s*nospell\s*{"	end="%\s*nospell\s*}"	contains=@texFoldGroup,@NoSpell
   else
-   syn match texComment		"%.*$"		contains=@texCommentGroup
+   syn match texComment		"%.*$"			contains=@texCommentGroup
+   syn region texNoSpell	contained		matchgroup=texComment start="%\s*nospell\s*{"	end="%\s*nospell\s*}"	contains=@texFoldGroup,@NoSpell
   endif
 endif
 
@@ -466,10 +527,6 @@ if exists("g:tex_verbspell") && g:tex_verbspell
  syn region texZone		start="\\begin{[vV]erbatim}"		end="\\end{[vV]erbatim}\|%stopzone\>"	contains=@Spell
  " listings package:
  syn region texZone		start="\\begin{lstlisting}"		end="\\end{lstlisting}\|%stopzone\>"	contains=@Spell
- " moreverb package:
- syn region texZone		start="\\begin{verbatimtab}"		end="\\end{verbatimtab}\|%stopzone\>"	contains=@Spell
- syn region texZone		start="\\begin{verbatimwrite}"		end="\\end{verbatimwrite}\|%stopzone\>"	contains=@Spell
- syn region texZone		start="\\begin{boxedverbatim}"		end="\\end{boxedverbatim}\|%stopzone\>"	contains=@Spell
  if version < 600
   syn region texZone		start="\\verb\*\=`"			end="`\|%stopzone\>"			contains=@Spell
   syn region texZone		start="\\verb\*\=#"			end="#\|%stopzone\>"			contains=@Spell
@@ -482,12 +539,6 @@ if exists("g:tex_verbspell") && g:tex_verbspell
  endif
 else
  syn region texZone		start="\\begin{[vV]erbatim}"		end="\\end{[vV]erbatim}\|%stopzone\>"
- " listings package:
- syn region texZone		start="\\begin{lstlisting}"		end="\\end{lstlisting}\|%stopzone\>"
- " moreverb package:
- syn region texZone		start="\\begin{verbatimtab}"		end="\\end{verbatimtab}\|%stopzone\>"
- syn region texZone		start="\\begin{verbatimwrite}"		end="\\end{verbatimwrite}\|%stopzone\>"
- syn region texZone		start="\\begin{boxedverbatim}"		end="\\end{boxedverbatim}\|%stopzone\>"
  if version < 600
   syn region texZone		start="\\verb\*\=`"			end="`\|%stopzone\>"
   syn region texZone		start="\\verb\*\=#"			end="#\|%stopzone\>"
@@ -501,16 +552,15 @@ else
 endif
 
 " Tex Reference Zones: {{{1
-syn match texRefZone		'\\@samp\>'		skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\nocite\>'		skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\bibliography\>'	skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\label\>'		skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\\(page\|eq\)ref\>'	skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\v\=ref'		skipwhite	nextgroup=texRefLabel
-syn match texRefZone		'\\cite\%([tp]\*\=\)\='	skipwhite	nextgroup=texCiteOption,texCite
-syn region texRefLabel		contained matchgroup=Delimiter start='{'	end='}'	contains=@texRefGroup
-syn region texCiteOption	contained matchgroup=Delimiter start='\['	end=']'	contains=@Spell,@texRefGroup,@texMathZones,texRefZone	nextgroup=texCiteOption,texCite
-syn region texCite		contained matchgroup=Delimiter start='{'	end='}'	contains=@texRefGroup,texCite
+syn region texZone		matchgroup=texStatement start="@samp{"			end="}\|%stopzone\>"	contains=@texRefGroup
+syn region texRefZone		matchgroup=texStatement start="\\nocite{"		end="}\|%stopzone\>"	contains=@texRefGroup
+syn region texRefZone		matchgroup=texStatement start="\\bibliography{"		end="}\|%stopzone\>"	contains=@texRefGroup
+syn region texRefZone		matchgroup=texStatement start="\\label{"		end="}\|%stopzone\>"	contains=@texRefGroup
+syn region texRefZone		matchgroup=texStatement start="\\\(page\|eq\)ref{"	end="}\|%stopzone\>"	contains=@texRefGroup
+syn region texRefZone		matchgroup=texStatement start="\\v\=ref{"		end="}\|%stopzone\>"	contains=@texRefGroup
+syn match  texRefZone		'\\cite\%([tp]\*\=\)\=' nextgroup=texRefOption,texCite
+syn region texRefOption	contained	matchgroup=Delimiter start='\[' end=']'		contains=@texRefGroup,texRefZone	nextgroup=texRefOption,texCite
+syn region texCite	contained	matchgroup=Delimiter start='{' end='}'		contains=@texRefGroup,texRefZone,texCite
 
 " Handle newcommand, newenvironment : {{{1
 syn match  texNewCmd				"\\newcommand\>"			nextgroup=texCmdName skipwhite skipnl
@@ -556,30 +606,37 @@ if has("conceal") && &enc == 'utf-8'
  if s:tex_conceal =~ 'm'
   let s:texMathList=[
     \ ['|'		, '‖'],
+    \ ['aleph'		, 'ℵ'],
+    \ ['amalg'		, '∐'],
     \ ['angle'		, '∠'],
     \ ['approx'		, '≈'],
     \ ['ast'		, '∗'],
     \ ['asymp'		, '≍'],
     \ ['backepsilon'	, '∍'],
     \ ['backsimeq'	, '≃'],
+    \ ['backslash'	, '∖'],
     \ ['barwedge'	, '⊼'],
     \ ['because'	, '∵'],
     \ ['between'	, '≬'],
     \ ['bigcap'		, '∩'],
+    \ ['bigcirc'	, '○'],
     \ ['bigcup'		, '∪'],
     \ ['bigodot'	, '⊙'],
     \ ['bigoplus'	, '⊕'],
     \ ['bigotimes'	, '⊗'],
     \ ['bigsqcup'	, '⊔'],
     \ ['bigtriangledown', '∇'],
+    \ ['bigtriangleup'	, '∆'],
     \ ['bigvee'		, '⋁'],
     \ ['bigwedge'	, '⋀'],
     \ ['blacksquare'	, '∎'],
     \ ['bot'		, '⊥'],
+    \ ['bowtie'	        , '⋈'],
     \ ['boxdot'		, '⊡'],
     \ ['boxminus'	, '⊟'],
     \ ['boxplus'	, '⊞'],
     \ ['boxtimes'	, '⊠'],
+    \ ['bullet'	        , '•'],
     \ ['bumpeq'		, '≏'],
     \ ['Bumpeq'		, '≎'],
     \ ['cap'		, '∩'],
@@ -592,29 +649,36 @@ if has("conceal") && &enc == 'utf-8'
     \ ['circlearrowright', '↻'],
     \ ['circledast'	, '⊛'],
     \ ['circledcirc'	, '⊚'],
+    \ ['clubsuit'	, '♣'],
     \ ['complement'	, '∁'],
     \ ['cong'		, '≅'],
     \ ['coprod'		, '∐'],
+    \ ['copyright'	, '©'],
     \ ['cup'		, '∪'],
     \ ['Cup'		, '⋓'],
     \ ['curlyeqprec'	, '⋞'],
     \ ['curlyeqsucc'	, '⋟'],
     \ ['curlyvee'	, '⋎'],
     \ ['curlywedge'	, '⋏'],
+    \ ['dagger'	        , '†'],
     \ ['dashv'		, '⊣'],
+    \ ['ddagger'	, '‡'],
+    \ ['ddots'	        , '⋱'],
     \ ['diamond'	, '⋄'],
+    \ ['diamondsuit'	, '♢'],
     \ ['div'		, '÷'],
     \ ['doteq'		, '≐'],
     \ ['doteqdot'	, '≑'],
     \ ['dotplus'	, '∔'],
+    \ ['dots'		, '…'],
     \ ['dotsb'		, '⋯'],
     \ ['dotsc'		, '…'],
-    \ ['dots'		, '…'],
     \ ['dotsi'		, '⋯'],
     \ ['dotso'		, '…'],
     \ ['doublebarwedge'	, '⩞'],
     \ ['downarrow'	, '↓'],
     \ ['Downarrow'	, '⇓'],
+    \ ['ell'		, 'ℓ'],
     \ ['emptyset'	, '∅'],
     \ ['eqcirc'		, '≖'],
     \ ['eqsim'		, '≂'],
@@ -623,53 +687,67 @@ if has("conceal") && &enc == 'utf-8'
     \ ['equiv'		, '≡'],
     \ ['exists'		, '∃'],
     \ ['fallingdotseq'	, '≒'],
+    \ ['flat'		, '♭'],
     \ ['forall'		, '∀'],
+    \ ['frown'		, '⁔'],
     \ ['ge'		, '≥'],
     \ ['geq'		, '≥'],
     \ ['geqq'		, '≧'],
     \ ['gets'		, '←'],
+    \ ['gg'		, '⟫'],
     \ ['gneqq'		, '≩'],
     \ ['gtrdot'		, '⋗'],
     \ ['gtreqless'	, '⋛'],
     \ ['gtrless'	, '≷'],
     \ ['gtrsim'		, '≳'],
+    \ ['hbar'		, 'ℏ'],
+    \ ['heartsuit'	, '♡'],
     \ ['hookleftarrow'	, '↩'],
     \ ['hookrightarrow'	, '↪'],
     \ ['iiint'		, '∭'],
     \ ['iint'		, '∬'],
     \ ['Im'		, 'ℑ'],
+    \ ['imath'		, 'ɩ'],
     \ ['in'		, '∈'],
     \ ['infty'		, '∞'],
     \ ['int'		, '∫'],
     \ ['lceil'		, '⌈'],
     \ ['ldots'		, '…'],
     \ ['le'		, '≤'],
-    \ ['leftarrow'	, '⟵'],
-    \ ['Leftarrow'	, '⟸'],
-    \ ['leftarrowtail'	, '↢'],
+    \ ['leadsto'	, '↝'],
     \ ['left('		, '('],
     \ ['left\['		, '['],
     \ ['left\\{'	, '{'],
+    \ ['leftarrow'	, '⟵'],
+    \ ['Leftarrow'	, '⟸'],
+    \ ['leftarrowtail'	, '↢'],
+    \ ['leftharpoondown', '↽'],
+    \ ['leftharpoonup'	, '↼'],
+    \ ['leftrightarrow'	, '⇔'],
     \ ['Leftrightarrow'	, '⇔'],
     \ ['leftrightsquigarrow', '↭'],
     \ ['leftthreetimes'	, '⋋'],
+    \ ['leq'		, '≤'],
     \ ['leq'		, '≤'],
     \ ['leqq'		, '≦'],
     \ ['lessdot'	, '⋖'],
     \ ['lesseqgtr'	, '⋚'],
     \ ['lesssim'	, '≲'],
     \ ['lfloor'		, '⌊'],
+    \ ['ll'		, '≪'],
     \ ['lmoustache'     , '╭'],
     \ ['lneqq'		, '≨'],
     \ ['ltimes'		, '⋉'],
     \ ['mapsto'		, '↦'],
     \ ['measuredangle'	, '∡'],
     \ ['mid'		, '∣'],
+    \ ['models'		, '╞'],
     \ ['mp'		, '∓'],
     \ ['nabla'		, '∇'],
+    \ ['natural'	, '♮'],
     \ ['ncong'		, '≇'],
-    \ ['nearrow'	, '↗'],
     \ ['ne'		, '≠'],
+    \ ['nearrow'	, '↗'],
     \ ['neg'		, '¬'],
     \ ['neq'		, '≠'],
     \ ['nexists'	, '∄'],
@@ -705,36 +783,45 @@ if has("conceal") && &enc == 'utf-8'
     \ ['oslash'		, '⊘'],
     \ ['otimes'		, '⊗'],
     \ ['owns'		, '∋'],
+    \ ['P'	        , '¶'],
+    \ ['parallel'	, '║'],
     \ ['partial'	, '∂'],
     \ ['perp'		, '⊥'],
     \ ['pitchfork'	, '⋔'],
     \ ['pm'		, '±'],
-    \ ['precapprox'	, '⪷'],
     \ ['prec'		, '≺'],
+    \ ['precapprox'	, '⪷'],
     \ ['preccurlyeq'	, '≼'],
     \ ['preceq'		, '⪯'],
     \ ['precnapprox'	, '⪹'],
     \ ['precneqq'	, '⪵'],
     \ ['precsim'	, '≾'],
+    \ ['prime'		, '′'],
     \ ['prod'		, '∏'],
     \ ['propto'		, '∝'],
     \ ['rceil'		, '⌉'],
     \ ['Re'		, 'ℜ'],
     \ ['rfloor'		, '⌋'],
-    \ ['rightarrow'	, '⟶'],
-    \ ['Rightarrow'	, '⟹'],
-    \ ['rightarrowtail'	, '↣'],
     \ ['right)'		, ')'],
     \ ['right]'		, ']'],
     \ ['right\\}'	, '}'],
+    \ ['rightarrow'	, '⟶'],
+    \ ['Rightarrow'	, '⟹'],
+    \ ['rightarrowtail'	, '↣'],
+    \ ['rightleftharpoons', '⇌'],
     \ ['rightsquigarrow', '↝'],
     \ ['rightthreetimes', '⋌'],
     \ ['risingdotseq'	, '≓'],
     \ ['rmoustache'     , '╮'],
     \ ['rtimes'		, '⋊'],
+    \ ['S'	        , '§'],
     \ ['searrow'	, '↘'],
     \ ['setminus'	, '∖'],
+    \ ['sharp'		, '♯'],
     \ ['sim'		, '∼'],
+    \ ['simeq'		, '⋍'],
+    \ ['smile'		, '‿'],
+    \ ['spadesuit'	, '♠'],
     \ ['sphericalangle'	, '∢'],
     \ ['sqcap'		, '⊓'],
     \ ['sqcup'		, '⊔'],
@@ -742,20 +829,22 @@ if has("conceal") && &enc == 'utf-8'
     \ ['sqsubseteq'	, '⊑'],
     \ ['sqsupset'	, '⊐'],
     \ ['sqsupseteq'	, '⊒'],
+    \ ['star'		, '✫'],
     \ ['subset'		, '⊂'],
     \ ['Subset'		, '⋐'],
     \ ['subseteq'	, '⊆'],
     \ ['subseteqq'	, '⫅'],
     \ ['subsetneq'	, '⊊'],
     \ ['subsetneqq'	, '⫋'],
-    \ ['succapprox'	, '⪸'],
     \ ['succ'		, '≻'],
+    \ ['succapprox'	, '⪸'],
     \ ['succcurlyeq'	, '≽'],
     \ ['succeq'		, '⪰'],
     \ ['succnapprox'	, '⪺'],
     \ ['succneqq'	, '⪶'],
     \ ['succsim'	, '≿'],
     \ ['sum'		, '∑'],
+    \ ['supset'		, '⊃'],
     \ ['Supset'		, '⋑'],
     \ ['supseteq'	, '⊇'],
     \ ['supseteqq'	, '⫆'],
@@ -767,6 +856,7 @@ if has("conceal") && &enc == 'utf-8'
     \ ['times'		, '×'],
     \ ['to'		, '→'],
     \ ['top'		, '⊤'],
+    \ ['triangle'	, '∆'],
     \ ['triangleleft'	, '⊲'],
     \ ['trianglelefteq'	, '⊴'],
     \ ['triangleq'	, '≜'],
@@ -784,11 +874,15 @@ if has("conceal") && &enc == 'utf-8'
     \ ['vDash'		, '⊨'],
     \ ['Vdash'		, '⊩'],
     \ ['vdots'		, '⋮'],
-    \ ['veebar'		, '⊻'],
     \ ['vee'		, '∨'],
+    \ ['veebar'		, '⊻'],
     \ ['Vvdash'		, '⊪'],
     \ ['wedge'		, '∧'],
+    \ ['wp'		, '℘'],
     \ ['wr'		, '≀']]
+"    \ ['jmath'		, 'X']
+"    \ ['uminus'	, 'X']
+"    \ ['uplus'		, 'X']
   for texmath in s:texMathList
    if texmath[0] =~ '\w$'
     exe "syn match texMathSymbol '\\\\".texmath[0]."\\>' contained conceal cchar=".texmath[1]
@@ -804,6 +898,27 @@ if has("conceal") && &enc == 'utf-8'
    syn match texMathSymbol '\\gg\>'			contained conceal cchar=⟫
    syn match texMathSymbol '\\ll\>'			contained conceal cchar=⟪
   endif
+
+  syn match texMathSymbol '\\hat{a}' contained conceal cchar=â
+  syn match texMathSymbol '\\hat{A}' contained conceal cchar=Â
+  syn match texMathSymbol '\\hat{c}' contained conceal cchar=ĉ
+  syn match texMathSymbol '\\hat{C}' contained conceal cchar=Ĉ
+  syn match texMathSymbol '\\hat{e}' contained conceal cchar=ê
+  syn match texMathSymbol '\\hat{E}' contained conceal cchar=Ê
+  syn match texMathSymbol '\\hat{g}' contained conceal cchar=ĝ
+  syn match texMathSymbol '\\hat{G}' contained conceal cchar=Ĝ
+  syn match texMathSymbol '\\hat{i}' contained conceal cchar=î
+  syn match texMathSymbol '\\hat{I}' contained conceal cchar=Î
+  syn match texMathSymbol '\\hat{o}' contained conceal cchar=ô
+  syn match texMathSymbol '\\hat{O}' contained conceal cchar=Ô
+  syn match texMathSymbol '\\hat{s}' contained conceal cchar=ŝ
+  syn match texMathSymbol '\\hat{S}' contained conceal cchar=Ŝ
+  syn match texMathSymbol '\\hat{u}' contained conceal cchar=û
+  syn match texMathSymbol '\\hat{U}' contained conceal cchar=Û
+  syn match texMathSymbol '\\hat{w}' contained conceal cchar=ŵ
+  syn match texMathSymbol '\\hat{W}' contained conceal cchar=Ŵ
+  syn match texMathSymbol '\\hat{y}' contained conceal cchar=ŷ
+  syn match texMathSymbol '\\hat{Y}' contained conceal cchar=Ŷ
  endif
 
  " Greek {{{2
@@ -855,8 +970,8 @@ if has("conceal") && &enc == 'utf-8'
 
  " Superscripts/Subscripts {{{2
  if s:tex_conceal =~ 's'
-  syn region texSuperscript	matchgroup=Delimiter start='\^{'	end='}'	contained concealends contains=texSuperscripts,texStatement,texSubscript,texSuperscript,texMathMatcher
-  syn region texSubscript	matchgroup=Delimiter start='_{'		end='}'	contained concealends contains=texSubscripts,texStatement,texSubscript,texSuperscript,texMathMatcher
+  syn region texSuperscript	matchgroup=Delimiter start='\^{'	skip="\\\\\|\\[{}]" end='}'	contained concealends contains=texSpecialChar,texSuperscripts,texStatement,texSubscript,texSuperscript,texMathMatcher
+  syn region texSubscript	matchgroup=Delimiter start='_{'		skip="\\\\\|\\[{}]" end='}'	contained concealends contains=texSpecialChar,texSubscripts,texStatement,texSubscript,texSuperscript,texMathMatcher
   fun! s:SuperSub(group,leader,pat,cchar)
     exe 'syn match '.a:group." '".a:leader.a:pat."' contained conceal cchar=".a:cchar
     exe 'syn match '.a:group."s '".a:pat."' contained conceal cchar=".a:cchar.' nextgroup='.a:group.'s'
@@ -914,6 +1029,9 @@ if has("conceal") && &enc == 'utf-8'
   call s:SuperSub('texSuperscript','\^','T','ᵀ')
   call s:SuperSub('texSuperscript','\^','U','ᵁ')
   call s:SuperSub('texSuperscript','\^','W','ᵂ')
+  call s:SuperSub('texSuperscript','\^',',','︐')
+  call s:SuperSub('texSuperscript','\^',':','︓')
+  call s:SuperSub('texSuperscript','\^',';','︔')
   call s:SuperSub('texSuperscript','\^','+','⁺')
   call s:SuperSub('texSuperscript','\^','-','⁻')
   call s:SuperSub('texSuperscript','\^','<','˂')
@@ -938,6 +1056,7 @@ if has("conceal") && &enc == 'utf-8'
   call s:SuperSub('texSubscript','_','i','ᵢ')
   call s:SuperSub('texSubscript','_','o','ₒ')
   call s:SuperSub('texSubscript','_','u','ᵤ')
+  call s:SuperSub('texSubscript','_',',','︐')
   call s:SuperSub('texSubscript','_','+','₊')
   call s:SuperSub('texSubscript','_','-','₋')
   call s:SuperSub('texSubscript','_','/','ˏ')
@@ -980,18 +1099,23 @@ if has("conceal") && &enc == 'utf-8'
      endfor
    endfun
    "                  \`  \'  \^  \"  \~  \.  \c  \H  \k  \r  \u  \v
-   call s:Accents('a','à','á','â','ä','ã',' ',' ',' ','ą','å','ă','ă')
-   call s:Accents('A','À','Á','Â','Ä','Ã',' ',' ',' ','Ą','Å','Ă','Ă')
+   call s:Accents('a','à','á','â','ä','ã','ȧ',' ',' ','ą','å','ă','ă')
+   call s:Accents('A','À','Á','Â','Ä','Ã','Ȧ',' ',' ','Ą','Å','Ă','Ă')
    call s:Accents('c',' ','ć','ĉ',' ',' ','ċ','ç',' ',' ',' ',' ','č')
    call s:Accents('C',' ','Ć','Ĉ',' ',' ','Ċ','Ç',' ',' ',' ',' ','Č')
    call s:Accents('d',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','ď')
    call s:Accents('D',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','Ď')
    call s:Accents('e','è','é','ê','ë','ẽ','ė','ȩ',' ','ę',' ','ĕ','ě')
    call s:Accents('E','È','É','Ê','Ë','Ẽ','Ė','Ȩ',' ','Ę',' ','Ĕ','Ě')
-   call s:Accents('g',' ',' ',' ',' ',' ','ġ','ģ',' ',' ',' ','ğ',' ')
-   call s:Accents('G',' ',' ',' ',' ',' ','Ġ','Ģ',' ',' ',' ','Ğ',' ')
+   call s:Accents('g',' ','ǵ','ĝ',' ',' ','ġ','ģ',' ',' ',' ','ğ',' ')
+   call s:Accents('G',' ','Ǵ','Ĝ',' ',' ','Ġ','Ģ',' ',' ',' ','Ğ',' ')
+   call s:Accents('h',' ',' ','ĥ',' ',' ',' ',' ',' ',' ',' ',' ','ȟ')
+   call s:Accents('H',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','Ȟ')
    call s:Accents('i','ì','í','î','ï','ĩ','į',' ',' ',' ',' ','ĭ',' ')
    call s:Accents('I','Ì','Í','Î','Ï','Ĩ','İ',' ',' ',' ',' ','Ĭ',' ')
+   call s:Accents('J',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','ǰ')
+   call s:Accents('k',' ',' ',' ',' ',' ',' ','ķ',' ',' ',' ',' ',' ')
+   call s:Accents('K',' ',' ',' ',' ',' ',' ','Ķ',' ',' ',' ',' ',' ')
    call s:Accents('l',' ','ĺ','ľ',' ',' ',' ','ļ',' ',' ',' ',' ','ľ')
    call s:Accents('L',' ','Ĺ','Ľ',' ',' ',' ','Ļ',' ',' ',' ',' ','Ľ')
    call s:Accents('n',' ','ń',' ',' ','ñ',' ','ņ',' ',' ',' ',' ','ň')
@@ -1000,12 +1124,12 @@ if has("conceal") && &enc == 'utf-8'
    call s:Accents('O','Ò','Ó','Ô','Ö','Õ','Ȯ',' ','Ő','Ǫ',' ','Ŏ',' ')
    call s:Accents('r',' ','ŕ',' ',' ',' ',' ','ŗ',' ',' ',' ',' ','ř')
    call s:Accents('R',' ','Ŕ',' ',' ',' ',' ','Ŗ',' ',' ',' ',' ','Ř')
-   call s:Accents('s',' ','ś','ŝ',' ',' ',' ','ş',' ',' ',' ',' ','š')
+   call s:Accents('s',' ','ś','ŝ',' ',' ',' ','ş',' ','ȿ',' ',' ','š')
    call s:Accents('S',' ','Ś','Ŝ',' ',' ',' ','Ş',' ',' ',' ',' ','Š')
    call s:Accents('t',' ',' ',' ',' ',' ',' ','ţ',' ',' ',' ',' ','ť')
    call s:Accents('T',' ',' ',' ',' ',' ',' ','Ţ',' ',' ',' ',' ','Ť')
-   call s:Accents('u','ù','ú','û','ü','ũ',' ',' ','ű',' ','ů','ŭ',' ')
-   call s:Accents('U','Ù','Ú','Û','Ü','Ũ',' ',' ','Ű',' ','Ů','Ŭ',' ')
+   call s:Accents('u','ù','ú','û','ü','ũ',' ',' ','ű','ų','ů','ŭ','ǔ')
+   call s:Accents('U','Ù','Ú','Û','Ü','Ũ',' ',' ','Ű','Ų','Ů','Ŭ','Ǔ')
    call s:Accents('w',' ',' ','ŵ',' ',' ',' ',' ',' ',' ',' ',' ',' ')
    call s:Accents('W',' ',' ','Ŵ',' ',' ',' ',' ',' ',' ',' ',' ',' ')
    call s:Accents('y','ỳ','ý','ŷ','ÿ','ỹ',' ',' ',' ',' ',' ',' ',' ')
@@ -1068,6 +1192,11 @@ if did_tex_syntax_inits == 1
    HiLink texError		Error
   endif
 
+  hi texBoldStyle		gui=bold	cterm=bold
+  hi texItalStyle		gui=italic	cterm=italic
+  hi texBoldItalStyle		gui=bold,italic cterm=bold,italic
+  hi texItalBoldStyle		gui=bold,italic cterm=bold,italic
+  HiLink texCite		texRefZone
   HiLink texDefCmd		texDef
   HiLink texDefName		texDef
   HiLink texDocType		texCmdName
@@ -1084,6 +1213,8 @@ if did_tex_syntax_inits == 1
    HiLink texGreek		texStatement
    HiLink texSuperscript	texStatement
    HiLink texSubscript		texStatement
+   HiLink texSuperscripts 	texSuperscript
+   HiLink texSubscripts 	texSubscript
    HiLink texMathSymbol		texStatement
    HiLink texMathZoneV		texMath
    HiLink texMathZoneW		texMath
@@ -1092,16 +1223,14 @@ if did_tex_syntax_inits == 1
    HiLink texMathZoneV		texMath
    HiLink texMathZoneZ		texMath
   endif
-  HiLink texRefZone		Identifier
-  HiLink texSectionMarker	texCmdName
-  HiLink texSectionName		texSection
+  HiLink texBeginEnd		texCmdName
+  HiLink texBeginEndName	texSection
   HiLink texSpaceCode		texStatement
   HiLink texStyleStatement	texStatement
   HiLink texTypeSize		texType
   HiLink texTypeStyle		texType
 
    " Basic TeX highlighting groups
-  HiLink texCite		Special
   HiLink texCmdArgs		Number
   HiLink texCmdName		Statement
   HiLink texComment		Comment
@@ -1117,7 +1246,7 @@ if did_tex_syntax_inits == 1
   HiLink texNewCmd		Statement
   HiLink texNewEnv		Statement
   HiLink texOption		Number
-  HiLink texRefLabel		Special
+  HiLink texRefZone		Special
   HiLink texSection		PreCondit
   HiLink texSpaceCodeChar	Special
   HiLink texSpecialChar		SpecialChar
@@ -1130,7 +1259,9 @@ if did_tex_syntax_inits == 1
   delcommand HiLink
 endif
 
-" Current Syntax: {{{1
+" Cleanup: {{{1
 unlet s:extfname
 let   b:current_syntax = "tex"
+let &cpo               = s:keepcpo
+unlet s:keepcpo
 " vim: ts=8 fdm=marker

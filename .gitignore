@@ -2,8 +2,10 @@ src/autom4te.cache/
 *.mo
 src/xxd/xxd
 src/auto/
+src/objects/
 src/config.log
 src/config.status
 src/tags
 src/vim
 gvim.desktop
+tags

@@ -781,6 +781,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_FILES_IN_PATH	38
 #define EXPAND_OWNSYNTAX	39
 #define EXPAND_LOCALES		40
+#define EXPAND_HISTORY		41
+#define EXPAND_USER		42
 
 /* Values for exmode_active (0 is no exmode) */
 #define EXMODE_NORMAL		1
@@ -794,6 +796,7 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define WILD_PREV		5
 #define WILD_ALL		6
 #define WILD_LONGEST		7
+#define WILD_ALL_KEEP		8
 
 #define WILD_LIST_NOTFOUND	1
 #define WILD_HOME_REPLACE	2
@@ -815,6 +818,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EW_EXEC		0x40	/* executable files */
 #define EW_PATH		0x80	/* search in 'path' too */
 #define EW_ICASE	0x100	/* ignore case */
+#define EW_NOERROR	0x200	/* no error for bad regexp */
+#define EW_NOTWILD	0x400	/* add match with literal name if exists */
 /* Note: mostly EW_NOTFOUND and EW_SILENT are mutually exclusive: EW_NOTFOUND
  * is used when executing commands and EW_SILENT for interactive expanding. */
 
@@ -1068,12 +1073,14 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define INSCHAR_DO_COM	2	/* format comments */
 #define INSCHAR_CTRLV	4	/* char typed just after CTRL-V */
 #define INSCHAR_NO_FEX	8	/* don't use 'formatexpr' */
+#define INSCHAR_COM_LIST 16	/* format comments with list/2nd line indent */
 
 /* flags for open_line() */
 #define OPENLINE_DELSPACES  1	/* delete spaces after cursor */
 #define OPENLINE_DO_COM	    2	/* format comments */
 #define OPENLINE_KEEPTRAIL  4	/* keep trailing spaces */
 #define OPENLINE_MARKFIX    8	/* fix mark positions */
+#define OPENLINE_COM_LIST  16	/* format comments with list/2nd line indent */
 
 /*
  * There are four history tables:
@@ -1235,6 +1242,7 @@ enum auto_event
     EVENT_CMDWINENTER,		/* after entering the cmdline window */
     EVENT_CMDWINLEAVE,		/* before leaving the cmdline window */
     EVENT_COLORSCHEME,		/* after loading a colorscheme */
+    EVENT_COMPLETEDONE,		/* after finishing insert complete */
     EVENT_FILEAPPENDPOST,	/* after appending to a file */
     EVENT_FILEAPPENDPRE,	/* before appending to a file */
     EVENT_FILEAPPENDCMD,	/* append to a file using command */
@@ -1260,8 +1268,9 @@ enum auto_event
     EVENT_INSERTENTER,		/* when entering Insert mode */
     EVENT_INSERTLEAVE,		/* when leaving Insert mode */
     EVENT_MENUPOPUP,		/* just before popup menu is displayed */
-    EVENT_QUICKFIXCMDPOST,	/* after :make, :grep etc */
-    EVENT_QUICKFIXCMDPRE,	/* before :make, :grep etc */
+    EVENT_QUICKFIXCMDPOST,	/* after :make, :grep etc. */
+    EVENT_QUICKFIXCMDPRE,	/* before :make, :grep etc. */
+    EVENT_QUITPRE,		/* before :quit */
     EVENT_SESSIONLOADPOST,	/* after loading a session file */
     EVENT_STDINREADPOST,	/* after reading from stdin */
     EVENT_STDINREADPRE,		/* before reading from stdin */
@@ -1315,6 +1324,7 @@ typedef enum
     , HLF_M	    /* "--More--" message */
     , HLF_CM	    /* Mode (e.g., "-- INSERT --") */
     , HLF_N	    /* line number for ":number" and ":#" commands */
+    , HLF_CLN	    /* current line number */
     , HLF_R	    /* return to continue message and yes/no questions */
     , HLF_S	    /* status lines */
     , HLF_SNC	    /* status lines of not-current windows */
@@ -1352,7 +1362,7 @@ typedef enum
 /* The HL_FLAGS must be in the same order as the HLF_ enums!
  * When changing this also adjust the default for 'highlight'. */
 #define HL_FLAGS {'8', '@', 'd', 'e', 'h', 'i', 'l', 'm', 'M', \
-		  'n', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
+		  'n', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
 		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o'}
@@ -1698,6 +1708,8 @@ int vim_memcmp __ARGS((void *, void *, size_t));
  * character of up to 6 bytes, or one 16-bit character of up to three bytes
  * plus six following composing characters of three bytes each. */
 # define MB_MAXBYTES	21
+#else
+# define MB_MAXBYTES	1
 #endif
 
 #if (defined(FEAT_PROFILE) || defined(FEAT_RELTIME)) && !defined(PROTO)
@@ -2012,6 +2024,7 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
  #pragma warning(disable : 4312)
 #endif
 
+/* Note: a NULL argument for vim_realloc() is not portable, don't use it. */
 #if defined(MEM_PROFILE)
 # define vim_realloc(ptr, size)  mem_realloc((ptr), (size))
 #else
@@ -2111,6 +2124,12 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 #  endif
 # else
 #  define X_DISPLAY	xterm_dpy
+# endif
+#endif
+
+#if defined(FEAT_BROWSE) && defined(GTK_CHECK_VERSION)
+# if GTK_CHECK_VERSION(2,4,0)
+#  define USE_FILE_CHOOSER
 # endif
 #endif
 

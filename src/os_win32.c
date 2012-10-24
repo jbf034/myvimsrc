@@ -152,6 +152,14 @@ static PFNGCKLN    s_pfnGetConsoleKeyboardLayoutName = NULL;
 # define wcsicmp(a, b) wcscmpi((a), (b))
 #endif
 
+/* Enable common dialogs input unicode from IME if posible. */
+#ifdef FEAT_MBYTE
+LRESULT (WINAPI *pDispatchMessage)(LPMSG) = DispatchMessage;
+BOOL (WINAPI *pGetMessage)(LPMSG, HWND, UINT, UINT) = GetMessage;
+BOOL (WINAPI *pIsDialogMessage)(HWND, LPMSG) = IsDialogMessage;
+BOOL (WINAPI *pPeekMessage)(LPMSG, HWND, UINT, UINT, UINT) = PeekMessage;
+#endif
+
 #ifndef FEAT_GUI_W32
 /* Win32 Console handles for input and output */
 static HANDLE g_hConIn  = INVALID_HANDLE_VALUE;
@@ -251,24 +259,68 @@ get_exe_name(void)
 }
 
 /*
+ * Unescape characters in "p" that appear in "escaped".
+ */
+    static void
+unescape_shellxquote(char_u *p, char_u *escaped)
+{
+    int	    l = (int)STRLEN(p);
+    int	    n;
+
+    while (*p != NUL)
+    {
+	if (*p == '^' && vim_strchr(escaped, p[1]) != NULL)
+	    mch_memmove(p, p + 1, l--);
+#ifdef FEAT_MBYTE
+	n = (*mb_ptr2len)(p);
+#else
+	n = 1;
+#endif
+	p += n;
+	l -= n;
+    }
+}
+
+/*
  * Load library "name".
  */
     HINSTANCE
 vimLoadLib(char *name)
 {
-    HINSTANCE dll = NULL;
-    char old_dir[MAXPATHL];
+    HINSTANCE	dll = NULL;
+    char	old_dir[MAXPATHL];
 
+    /* NOTE: Do not use mch_dirname() and mch_chdir() here, they may call
+     * vimLoadLib() recursively, which causes a stack overflow. */
     if (exe_path == NULL)
 	get_exe_name();
-    if (exe_path != NULL && mch_dirname(old_dir, MAXPATHL) == OK)
+    if (exe_path != NULL)
     {
-	/* Change directory to where the executable is, both to make sure we
-	 * find a .dll there and to avoid looking for a .dll in the current
-	 * directory. */
-	mch_chdir(exe_path);
-	dll = LoadLibrary(name);
-	mch_chdir(old_dir);
+#ifdef FEAT_MBYTE
+	WCHAR old_dirw[MAXPATHL];
+
+	if (GetCurrentDirectoryW(MAXPATHL, old_dirw) != 0)
+	{
+	    /* Change directory to where the executable is, both to make
+	     * sure we find a .dll there and to avoid looking for a .dll
+	     * in the current directory. */
+	    SetCurrentDirectory(exe_path);
+	    dll = LoadLibrary(name);
+	    SetCurrentDirectoryW(old_dirw);
+	    return dll;
+	}
+	/* Retry with non-wide function (for Windows 98). */
+	if (GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
+#endif
+	    if (GetCurrentDirectory(MAXPATHL, old_dir) != 0)
+	    {
+		/* Change directory to where the executable is, both to make
+		 * sure we find a .dll there and to avoid looking for a .dll
+		 * in the current directory. */
+		SetCurrentDirectory(exe_path);
+		dll = LoadLibrary(name);
+		SetCurrentDirectory(old_dir);
+	    }
     }
     return dll;
 }
@@ -277,7 +329,7 @@ vimLoadLib(char *name)
 # ifndef GETTEXT_DLL
 #  define GETTEXT_DLL "libintl.dll"
 # endif
-/* Dummy funcitons */
+/* Dummy functions */
 static char *null_libintl_gettext(const char *);
 static char *null_libintl_textdomain(const char *);
 static char *null_libintl_bindtextdomain(const char *, const char *);
@@ -1378,7 +1430,7 @@ tgetch(int *pmodifiers, char_u *pch2)
 
 
 /*
- * mch_inchar(): low-level input funcion.
+ * mch_inchar(): low-level input function.
  * Get one or more characters from the keyboard or the mouse.
  * If time == 0, do not wait for characters.
  * If time == n, wait a short time for characters.
@@ -3284,10 +3336,12 @@ mch_system_classic(char *cmd, int options)
 	{
 	    MSG	msg;
 
-	    if (PeekMessage(&msg, (HWND)NULL, 0, 0, PM_REMOVE))
+	    if (pPeekMessage(&msg, (HWND)NULL, 0, 0, PM_REMOVE))
 	    {
 		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		pDispatchMessage(&msg);
+		delay = 1;
+		continue;
 	    }
 	    if (WaitForSingleObject(pi.hProcess, delay) != WAIT_TIMEOUT)
 		break;
@@ -3411,8 +3465,6 @@ dump_pipe(int	    options,
 {
     DWORD	availableBytes = 0;
     DWORD	i;
-    int		c;
-    char_u	*p;
     int		ret;
     DWORD	len;
     DWORD	toRead;
@@ -3422,14 +3474,14 @@ dump_pipe(int	    options,
      * to avoid to perform a blocking read */
     ret = PeekNamedPipe(g_hChildStd_OUT_Rd, /* pipe to query */
 			NULL,		    /* optional buffer */
-			0,		    /* buffe size */
+			0,		    /* buffer size */
 			NULL,		    /* number of read bytes */
 			&availableBytes,    /* available bytes total */
 			NULL);		    /* byteLeft */
 
     repeatCount = 0;
     /* We got real data in the pipe, read it */
-    while (ret != 0 && availableBytes > 0 && availableBytes > 0)
+    while (ret != 0 && availableBytes > 0)
     {
 	repeatCount++;
 	toRead =
@@ -3471,6 +3523,8 @@ dump_pipe(int	    options,
 	else if (has_mbyte)
 	{
 	    int		l;
+	    int		c;
+	    char_u	*p;
 
 	    len += *buffer_off;
 	    buffer[len] = NUL;
@@ -3550,9 +3604,8 @@ mch_system_piped(char *cmd, int options)
     int		noread_cnt = 0;
     garray_T	ga;
     int	    delay = 1;
-# ifdef FEAT_MBYTE
     DWORD	buffer_off = 0;	/* valid bytes in buffer[] */
-# endif
+    char	*p = NULL;
 
     SECURITY_ATTRIBUTES saAttr;
 
@@ -3593,13 +3646,22 @@ mch_system_piped(char *cmd, int options)
     if (options & SHELL_READ)
 	ga_init2(&ga, 1, BUFLEN);
 
+    if (cmd != NULL)
+    {
+	p = (char *)vim_strsave((char_u *)cmd);
+	if (p != NULL)
+	    unescape_shellxquote((char_u *)p, p_sxe);
+	else
+	    p = cmd;
+    }
+
     /* Now, run the command */
     CreateProcess(NULL,			/* Executable name */
-		  cmd,			/* Command to execute */
+		  p,			/* Command to execute */
 		  NULL,			/* Process security attributes */
 		  NULL,			/* Thread security attributes */
 
-		  // this command can be litigeous, handle inheritence was
+		  // this command can be litigious, handle inheritance was
 		  // deactivated for pending temp file, but, if we deactivate
 		  // it, the pipes don't work for some reason.
 		  TRUE,			/* Inherit handles, first deactivated,
@@ -3610,6 +3672,8 @@ mch_system_piped(char *cmd, int options)
 		  &si,			/* Startup information */
 		  &pi);			/* Process information */
 
+    if (p != cmd)
+	vim_free(p);
 
     /* Close our unused side of the pipes */
     CloseHandle(g_hChildStd_IN_Rd);
@@ -3769,14 +3833,12 @@ mch_system_piped(char *cmd, int options)
 
 	if (WaitForSingleObject(pi.hProcess, delay) != WAIT_TIMEOUT)
 	{
-	    dump_pipe(options, g_hChildStd_OUT_Rd,
-			&ga, buffer, &buffer_off);
+	    dump_pipe(options, g_hChildStd_OUT_Rd, &ga, buffer, &buffer_off);
 	    break;
 	}
 
 	++noread_cnt;
-	dump_pipe(options, g_hChildStd_OUT_Rd,
-		    &ga, buffer, &buffer_off);
+	dump_pipe(options, g_hChildStd_OUT_Rd, &ga, buffer, &buffer_off);
 
 	/* We start waiting for a very short time and then increase it, so
 	 * that we respond quickly when the process is quick, and don't
@@ -3894,106 +3956,147 @@ mch_call_shell(
     else
     {
 	/* we use "command" or "cmd" to start the shell; slow but easy */
-	char_u *newcmd;
-	long_u cmdlen =  (
+	char_u	*newcmd = NULL;
+	char_u	*cmdbase = cmd;
+	long_u	cmdlen;
+
+	/* Skip a leading ", ( and "(. */
+	if (*cmdbase == '"' )
+	    ++cmdbase;
+	if (*cmdbase == '(')
+	    ++cmdbase;
+
+	if ((STRNICMP(cmdbase, "start", 5) == 0) && vim_iswhite(cmdbase[5]))
+	{
+	    STARTUPINFO		si;
+	    PROCESS_INFORMATION	pi;
+	    DWORD		flags = CREATE_NEW_CONSOLE;
+	    char_u		*p;
+
+	    si.cb = sizeof(si);
+	    si.lpReserved = NULL;
+	    si.lpDesktop = NULL;
+	    si.lpTitle = NULL;
+	    si.dwFlags = 0;
+	    si.cbReserved2 = 0;
+	    si.lpReserved2 = NULL;
+
+	    cmdbase = skipwhite(cmdbase + 5);
+	    if ((STRNICMP(cmdbase, "/min", 4) == 0)
+		    && vim_iswhite(cmdbase[4]))
+	    {
+		cmdbase = skipwhite(cmdbase + 4);
+		si.dwFlags = STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_SHOWMINNOACTIVE;
+	    }
+	    else if ((STRNICMP(cmdbase, "/b", 2) == 0)
+		    && vim_iswhite(cmdbase[2]))
+	    {
+		cmdbase = skipwhite(cmdbase + 2);
+		flags = CREATE_NO_WINDOW;
+		si.dwFlags = STARTF_USESTDHANDLES;
+		si.hStdInput = CreateFile("\\\\.\\NUL",	// File name
+		    GENERIC_READ,			// Access flags
+		    0,					// Share flags
+		    NULL,				// Security att.
+		    OPEN_EXISTING,			// Open flags
+		    FILE_ATTRIBUTE_NORMAL,		// File att.
+		    NULL);				// Temp file
+		si.hStdOutput = si.hStdInput;
+		si.hStdError = si.hStdInput;
+	    }
+
+	    /* Remove a trailing ", ) and )" if they have a match
+	     * at the start of the command. */
+	    if (cmdbase > cmd)
+	    {
+		p = cmdbase + STRLEN(cmdbase);
+		if (p > cmdbase && p[-1] == '"' && *cmd == '"')
+		    *--p = NUL;
+		if (p > cmdbase && p[-1] == ')'
+			&& (*cmd =='(' || cmd[1] == '('))
+		    *--p = NUL;
+	    }
+
+	    newcmd = cmdbase;
+	    unescape_shellxquote(cmdbase, p_sxe);
+
+	    /*
+	     * If creating new console, arguments are passed to the
+	     * 'cmd.exe' as-is. If it's not, arguments are not treated
+	     * correctly for current 'cmd.exe'. So unescape characters in
+	     * shellxescape except '|' for avoiding to be treated as
+	     * argument to them. Pass the arguments to sub-shell.
+	     */
+	    if (flags != CREATE_NEW_CONSOLE)
+	    {
+		char_u	*subcmd;
+		char_u	*cmd_shell = mch_getenv("COMSPEC");
+
+		if (cmd_shell == NULL || *cmd_shell == NUL)
+		    cmd_shell = default_shell();
+
+		subcmd = vim_strsave_escaped_ext(cmdbase, "|", '^', FALSE);
+		if (subcmd != NULL)
+		{
+		    /* make "cmd.exe /c arguments" */
+		    cmdlen = STRLEN(cmd_shell) + STRLEN(subcmd) + 5;
+		    newcmd = lalloc(cmdlen, TRUE);
+		    if (newcmd != NULL)
+			vim_snprintf((char *)newcmd, cmdlen, "%s /c %s",
+						       cmd_shell, subcmd);
+		    else
+			newcmd = cmdbase;
+		    vim_free(subcmd);
+		}
+	    }
+
+	    /*
+	     * Now, start the command as a process, so that it doesn't
+	     * inherit our handles which causes unpleasant dangling swap
+	     * files if we exit before the spawned process
+	     */
+	    if (CreateProcess(NULL,		// Executable name
+		    newcmd,			// Command to execute
+		    NULL,			// Process security attributes
+		    NULL,			// Thread security attributes
+		    FALSE,			// Inherit handles
+		    flags,			// Creation flags
+		    NULL,			// Environment
+		    NULL,			// Current directory
+		    &si,			// Startup information
+		    &pi))			// Process information
+		x = 0;
+	    else
+	    {
+		x = -1;
+#ifdef FEAT_GUI_W32
+		EMSG(_("E371: Command not found"));
+#endif
+	    }
+
+	    if (newcmd != cmdbase)
+		vim_free(newcmd);
+
+	    if (si.hStdInput != NULL)
+	    {
+		/* Close the handle to \\.\NUL */
+		CloseHandle(si.hStdInput);
+	    }
+	    /* Close the handles to the subprocess, so that it goes away */
+	    CloseHandle(pi.hThread);
+	    CloseHandle(pi.hProcess);
+	}
+	else
+	{
+	    cmdlen = (
 #ifdef FEAT_GUI_W32
 		(allowPiping && !p_stmp ? 0 : STRLEN(vimrun_path)) +
 #endif
 		STRLEN(p_sh) + STRLEN(p_shcf) + STRLEN(cmd) + 10);
 
-	newcmd = lalloc(cmdlen, TRUE);
-	if (newcmd != NULL)
-	{
-	    char_u *cmdbase = (*cmd == '"' ? cmd + 1 : cmd);
-
-	    if ((STRNICMP(cmdbase, "start", 5) == 0) && vim_iswhite(cmdbase[5]))
-	    {
-		STARTUPINFO		si;
-		PROCESS_INFORMATION	pi;
-		DWORD			flags = CREATE_NEW_CONSOLE;
-
-		si.cb = sizeof(si);
-		si.lpReserved = NULL;
-		si.lpDesktop = NULL;
-		si.lpTitle = NULL;
-		si.dwFlags = 0;
-		si.cbReserved2 = 0;
-		si.lpReserved2 = NULL;
-
-		cmdbase = skipwhite(cmdbase + 5);
-		if ((STRNICMP(cmdbase, "/min", 4) == 0)
-			&& vim_iswhite(cmdbase[4]))
-		{
-		    cmdbase = skipwhite(cmdbase + 4);
-		    si.dwFlags = STARTF_USESHOWWINDOW;
-		    si.wShowWindow = SW_SHOWMINNOACTIVE;
-		}
-		else if ((STRNICMP(cmdbase, "/b", 2) == 0)
-			&& vim_iswhite(cmdbase[2]))
-		{
-		    cmdbase = skipwhite(cmdbase + 2);
-		    flags = CREATE_NO_WINDOW;
-		    si.dwFlags = STARTF_USESTDHANDLES;
-		    si.hStdInput = CreateFile("\\\\.\\NUL",	// File name
-			GENERIC_READ,				// Access flags
-			0,					// Share flags
-			NULL,					// Security att.
-			OPEN_EXISTING,				// Open flags
-			FILE_ATTRIBUTE_NORMAL,			// File att.
-			NULL);					// Temp file
-		    si.hStdOutput = si.hStdInput;
-		    si.hStdError = si.hStdInput;
-		}
-
-		/* When the command is in double quotes, but 'shellxquote' is
-		 * empty, keep the double quotes around the command.
-		 * Otherwise remove the double quotes, they aren't needed
-		 * here, because we don't use a shell to run the command. */
-		if (*cmd == '"' && *p_sxq == NUL)
-		{
-		    newcmd[0] = '"';
-		    STRCPY(newcmd + 1, cmdbase);
-		}
-		else
-		{
-		    STRCPY(newcmd, cmdbase);
-		    if (*cmd == '"' && *newcmd != NUL)
-			newcmd[STRLEN(newcmd) - 1] = NUL;
-		}
-
-		/*
-		 * Now, start the command as a process, so that it doesn't
-		 * inherit our handles which causes unpleasant dangling swap
-		 * files if we exit before the spawned process
-		 */
-		if (CreateProcess (NULL,	// Executable name
-			newcmd,			// Command to execute
-			NULL,			// Process security attributes
-			NULL,			// Thread security attributes
-			FALSE,			// Inherit handles
-			flags,			// Creation flags
-			NULL,			// Environment
-			NULL,			// Current directory
-			&si,			// Startup information
-			&pi))			// Process information
-		    x = 0;
-		else
-		{
-		    x = -1;
-#ifdef FEAT_GUI_W32
-		    EMSG(_("E371: Command not found"));
-#endif
-		}
-		if (si.hStdInput != NULL)
-		{
-		    /* Close the handle to \\.\NUL */
-		    CloseHandle(si.hStdInput);
-		}
-		/* Close the handles to the subprocess, so that it goes away */
-		CloseHandle(pi.hThread);
-		CloseHandle(pi.hProcess);
-	    }
-	    else
+	    newcmd = lalloc(cmdlen, TRUE);
+	    if (newcmd != NULL)
 	    {
 #if defined(FEAT_GUI_W32)
 		if (need_vimrun_warning)
@@ -4019,8 +4122,8 @@ mch_call_shell(
 		    vim_snprintf((char *)newcmd, cmdlen, "%s %s %s",
 							   p_sh, p_shcf, cmd);
 		x = mch_system((char *)newcmd, options);
+		vim_free(newcmd);
 	    }
-	    vim_free(newcmd);
 	}
     }
 
@@ -4912,18 +5015,34 @@ mch_breakcheck(void)
 
 
 /*
- * How much memory is available?
+ * How much memory is available in Kbyte?
  * Return sum of available physical and page file memory.
  */
 /*ARGSUSED*/
     long_u
 mch_avail_mem(int special)
 {
-    MEMORYSTATUS	ms;
+#ifdef MEMORYSTATUSEX
+    PlatformId();
+    if (g_PlatformId == VER_PLATFORM_WIN32_NT)
+    {
+	MEMORYSTATUSEX	ms;
 
-    ms.dwLength = sizeof(MEMORYSTATUS);
-    GlobalMemoryStatus(&ms);
-    return (long_u) (ms.dwAvailPhys + ms.dwAvailPageFile);
+	/* Need to use GlobalMemoryStatusEx() when there is more memory than
+	 * what fits in 32 bits. But it's not always available. */
+	ms.dwLength = sizeof(MEMORYSTATUSEX);
+	GlobalMemoryStatusEx(&ms);
+	return (long_u)((ms.ullAvailPhys + ms.ullAvailPageFile) >> 10);
+    }
+    else
+#endif
+    {
+	MEMORYSTATUS	ms;
+
+	ms.dwLength = sizeof(MEMORYSTATUS);
+	GlobalMemoryStatus(&ms);
+	return (long_u)((ms.dwAvailPhys + ms.dwAvailPageFile) >> 10);
+    }
 }
 
 #ifdef FEAT_MBYTE

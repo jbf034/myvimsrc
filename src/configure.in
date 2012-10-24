@@ -28,6 +28,16 @@ dnl in autoconf needs it, where it uses STDC_HEADERS.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 
+dnl Check for the flag that fails if stuff are missing.
+
+AC_MSG_CHECKING(--enable-fail-if-missing argument)
+AC_ARG_ENABLE(fail_if_missing,
+	[  --enable-fail-if-missing    Fail if dependencies on additional features
+     specified on the command line are missing.], 
+	[fail_if_missing="yes"],
+	[fail_if_missing="no"])
+AC_MSG_RESULT($fail_if_missing)
+
 dnl Set default value for CFLAGS if none is defined or it's empty
 if test -z "$CFLAGS"; then
   CFLAGS="-O"
@@ -319,15 +329,18 @@ case `uname` in
 		  echo ""
 		  echo "------------------------------------------"
 		  echo " On z/OS Unix, the environment variable"
-		  echo " __CC_${ccn}MODE must be set to \"1\"!"
+		  echo " _CC_${ccn}MODE must be set to \"1\"!"
 		  echo " Do:"
 		  echo "    export _CC_${ccn}MODE=1"
 		  echo " and then call configure again."
 		  echo "------------------------------------------"
 		  exit 1
 		fi
-		CFLAGS="$CFLAGS -D_ALL_SOURCE -Wc,float\\(IEEE\\)";
-                LDFLAGS="$LDFLAGS -Wl,EDIT=NO"
+		# Set CFLAGS for configure process.
+		# This will be reset later for config.mk.
+		# Use haltonmsg to force error for missing H files.
+		CFLAGS="$CFLAGS -D_ALL_SOURCE -Wc,float(ieee),haltonmsg(3296)";
+		LDFLAGS="$LDFLAGS -Wl,EDIT=NO"
 		AC_MSG_RESULT(yes)
 		;;
     *)		zOSUnix="no";
@@ -442,31 +455,31 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
 
   LUA_INC=
   if test "X$vi_cv_path_lua_pfx" != "X"; then
+    dnl -- try to find Lua executable
+    AC_PATH_PROG(vi_cv_path_lua, lua)
+    if test "X$vi_cv_path_lua" != "X"; then
+      dnl -- find Lua version
+      AC_CACHE_CHECK(Lua version, vi_cv_version_lua,
+      [ vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION)" | sed 's/.* //'` ])
+    fi
     AC_MSG_CHECKING(if lua.h can be found in $vi_cv_path_lua_pfx/include)
     if test -f $vi_cv_path_lua_pfx/include/lua.h; then
       AC_MSG_RESULT(yes)
     else
       AC_MSG_RESULT(no)
-      dnl -- try to find Lua executable
-      AC_PATH_PROG(vi_cv_path_lua, lua)
-      if test "X$vi_cv_path_lua" != "X"; then
-        dnl -- find Lua version
-        AC_CACHE_CHECK(Lua version, vi_cv_version_lua,
-        [ vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION)" | sed 's/.* //'` ])
-        AC_MSG_CHECKING(if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua)
-        if test -f $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua/lua.h; then
-          AC_MSG_RESULT(yes)
-          LUA_INC=/lua$vi_cv_version_lua
-        else
-          AC_MSG_RESULT(no)
-          vi_cv_path_lua_pfx=
-        fi
+      AC_MSG_CHECKING(if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua)
+      if test -f $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua/lua.h; then
+        AC_MSG_RESULT(yes)
+        LUA_INC=/lua$vi_cv_version_lua
+      else
+        AC_MSG_RESULT(no)
+        vi_cv_path_lua_pfx=
       fi
     fi
   fi
 
   if test "X$vi_cv_path_lua_pfx" != "X"; then
-    if test "X$vi_cv_version_lua" != "X"; then
+    if test "X$LUA_INC" != "X"; then
       dnl Test alternate location using version
       LUA_LIBS="-L${vi_cv_path_lua_pfx}/lib -llua$vi_cv_version_lua"
     else
@@ -478,18 +491,26 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
     LUA_PRO="if_lua.pro"
     AC_DEFINE(FEAT_LUA)
     if test "$enable_luainterp" = "dynamic"; then
-      dnl Determine the SONAME for the current version, but fallback to
-      dnl liblua${vi_cv_version_lua}.so if no SONAME-versioned file is found.
-      for i in 0 1 2 3 4 5 6 7 8 9; do
-	if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
-	  LUA_SONAME=".$i"
-	  break
-	fi
-      done
+      if test -f "${vi_cv_path_lua_pfx}/bin/cyglua-${vi_cv_version_lua}.dll"; then
+	vi_cv_dll_name_lua="cyglua-${vi_cv_version_lua}.dll"
+      else
+	dnl Determine the SONAME for the current version, but fallback to
+	dnl liblua${vi_cv_version_lua}.so if no SONAME-versioned file is found.
+	for i in 0 1 2 3 4 5 6 7 8 9; do
+	  if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
+	    LUA_SONAME=".$i"
+	    break
+	  fi
+	done
+	vi_cv_dll_name_lua="liblua${vi_cv_version_lua}.so$LUA_SONAME"
+      fi
       AC_DEFINE(DYNAMIC_LUA)
       LUA_LIBS=""
-      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so$LUA_SONAME\\\" $LUA_CFLAGS"
+      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"${vi_cv_dll_name_lua}\\\" $LUA_CFLAGS"
     fi
+  fi
+  if test "$fail_if_missing" = "yes" -a -z "$LUA_SRC"; then
+    AC_MSG_ERROR([could not configure lua])
   fi
   AC_SUBST(LUA_SRC)
   AC_SUBST(LUA_OBJ)
@@ -781,6 +802,10 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
       PERL_CFLAGS="-DDYNAMIC_PERL_DLL=\\\"$libperl\\\" $PERL_CFLAGS"
     fi
   fi
+
+  if test "$fail_if_missing" = "yes" -a "$perl_ok" != "yes"; then
+    AC_MSG_ERROR([could not configure perl])
+  fi
 fi
 AC_SUBST(shrpenv)
 AC_SUBST(PERL_SRC)
@@ -890,6 +915,7 @@ __:
 	@echo "python_LIBS='$(LIBS)'"
 	@echo "python_SYSLIBS='$(SYSLIBS)'"
 	@echo "python_LINKFORSHARED='$(LINKFORSHARED)'"
+	@echo "python_DLLLIBRARY='$(DLLLIBRARY)'"
 	@echo "python_INSTSONAME='$(INSTSONAME)'"
 eof
 	    dnl -- delete the lines from make about Entering/Leaving directory
@@ -910,6 +936,9 @@ eof
 	    fi
 	])
 
+	if test "X$python_DLLLIBRARY" != "X"; then
+	  python_INSTSONAME="$python_DLLLIBRARY"
+	fi
 	PYTHON_LIBS="${vi_cv_path_python_plibs}"
 	if test "${vi_cv_path_python_pfx}" = "${vi_cv_path_python_epfx}"; then
 	  PYTHON_CFLAGS="-I${vi_cv_path_python_pfx}/include/python${vi_cv_var_python_version} -DPYTHON_HOME=\\\"${vi_cv_path_python_pfx}\\\""
@@ -917,12 +946,7 @@ eof
 	  PYTHON_CFLAGS="-I${vi_cv_path_python_pfx}/include/python${vi_cv_var_python_version} -I${vi_cv_path_python_epfx}/include/python${vi_cv_var_python_version} -DPYTHON_HOME=\\\"${vi_cv_path_python_pfx}\\\""
 	fi
 	PYTHON_SRC="if_python.c"
-	dnl For Mac OSX 10.2 config.o is included in the Python library.
-	if test "x$MACOSX" = "xyes"; then
-	  PYTHON_OBJ="objects/if_python.o"
-	else
-	  PYTHON_OBJ="objects/if_python.o objects/py_config.o"
-	fi
+	PYTHON_OBJ="objects/if_python.o"
 	if test "${vi_cv_var_python_version}" = "1.4"; then
 	   PYTHON_OBJ="$PYTHON_OBJ objects/py_getpath.o"
 	fi
@@ -986,6 +1010,10 @@ eof
     else
       AC_MSG_RESULT(too old)
     fi
+  fi
+
+  if test "$fail_if_missing" = "yes" -a "$python_ok" != "yes"; then
+    AC_MSG_ERROR([could not configure python])
   fi
 fi
 
@@ -1084,6 +1112,7 @@ __:
 	@echo "python3_BASEMODLIBS='$(BASEMODLIBS)'"
 	@echo "python3_LIBS='$(LIBS)'"
 	@echo "python3_SYSLIBS='$(SYSLIBS)'"
+	@echo "python3_DLLLIBRARY='$(DLLLIBRARY)'"
 	@echo "python3_INSTSONAME='$(INSTSONAME)'"
 eof
           dnl -- delete the lines from make about Entering/Leaving directory
@@ -1096,6 +1125,9 @@ eof
           vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-lffi//`
       ])
 
+      if test "X$python3_DLLLIBRARY" != "X"; then
+	python3_INSTSONAME="$python3_DLLLIBRARY"
+      fi
       PYTHON3_LIBS="${vi_cv_path_python3_plibs}"
       if test "${vi_cv_path_python3_pfx}" = "${vi_cv_path_python3_epfx}"; then
         PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version}${vi_cv_var_python3_abiflags} -DPYTHON3_HOME=L\\\"${vi_cv_path_python3_pfx}\\\""
@@ -1103,12 +1135,7 @@ eof
         PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version}${vi_cv_var_python3_abiflags} -I${vi_cv_path_python3_epfx}/include/python${vi_cv_var_python3_version}${vi_cv_var_python3_abiflags} -DPYTHON3_HOME=L\\\"${vi_cv_path_python3_pfx}\\\""
       fi
       PYTHON3_SRC="if_python3.c"
-      dnl For Mac OSX 10.2 config.o is included in the Python library.
-      if test "x$MACOSX" = "xyes"; then
-        PYTHON3_OBJ="objects/if_python3.o"
-      else
-        PYTHON3_OBJ="objects/if_python3.o objects/py3_config.o"
-      fi
+      PYTHON3_OBJ="objects/if_python3.o"
 
       dnl On FreeBSD linking with "-pthread" is required to use threads.
       dnl _THREAD_SAFE must be used for compiling then.
@@ -1182,7 +1209,8 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   cflags_save=$CFLAGS
   CFLAGS="$CFLAGS $PYTHON_CFLAGS"
   ldflags_save=$LDFLAGS
-  LDFLAGS="$LDFLAGS -ldl"
+  dnl -ldl must go first to make this work on Archlinux (Roland Puntaier)
+  LDFLAGS="-ldl $LDFLAGS"
   AC_RUN_IFELSE([
     #include <dlfcn.h>
     /* If this program fails, then RTLD_GLOBAL is needed.
@@ -1226,7 +1254,8 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   cflags_save=$CFLAGS
   CFLAGS="$CFLAGS $PYTHON3_CFLAGS"
   ldflags_save=$LDFLAGS
-  LDFLAGS="$LDFLAGS -ldl"
+  dnl -ldl must go first to make this work on Archlinux (Roland Puntaier)
+  LDFLAGS="-ldl $LDFLAGS"
   AC_RUN_IFELSE([
     #include <dlfcn.h>
     #include <wchar.h>
@@ -1408,6 +1437,9 @@ if test "$enable_tclinterp" = "yes"; then
       AC_MSG_RESULT(too old; need Tcl version 8.0 or later)
     fi
   fi
+  if test "$fail_if_missing" = "yes" -a -z "$TCL_SRC"; then
+    AC_MSG_ERROR([could not configure Tcl])
+  fi
 fi
 AC_SUBST(TCL_SRC)
 AC_SUBST(TCL_OBJ)
@@ -1431,24 +1463,30 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
     AC_MSG_CHECKING(Ruby version)
     if $vi_cv_path_ruby -e '(VERSION rescue RUBY_VERSION) >= "1.6.0" or exit 1' >/dev/null 2>/dev/null; then
       AC_MSG_RESULT(OK)
+      AC_MSG_CHECKING(Ruby rbconfig)
+      ruby_rbconfig="RbConfig"
+      if ! $vi_cv_path_ruby -r rbconfig -e 'RbConfig' >/dev/null 2>/dev/null; then
+	ruby_rbconfig="Config"
+      fi
+      AC_MSG_RESULT($ruby_rbconfig)
       AC_MSG_CHECKING(Ruby header files)
-      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG[["rubyhdrdir"]] || Config::CONFIG[["archdir"]] || $hdrdir' 2>/dev/null`
+      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e "print $ruby_rbconfig::CONFIG[['rubyhdrdir']] || $ruby_rbconfig::CONFIG[['archdir']] || \\$hdrdir" 2>/dev/null`
       if test "X$rubyhdrdir" != "X"; then
 	AC_MSG_RESULT($rubyhdrdir)
 	RUBY_CFLAGS="-I$rubyhdrdir"
-        rubyarch=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["arch"]]'`
+        rubyarch=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG[['arch']]"`
         if test -d "$rubyhdrdir/$rubyarch"; then
           RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
         fi
-        rubyversion=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["ruby_version"]].gsub(/\./, "")[[0,2]]'`
+        rubyversion=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG[['ruby_version']].gsub(/\./, '')[[0,2]]"`
         RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
-	rubylibs=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LIBS"]]'`
+	rubylibs=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG[['LIBS']]"`
 	if test "X$rubylibs" != "X"; then
 	  RUBY_LIBS="$rubylibs"
 	fi
-	librubyarg=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG[["LIBRUBYARG"]])'`
-	librubya=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG[["LIBRUBY_A"]])'`
-  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG[["libdir"]])'`
+	librubyarg=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['LIBRUBYARG']])"`
+	librubya=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['LIBRUBY_A']])"`
+  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['libdir']])"`
 	if test -f "$rubylibdir/$librubya"; then
 	  librubyarg="$librubyarg"
     RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
@@ -1461,7 +1499,7 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	if test "X$librubyarg" != "X"; then
 	  RUBY_LIBS="$librubyarg $RUBY_LIBS"
 	fi
-	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LDFLAGS"]]'`
+	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG[['LDFLAGS']]"`
 	if test "X$rubyldflags" != "X"; then
 	  dnl Ruby on Mac OS X 10.5 adds "-arch" flags but these should only
 	  dnl be included if requested by passing --with-mac-arch to
@@ -1476,7 +1514,7 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	RUBY_PRO="if_ruby.pro"
 	AC_DEFINE(FEAT_RUBY)
 	if test "$enable_rubyinterp" = "dynamic"; then
-	  libruby=`$vi_cv_path_ruby -r rbconfig -e 'printf "lib%s.%s\n", Config::CONFIG[["RUBY_SO_NAME"]], Config::CONFIG[["DLEXT"]]'`
+	  libruby=`$vi_cv_path_ruby -r rbconfig -e "puts $ruby_rbconfig::CONFIG[['LIBRUBY_SO']]"`
 	  AC_DEFINE(DYNAMIC_RUBY)
 	  RUBY_CFLAGS="-DDYNAMIC_RUBY_DLL=\\\"$libruby\\\" -DDYNAMIC_RUBY_VER=$rubyversion $RUBY_CFLAGS"
 	  RUBY_LIBS=
@@ -1487,6 +1525,10 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
     else
       AC_MSG_RESULT(too old; need Ruby version 1.6.0 or later)
     fi
+  fi
+
+  if test "$fail_if_missing" = "yes" -a -z "$RUBY_OBJ"; then
+    AC_MSG_ERROR([could not configure Ruby])
   fi
 fi
 AC_SUBST(RUBY_SRC)
@@ -2369,10 +2411,15 @@ dnl Only use the Xm directory when compiling Motif, don't use it for Athena
 if test -z "$SKIP_MOTIF"; then
   cppflags_save=$CPPFLAGS
   CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-  AC_CHECK_HEADERS(Xm/Xm.h Xm/XpmP.h Xm/JoinSideT.h Xm/TraitP.h Xm/Manager.h \
-		   Xm/UnhighlightT.h Xm/Notebook.h)
+  if test "$zOSUnix" = "yes"; then
+	xmheader="Xm/Xm.h"
+  else
+	xmheader="Xm/Xm.h Xm/XpmP.h Xm/JoinSideT.h Xm/TraitP.h Xm/Manager.h
+  	   Xm/UnhighlightT.h Xm/Notebook.h"  
+  fi    
+  AC_CHECK_HEADERS($xmheader)
 
-  if test $ac_cv_header_Xm_XpmP_h = yes; then
+  if test "x$ac_cv_header_Xm_XpmP_h" = "xyes"; then
     dnl Solaris uses XpmAttributes_21, very annoying.
     AC_MSG_CHECKING([for XpmAttributes_21 in Xm/XpmP.h])
     AC_TRY_COMPILE([#include <Xm/XpmP.h>], [XpmAttributes_21 attr;],
@@ -2987,7 +3034,7 @@ fi
 dnl Check for functions in one big call, to reduce the size of configure.
 dnl Can only be used for functions that do not require any include.
 AC_CHECK_FUNCS(bcmp fchdir fchown fsync getcwd getpseudotty \
-	getpwnam getpwuid getrlimit gettimeofday getwd lstat memcmp \
+	getpwent getpwnam getpwuid getrlimit gettimeofday getwd lstat memcmp \
 	memset mkdtemp nanosleep opendir putenv qsort readlink select setenv \
 	setpgid setsid sigaltstack sigstack sigset sigsetjmp sigaction \
 	sigvec strcasecmp strerror strftime stricmp strncasecmp \
@@ -3097,6 +3144,7 @@ AC_TRY_LINK([
 
 dnl Link with -lposix1e for ACL stuff; if not found, try -lacl for SGI
 dnl when -lacl works, also try to use -lattr (required for Debian).
+dnl On Solaris, use the acl_get/set functions in libsec, if present.
 AC_MSG_CHECKING(--disable-acl argument)
 AC_ARG_ENABLE(acl,
 	[  --disable-acl           Don't check for ACL support.],
@@ -3119,6 +3167,7 @@ acl_t acl;], [acl = acl_get_file("foo", ACL_TYPE_ACCESS);
 	AC_MSG_RESULT(yes); AC_DEFINE(HAVE_POSIX_ACL),
 	AC_MSG_RESULT(no))
 
+AC_CHECK_LIB(sec, acl_get, [LIBS="$LIBS -lsec"; AC_DEFINE(HAVE_SOLARIS_ZFS_ACL)],
 AC_MSG_CHECKING(for Solaris ACL support)
 AC_TRY_LINK([
 #ifdef HAVE_SYS_ACL_H
@@ -3126,7 +3175,7 @@ AC_TRY_LINK([
 #endif], [acl("foo", GETACLCNT, 0, NULL);
 	],
 	AC_MSG_RESULT(yes); AC_DEFINE(HAVE_SOLARIS_ACL),
-	AC_MSG_RESULT(no))
+	AC_MSG_RESULT(no)))
 
 AC_MSG_CHECKING(for AIX ACL support)
 AC_TRY_LINK([
@@ -3302,7 +3351,7 @@ main() {
 }],
 AC_MSG_RESULT(ok),
 AC_MSG_ERROR([WRONG!  uint32_t not defined correctly.]),
-AC_MSG_ERROR([could not compile program using uint32_t.]))
+AC_MSG_WARN([cannot check uint32_t when cross-compiling.]))
 
 dnl Check for memmove() before bcopy(), makes memmove() be used when both are
 dnl present, fixes problem with incompatibility between Solaris 2.4 and 2.5.
@@ -3603,9 +3652,10 @@ if test "$GCC" = yes; then
   dnl -D_FORTIFY_SOURCE=2 crashes Vim on strcpy(buf, "000") when buf is
   dnl declared as char x[1] but actually longer.  Introduced in gcc 4.0.
   dnl Also remove duplicate _FORTIFY_SOURCE arguments.
+  dnl And undefine it first to avoid a warning.
   AC_MSG_CHECKING(whether we need -D_FORTIFY_SOURCE=1)
   if test "$gccmajor" -gt "3"; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -D_FORTIFY_SOURCE=1/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
     AC_MSG_RESULT(yes)
   else
     AC_MSG_RESULT(no)
@@ -3629,6 +3679,11 @@ else
   AC_MSG_RESULT(no)
 fi
 AC_SUBST(LINK_AS_NEEDED)
+
+# IBM z/OS reset CFLAGS for config.mk
+if test "$zOSUnix" = "yes"; then
+	CFLAGS="-D_ALL_SOURCE -Wc,float\(ieee\),dll"
+fi
 
 dnl write output files
 AC_OUTPUT(auto/config.mk:config.mk.in)

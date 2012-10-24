@@ -39,7 +39,6 @@ static int do_more_prompt __ARGS((int typed_char));
 static void msg_screen_putchar __ARGS((int c, int attr));
 static int  msg_check_screen __ARGS((void));
 static void redir_write __ARGS((char_u *s, int maxlen));
-static void verbose_write __ARGS((char_u *s, int maxlen));
 #ifdef FEAT_CON_DIALOG
 static char_u *msg_show_console_dialog __ARGS((char_u *message, char_u *buttons, int dfltbutton));
 static int	confirm_msg_used = FALSE;	/* displaying confirm_msg */
@@ -57,6 +56,9 @@ struct msg_hist
 static struct msg_hist *first_msg_hist = NULL;
 static struct msg_hist *last_msg_hist = NULL;
 static int msg_hist_len = 0;
+
+static FILE *verbose_fd = NULL;
+static int  verbose_did_open = FALSE;
 
 /*
  * When writing messages to the screen, there are many different situations.
@@ -83,7 +85,7 @@ static int msg_hist_len = 0;
  *		    need_wait_return to be set.  This is a hack to make ":ts"
  *		    work without an extra prompt.
  * lines_left	    Number of lines available for messages before the
- *		    more-prompt is to be given.
+ *		    more-prompt is to be given.  -1 when not set.
  * need_wait_return TRUE when the hit-return prompt is needed.
  *		    Reset: After giving the hit-return prompt, when the user
  *		    has answered some other prompt.
@@ -220,15 +222,16 @@ msg_strtrunc(s, force)
 	    if (enc_utf8)
 		/* may have up to 18 bytes per cell (6 per char, up to two
 		 * composing chars) */
-		buf = alloc((room + 2) * 18);
+		len = (room + 2) * 18;
 	    else if (enc_dbcs == DBCS_JPNU)
 		/* may have up to 2 bytes per cell for euc-jp */
-		buf = alloc((room + 2) * 2);
+		len = (room + 2) * 2;
 	    else
 #endif
-		buf = alloc(room + 2);
+		len = room + 2;
+	    buf = alloc(len);
 	    if (buf != NULL)
-		trunc_string(s, buf, room);
+		trunc_string(s, buf, room, len);
 	}
     }
     return buf;
@@ -239,10 +242,11 @@ msg_strtrunc(s, force)
  * "s" and "buf" may be equal.
  */
     void
-trunc_string(s, buf, room)
+trunc_string(s, buf, room, buflen)
     char_u	*s;
     char_u	*buf;
     int		room;
+    int		buflen;
 {
     int		half;
     int		len;
@@ -255,7 +259,7 @@ trunc_string(s, buf, room)
     len = 0;
 
     /* First part: Start of the string. */
-    for (e = 0; len < half; ++e)
+    for (e = 0; len < half && e < buflen; ++e)
     {
 	if (s[e] == NUL)
 	{
@@ -272,7 +276,8 @@ trunc_string(s, buf, room)
 	if (has_mbyte)
 	    for (n = (*mb_ptr2len)(s + e); --n > 0; )
 	    {
-		++e;
+		if (++e == buflen)
+		    break;
 		buf[e] = s[e];
 	    }
 #endif
@@ -317,8 +322,19 @@ trunc_string(s, buf, room)
     }
 
     /* Set the middle and copy the last part. */
-    mch_memmove(buf + e, "...", (size_t)3);
-    STRMOVE(buf + e + 3, s + i);
+    if (e + 3 < buflen)
+    {
+	mch_memmove(buf + e, "...", (size_t)3);
+	len = (int)STRLEN(s + i) + 1;
+	if (len >= buflen - e - 3)
+	    len = buflen - e - 3 - 1;
+	mch_memmove(buf + e + 3, s + i, len);
+	buf[e + 3 + len - 1] = NUL;
+    }
+    else
+    {
+	buf[e - 1] = NUL;  /* make sure it is truncated */
+    }
 }
 
 /*
@@ -854,6 +870,7 @@ msg_end_prompt()
     cmdline_row = msg_row;
     msg_col = 0;
     msg_clr_eos();
+    lines_left = -1;
 }
 #endif
 
@@ -1548,16 +1565,27 @@ str2special(sp, from)
 	if (IS_SPECIAL(c) || modifiers)	/* special key */
 	    special = TRUE;
     }
-    *sp = str + 1;
 
 #ifdef FEAT_MBYTE
-    /* For multi-byte characters check for an illegal byte. */
-    if (has_mbyte && MB_BYTE2LEN(*str) > (*mb_ptr2len)(str))
+    if (has_mbyte && !IS_SPECIAL(c))
     {
-	transchar_nonprint(buf, c);
-	return buf;
+	int len = (*mb_ptr2len)(str);
+
+	/* For multi-byte characters check for an illegal byte. */
+	if (has_mbyte && MB_BYTE2LEN(*str) > len)
+	{
+	    transchar_nonprint(buf, c);
+	    *sp = str + 1;
+	    return buf;
+	}
+	/* Since 'special' is TRUE the multi-byte character 'c' will be
+	 * processed by get_special_key_name() */
+	c = (*mb_ptr2char)(str);
+	*sp = str + len;
     }
+    else
 #endif
+	*sp = str + 1;
 
     /* Make unprintable characters in <> form, also <M-Space> and <Tab>.
      * Use <Space> only for lhs of a mapping. */
@@ -2321,6 +2349,16 @@ msg_sb_start(mps)
 }
 
 /*
+ * Mark the last message chunk as finishing the line.
+ */
+    void
+msg_sb_eol()
+{
+    if (last_msgchunk != NULL)
+	last_msgchunk->sb_eol = TRUE;
+}
+
+/*
  * Display a screen line from previously displayed text at row "row".
  * Returns a pointer to the text for the next line (can be NULL).
  */
@@ -2474,7 +2512,7 @@ do_more_prompt(typed_char)
 #ifdef FEAT_CON_DIALOG
     int		retval = FALSE;
 #endif
-    int		scroll;
+    int		toscroll;
     msgchunk_T	*mp_last = NULL;
     msgchunk_T	*mp;
     int		i;
@@ -2525,49 +2563,49 @@ do_more_prompt(typed_char)
 	}
 #endif
 
-	scroll = 0;
+	toscroll = 0;
 	switch (c)
 	{
 	case BS:		/* scroll one line back */
 	case K_BS:
 	case 'k':
 	case K_UP:
-	    scroll = -1;
+	    toscroll = -1;
 	    break;
 
 	case CAR:		/* one extra line */
 	case NL:
 	case 'j':
 	case K_DOWN:
-	    scroll = 1;
+	    toscroll = 1;
 	    break;
 
 	case 'u':		/* Up half a page */
-	    scroll = -(Rows / 2);
+	    toscroll = -(Rows / 2);
 	    break;
 
 	case 'd':		/* Down half a page */
-	    scroll = Rows / 2;
+	    toscroll = Rows / 2;
 	    break;
 
 	case 'b':		/* one page back */
 	case K_PAGEUP:
-	    scroll = -(Rows - 1);
+	    toscroll = -(Rows - 1);
 	    break;
 
 	case ' ':		/* one extra page */
 	case 'f':
 	case K_PAGEDOWN:
 	case K_LEFTMOUSE:
-	    scroll = Rows - 1;
+	    toscroll = Rows - 1;
 	    break;
 
 	case 'g':		/* all the way back to the start */
-	    scroll = -999999;
+	    toscroll = -999999;
 	    break;
 
 	case 'G':		/* all the way to the end */
-	    scroll = 999999;
+	    toscroll = 999999;
 	    lines_left = 999999;
 	    break;
 
@@ -2620,9 +2658,9 @@ do_more_prompt(typed_char)
 	    continue;
 	}
 
-	if (scroll != 0)
+	if (toscroll != 0)
 	{
-	    if (scroll < 0)
+	    if (toscroll < 0)
 	    {
 		/* go to start of last line */
 		if (mp_last == NULL)
@@ -2640,7 +2678,7 @@ do_more_prompt(typed_char)
 		if (mp != NULL && mp->sb_prev != NULL)
 		{
 		    /* Find line to be displayed at top. */
-		    for (i = 0; i > scroll; --i)
+		    for (i = 0; i > toscroll; --i)
 		    {
 			if (mp == NULL || mp->sb_prev == NULL)
 			    break;
@@ -2651,7 +2689,7 @@ do_more_prompt(typed_char)
 			    mp_last = msg_sb_start(mp_last->sb_prev);
 		    }
 
-		    if (scroll == -1 && screen_ins_lines(0, 0, 1,
+		    if (toscroll == -1 && screen_ins_lines(0, 0, 1,
 						       (int)Rows, NULL) == OK)
 		    {
 			/* display line at top */
@@ -2667,13 +2705,13 @@ do_more_prompt(typed_char)
 			    ++msg_scrolled;
 			}
 		    }
-		    scroll = 0;
+		    toscroll = 0;
 		}
 	    }
 	    else
 	    {
 		/* First display any text that we scrolled back. */
-		while (scroll > 0 && mp_last != NULL)
+		while (toscroll > 0 && mp_last != NULL)
 		{
 		    /* scroll up, display line at bottom */
 		    msg_scroll_up();
@@ -2681,11 +2719,11 @@ do_more_prompt(typed_char)
 		    screen_fill((int)Rows - 2, (int)Rows - 1, 0,
 						   (int)Columns, ' ', ' ', 0);
 		    mp_last = disp_sb_line((int)Rows - 2, mp_last);
-		    --scroll;
+		    --toscroll;
 		}
 	    }
 
-	    if (scroll <= 0)
+	    if (toscroll <= 0)
 	    {
 		/* displayed the requested text, more prompt again */
 		screen_fill((int)Rows - 1, (int)Rows, 0,
@@ -2695,7 +2733,7 @@ do_more_prompt(typed_char)
 	    }
 
 	    /* display more text, return to caller */
-	    lines_left = scroll;
+	    lines_left = toscroll;
 	}
 
 	break;
@@ -3055,12 +3093,9 @@ redir_write(str, maxlen)
     if (redir_off)
 	return;
 
-    /*
-     * If 'verbosefile' is set write message in that file.
-     * Must come before the rest because of updating "msg_col".
-     */
-    if (*p_vfile != NUL)
-	verbose_write(s, maxlen);
+    /* If 'verbosefile' is set prepare for writing in that file. */
+    if (*p_vfile != NUL && verbose_fd == NULL)
+	verbose_open();
 
     if (redirecting())
     {
@@ -3074,9 +3109,12 @@ redir_write(str, maxlen)
 		    write_reg_contents(redir_reg, (char_u *)" ", -1, TRUE);
 		else if (redir_vname)
 		    var_redir_str((char_u *)" ", -1);
-		else if (redir_fd)
+		else
 #endif
+		    if (redir_fd != NULL)
 		    fputs(" ", redir_fd);
+		if (verbose_fd != NULL)
+		    fputs(" ", verbose_fd);
 		++cur_col;
 	    }
 	}
@@ -3088,13 +3126,16 @@ redir_write(str, maxlen)
 	    var_redir_str(s, maxlen);
 #endif
 
-	/* Adjust the current column */
+	/* Write and adjust the current column. */
 	while (*s != NUL && (maxlen < 0 || (int)(s - str) < maxlen))
 	{
 #ifdef FEAT_EVAL
-	    if (!redir_reg && !redir_vname && redir_fd != NULL)
+	    if (!redir_reg && !redir_vname)
 #endif
-		putc(*s, redir_fd);
+		if (redir_fd != NULL)
+		    putc(*s, redir_fd);
+	    if (verbose_fd != NULL)
+		putc(*s, verbose_fd);
 	    if (*s == '\r' || *s == '\n')
 		cur_col = 0;
 	    else if (*s == '\t')
@@ -3112,7 +3153,7 @@ redir_write(str, maxlen)
     int
 redirecting()
 {
-    return redir_fd != NULL
+    return redir_fd != NULL || *p_vfile != NUL
 #ifdef FEAT_EVAL
 			  || redir_reg || redir_vname
 #endif
@@ -3170,9 +3211,6 @@ verbose_leave_scroll()
 	cmdline_row = msg_row;
 }
 
-static FILE *verbose_fd = NULL;
-static int  verbose_did_open = FALSE;
-
 /*
  * Called when 'verbosefile' is set: stop writing to the file.
  */
@@ -3207,49 +3245,6 @@ verbose_open()
 	}
     }
     return OK;
-}
-
-/*
- * Write a string to 'verbosefile'.
- * When "maxlen" is -1 write the whole string, otherwise up to "maxlen" bytes.
- */
-    static void
-verbose_write(str, maxlen)
-    char_u	*str;
-    int		maxlen;
-{
-    char_u	*s = str;
-    static int	cur_col = 0;
-
-    /* Open the file when called the first time. */
-    if (verbose_fd == NULL)
-	verbose_open();
-
-    if (verbose_fd != NULL)
-    {
-	/* If the string doesn't start with CR or NL, go to msg_col */
-	if (*s != '\n' && *s != '\r')
-	{
-	    while (cur_col < msg_col)
-	    {
-		fputs(" ", verbose_fd);
-		++cur_col;
-	    }
-	}
-
-	/* Adjust the current column */
-	while (*s != NUL && (maxlen < 0 || (int)(s - str) < maxlen))
-	{
-	    putc(*s, verbose_fd);
-	    if (*s == '\r' || *s == '\n')
-		cur_col = 0;
-	    else if (*s == '\t')
-		cur_col += (8 - cur_col % 8);
-	    else
-		++cur_col;
-	    ++s;
-	}
-    }
 }
 
 /*

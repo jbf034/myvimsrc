@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 7.3.  Last change: 2011 Jun 19
+*usr_41.txt*	For Vim version 7.3.  Last change: 2012 Oct 13
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -669,6 +669,12 @@ Floating point computation:				*float-functions*
 	sinh()			hyperbolic sine
 	cosh()			hyperbolic cosine
 	tanh()			hyperbolic tangent
+
+Other computation:					*bitwise-function*
+	and()			bitwise AND
+	invert()		bitwise invert
+	or()			bitwise OR
+	xor()			bitwise XOR
 
 Variables:						*var-functions*
 	type()			type of a variable
@@ -1575,7 +1581,7 @@ Here the comment part will be ignored.  However, Vim will try to unmap
 
 RESTORING THE VIEW
 
-Sometimes you want to make a change and go back to where cursor was.
+Sometimes you want to make a change and go back to where the cursor was.
 Restoring the relative position would also be nice, so that the same line
 appears at the top of the window.
    This example yanks the current line, puts it above the first line in the
@@ -1675,7 +1681,7 @@ in your plugin file!
 HEADER
 
 You will probably add new corrections to the plugin and soon have several
-versions laying around.  And when distributing this file, people will want to
+versions lying around.  And when distributing this file, people will want to
 know who wrote this wonderful plugin and where they can send remarks.
 Therefore, put a header at the top of your plugin: >
 
@@ -1704,6 +1710,7 @@ make the script work for most people.  It is done like this: >
  12	set cpo&vim
  ..
  42	let &cpo = s:save_cpo
+ 43	unlet s:save_cpo
 
 We first store the old value of 'cpoptions' in the s:save_cpo variable.  At
 the end of the plugin this value is restored.
@@ -1950,6 +1957,7 @@ Here is the resulting complete example: >
  40	endif
  41
  42	let &cpo = s:save_cpo
+ 43	unlet s:save_cpo
 
 Line 33 wasn't explained yet.  It applies the new correction to the word under
 the cursor.  The |:normal| command is used to use the new abbreviation.  Note

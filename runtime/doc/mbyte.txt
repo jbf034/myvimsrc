@@ -1,4 +1,4 @@
-*mbyte.txt*     For Vim version 7.3.  Last change: 2011 Feb 01
+*mbyte.txt*     For Vim version 7.3.  Last change: 2012 Oct 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar et al.
@@ -475,7 +475,7 @@ Useful utilities for converting the charset:
 	|charset| converter.  Supported |charset|: ISO-2022-CN, ISO-2022-JP,
 	ISO-2022-KR, EUC-CN, EUC-JP, EUC-KR, EUC-TW, UTF-7, UTF-8, ISO-8859
 	series, Shift_JIS, Big5 and HZ.  Lv can be found at:
-	http://www.ff.iij4u.or.jp/~nrt/freeware/lv4495.tar.gz
+	http://www.ff.iij4u.or.jp/~nrt/lv/index.html
 
 
 							*mbyte-conversion*
@@ -615,7 +615,7 @@ Each field means:
 	    charsets, such as JIS X 0208, if this field is 0, code points has
 	    the same value as GL, and GR if 1.
 
-For example, in case of a 14 dots font corresponding to JIS X 0208, it is
+For example, in case of a 16 dots font corresponding to JIS X 0208, it is
 written like:
     -misc-fixed-medium-r-normal--16-110-100-100-c-160-jisx0208.1990-0
 
@@ -797,8 +797,8 @@ is suitable for complex input, such as CJK.
   number of Hira-gana characters are 76.  So, first, we pre-input text as
   pronounced in Hira-gana, second, we convert Hira-gana to Kanji or Kata-Kana,
   if needed.  There are some Kana-Kanji conversion server: jserver
-  (distributed with Wnn, see below) and canna.  Canna could be found at:
-  ftp://ftp.nec.co.jp/pub/Canna/ (no longer works).
+  (distributed with Wnn, see below) and canna.  Canna can be found at:
+  http://canna.sourceforge.jp/
 
 There is a good input system: Wnn4.2.  Wnn 4.2 contains,
     xwnmo (|IM-server|)
@@ -857,7 +857,7 @@ Use the RPM or port for your system.
 
 
 USING XIM			*multibyte-input* *E284* *E286* *E287* *E288*
-				*E285* *E291* *E292* *E290* *E289*
+				*E285* *E289*
 
 Note that Display and Input are independent.  It is possible to see your
 language even though you have no input method for it.  But when your Display
@@ -1085,6 +1085,13 @@ Since the mapping is defined with |:lnoremap| the resulting quote will not be
 used for the start of another character.
 The "accents" keymap uses this.				*keymap-accents*
 
+The first column can also be in |<>| form:
+	<C-c>		Ctrl-C
+	<A-c>		Alt-c
+	<A-C>		Alt-C
+Note that the Alt mappings may not work, depending on your keyboard and
+terminal.
+
 Although it's possible to have more than one character in the second column,
 this is unusual.  But you can use various ways to specify the character: >
 	A	a		literal character
@@ -1306,8 +1313,8 @@ character.  However, search patterns may not match on an overlong sequence.
 character.)  An exception is NUL (zero) which is displayed as "<00>".
 
 In the file and buffer the full range of Unicode characters can be used (31
-bits).  However, displaying only works for 16 bit characters, and only for the
-characters present in the selected font.
+bits).  However, displaying only works for the characters present in the
+selected font.
 
 Useful commands:
 - "ga" shows the decimal, hexadecimal and octal value of the character under

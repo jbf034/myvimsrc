@@ -299,6 +299,13 @@ typedef enum soppie
 	maybe
 };
 
+static enum
+{
+	yes = 0,
+	no,
+	maybe
+} soppie;
+
 {
 	int a,
 		b;
@@ -933,6 +940,18 @@ main ( int first_par, /*
 }
 
 
+main(void)
+{
+	/* Make sure that cino=X0s is not parsed like cino=Xs. */
+	if (cond)
+		foo();
+	else
+	{
+		bar();
+	}
+}
+
+
 {
 	do
 	{
@@ -1190,6 +1209,16 @@ protected:
 };
 
 
+class Foo : public Bar
+{
+	public:
+		virtual void method1(void) = 0;
+		virtual void method2(int arg1,
+							 int arg2,
+							 int arg3) = 0;
+};
+
+
 	void
 foo()
 {
@@ -1297,6 +1326,16 @@ void func2(void)
 	printf("This line used to be indented incorrectly.\n");
 }
 
+int foo[]
+#ifdef BAR
+
+= { 1, 2, 3,
+	4, 5, 6 }
+
+#endif
+	;
+int baz;
+
 void func3(void)
 {
 	int tab[] = {
@@ -1304,7 +1343,29 @@ void func3(void)
 		3, 4,
 		5, 6};
 
-	printf("Don't you dare indent this line incorrectly!\n);
+	printf("Don't you dare indent this line incorrectly!\n");
+}
+
+	void
+func4(a, b,
+		c)
+	int a;
+	int b;
+	int c;
+{
+}
+
+	void
+func5(
+		int a,
+		int b)
+{
+}
+
+	void
+func6(
+		int a)
+{
 }
 
 
@@ -1359,6 +1420,192 @@ void func(void)
 		} else
 			foo(0);
 	baz();
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+			 && argument2);
+
+	if (c1 && (c2 ||
+				c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+
+	if (   c1
+			&& (      c2
+					  || c3))
+		foo;
+	func( c1
+		  && (     c2
+				   || c3))
+		foo;
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+		&& argument2);
+
+	if (c1 && (c2 ||
+				c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+
+	if (   c1
+			&& (      c2
+				|| c3))
+		foo;
+	func(   c1
+		&& (      c2
+			|| c3))
+		foo;
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+		&& argument2);
+
+	if (c1 && (c2 ||
+				c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+	if (c123456789
+			&& (c22345
+				|| c3))
+		printf("foo\n");
+
+	c = c1 &&
+		(
+			c2 ||
+			c3
+		) && c4;
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+			 && argument2);
+
+	if (c1 && (c2 ||
+				c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+	if (c123456789
+			&& (c22345
+				|| c3))
+		printf("foo\n");
+
+	if (   c1
+			&& (   c2
+				   || c3))
+		foo;
+
+	a_long_line(
+		argument,
+		argument);
+	a_short_line(argument,
+				 argument);
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+			&& argument2);
+
+	if (c1 && (c2 ||
+			  c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+	if (c123456789
+			&& (c22345
+			  || c3))
+		printf("foo\n");
+}
+
+
+void func(void)
+{
+	if (condition1
+			&& condition2)
+		action();
+	function(argument1
+			 && argument2);
+
+	if (c1 && (c2 ||
+				c3))
+		foo;
+	if (c1 &&
+			(c2 || c3))
+	{
+	}
+	if (c123456789
+			&& (c22345
+				|| c3))
+		printf("foo\n");
+
+	if (   c1
+			&& (      c2
+				|| c3))
+		foo;
+	func(   c1
+		 && (      c2
+			 || c3))
+		foo;
+}
+
+
+void func(void)
+{
+	if (condition1
+	  && condition2)
+		action();
+	function(argument1
+		&& argument2);
+
+	if (c1 && (c2 ||
+		  c3))
+		foo;
+	if (c1 &&
+	  (c2 || c3))
+	{
+	}
 }
 
 
@@ -1441,5 +1688,119 @@ var bar = {
 		"y": 5
 	}
 }
+JSEND
+
+
+JSSTART
+var foo = [
+1,  // indent 8 more
+	2,
+	3
+	];  // indent 8 less
+JSEND
+
+
+JSSTART
+function bar() {
+	var foo = [
+		1,
+		2,
+		3
+			];  // indent 16 less
+}
+JSEND
+
+
+JSSTART
+(function($){
+
+	var class_name='myclass';
+
+	function private_method() {
+	}
+
+	var public_method={
+		method: function(options,args){
+			private_method();
+		}
+	}
+
+	function init(options) {
+
+		$(this).data(class_name+'_public',$.extend({},{
+			foo: 'bar',
+		bar: 2,  // indent 8 more
+		foobar: [  // indent 8 more
+			1,  // indent 8 more
+		2,  // indent 16 more
+		3   // indent 16 more
+			],
+		callback: function(){  // indent 8 more
+			return true;  // indent 8 more
+		}  // indent 8 more
+		}, options||{}));
+	}
+
+	$.fn[class_name]=function() {
+
+		var _arguments=arguments;
+		return this.each(function(){
+
+			var options=$(this).data(class_name+'_public');
+			if (!options) {
+				init.apply(this,_arguments);
+
+			} else {
+				var method=public_method[_arguments[0]];
+
+				if (typeof(method)!='function') {
+					console.log(class_name+' has no method "'+_arguments[0]+'"');
+					return false;
+				}
+				_arguments[0]=options;
+				method.apply(this,_arguments);
+			}
+		});
+	}
+
+})(jQuery);
+JSEND
+
+
+JSSTART
+function init(options) {
+	$(this).data(class_name+'_public',$.extend({},{
+		foo: 'bar',
+		bar: 2,
+		foobar: [
+		1,  // indent 8 more
+		2,  // indent 8 more
+		3   // indent 8 more
+		],
+		callback: function(){
+			return true;
+		}
+	}, options||{}));
+}
+JSEND
+
+
+JSSTART
+(function($){
+	function init(options) {
+		$(this).data(class_name+'_public',$.extend({},{
+			foo: 'bar',
+		bar: 2,  // indent 8 more
+		foobar: [  // indent 8 more
+			1,  // indent 8 more
+		2,  // indent 16 more
+		3  // indent 16 more
+			],
+		callback: function(){  // indent 8 more
+			return true;  // indent 8 more
+		}  // indent 8 more
+		}, options||{}));
+	}
+})(jQuery);
 JSEND
 
