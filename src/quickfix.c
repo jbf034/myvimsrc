@@ -107,7 +107,7 @@ struct efm_S
 };
 
 static int	qf_init_ext __ARGS((qf_info_T *qi, char_u *efile, buf_T *buf, typval_T *tv, char_u *errorformat, int newlist, linenr_T lnumfirst, linenr_T lnumlast, char_u *qf_title));
-static void	qf_new_list __ARGS((qf_info_T *qi, char_u *qf_title, win_T *wp));
+static void	qf_new_list __ARGS((qf_info_T *qi, char_u *qf_title));
 static void	ll_free_all __ARGS((qf_info_T **pqi));
 static int	qf_add_entry __ARGS((qf_info_T *qi, qfline_T **prevp, char_u *dir, char_u *fname, int bufnum, char_u *mesg, long lnum, int col, int vis_col, char_u *pattern, int nr, int type, int valid));
 static qf_info_T *ll_new_list __ARGS((void));
@@ -266,7 +266,7 @@ qf_init_ext(qi, efile, buf, tv, errorformat, newlist, lnumfirst, lnumlast,
 
     if (newlist || qi->qf_curlist == qi->qf_listcount)
 	/* make place for a new list */
-	qf_new_list(qi, qf_title, curwin);
+	qf_new_list(qi, qf_title);
     else if (qi->qf_lists[qi->qf_curlist].qf_count > 0)
 	/* Adding to existing list, find last entry. */
 	for (qfprev = qi->qf_lists[qi->qf_curlist].qf_start;
@@ -885,10 +885,9 @@ qf_init_end:
  * Prepare for adding a new quickfix list.
  */
     static void
-qf_new_list(qi, qf_title, wp)
+qf_new_list(qi, qf_title)
     qf_info_T	*qi;
     char_u	*qf_title;
-    win_T	*wp;
 {
     int		i;
 
@@ -898,11 +897,7 @@ qf_new_list(qi, qf_title, wp)
      * way with ":grep'.
      */
     while (qi->qf_listcount > qi->qf_curlist + 1)
-    {
-	if (wp != NULL && wp->w_llist == qi)
-	    wp->w_llist = NULL;
 	qf_free(qi, --qi->qf_listcount);
-    }
 
     /*
      * When the stack is full, remove to oldest entry
@@ -910,8 +905,6 @@ qf_new_list(qi, qf_title, wp)
      */
     if (qi->qf_listcount == LISTCOUNT)
     {
-	if (wp != NULL && wp->w_llist == qi)
-	    wp->w_llist = NULL;
 	qf_free(qi, 0);
 	for (i = 1; i < LISTCOUNT; ++i)
 	    qi->qf_lists[i - 1] = qi->qf_lists[i];
@@ -2135,9 +2128,12 @@ qf_free(qi, idx)
     while (qi->qf_lists[idx].qf_count)
     {
 	qfp = qi->qf_lists[idx].qf_start->qf_next;
-	vim_free(qi->qf_lists[idx].qf_start->qf_text);
-	vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
-	vim_free(qi->qf_lists[idx].qf_start);
+	if (qi->qf_lists[idx].qf_title != NULL)
+	{
+	    vim_free(qi->qf_lists[idx].qf_start->qf_text);
+	    vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
+	    vim_free(qi->qf_lists[idx].qf_start);
+	}
 	qi->qf_lists[idx].qf_start = qfp;
 	--qi->qf_lists[idx].qf_count;
     }
@@ -3190,7 +3186,7 @@ ex_vimgrep(eap)
 	 eap->cmdidx != CMD_vimgrepadd && eap->cmdidx != CMD_lvimgrepadd)
 					|| qi->qf_curlist == qi->qf_listcount)
 	/* make place for a new list */
-	qf_new_list(qi, *eap->cmdlinep, curwin);
+	qf_new_list(qi, *eap->cmdlinep);
     else if (qi->qf_lists[qi->qf_curlist].qf_count > 0)
 	/* Adding to existing list, find last entry. */
 	for (prevp = qi->qf_lists[qi->qf_curlist].qf_start;
@@ -3519,6 +3515,7 @@ restore_start_dir(dirname_start)
 	    ea.cmdidx = (curwin->w_localdir == NULL) ? CMD_cd : CMD_lcd;
 	    ex_cd(&ea);
 	}
+	vim_free(dirname_now);
     }
 }
 
@@ -3756,7 +3753,7 @@ set_errorlist(wp, list, action, title)
 
     if (action == ' ' || qi->qf_curlist == qi->qf_listcount)
 	/* make place for a new list */
-	qf_new_list(qi, title, wp);
+	qf_new_list(qi, title);
     else if (action == 'a' && qi->qf_lists[qi->qf_curlist].qf_count > 0)
 	/* Adding to existing list, find last entry. */
 	for (prevp = qi->qf_lists[qi->qf_curlist].qf_start;
@@ -4038,7 +4035,7 @@ ex_helpgrep(eap)
 #endif
 
 	/* create a new quickfix list */
-	qf_new_list(qi, *eap->cmdlinep, wp);
+	qf_new_list(qi, *eap->cmdlinep);
 
 	/* Go through all directories in 'runtimepath' */
 	p = p_rtp;
