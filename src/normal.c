@@ -21,6 +21,7 @@
 static int	resel_VIsual_mode = NUL;	/* 'v', 'V', or Ctrl-V */
 static linenr_T	resel_VIsual_line_count;	/* number of lines */
 static colnr_T	resel_VIsual_vcol;		/* nr of cols or end col */
+static int	VIsual_mode_orig = NUL;         /* type of Visual mode, that user entered */
 
 static int	restart_VIsual_select = 0;
 #endif
@@ -1594,6 +1595,11 @@ do_pending_operator(cap, old_col, gui_yank)
 		curbuf->b_visual.vi_start = VIsual;
 		curbuf->b_visual.vi_end = curwin->w_cursor;
 		curbuf->b_visual.vi_mode = VIsual_mode;
+		if (VIsual_mode_orig != NUL)
+		{
+		    curbuf->b_visual.vi_mode = VIsual_mode_orig;
+		    VIsual_mode_orig = NUL;
+		}
 		curbuf->b_visual.vi_curswant = curwin->w_curswant;
 # ifdef FEAT_EVAL
 		curbuf->b_visual_mode_eval = VIsual_mode;
@@ -4649,11 +4655,10 @@ nv_screengo(oap, dir, dist)
 nv_mousescroll(cap)
     cmdarg_T	*cap;
 {
-# if defined(FEAT_GUI) && defined(FEAT_WINDOWS)
+# ifdef FEAT_WINDOWS
     win_T *old_curwin = curwin;
 
-    /* Currently we only get the mouse coordinates in the GUI. */
-    if (gui.in_use && mouse_row >= 0 && mouse_col >= 0)
+    if (mouse_row >= 0 && mouse_col >= 0)
     {
 	int row, col;
 
@@ -4698,7 +4703,7 @@ nv_mousescroll(cap)
     }
 # endif
 
-# if defined(FEAT_GUI) && defined(FEAT_WINDOWS)
+# ifdef FEAT_WINDOWS
     curwin->w_redr_status = TRUE;
 
     curwin = old_curwin;
@@ -7231,6 +7236,7 @@ nv_Replace(cap)
     {
 	cap->cmdchar = 'c';
 	cap->nchar = NUL;
+	VIsual_mode_orig = VIsual_mode; /* remember original area for gv */
 	VIsual_mode = 'V';
 	nv_operator(cap);
     }
@@ -7430,7 +7436,10 @@ v_visop(cap)
     if (isupper(cap->cmdchar))
     {
 	if (VIsual_mode != Ctrl_V)
+	{
+	    VIsual_mode_orig = VIsual_mode;
 	    VIsual_mode = 'V';
+	}
 	else if (cap->cmdchar == 'C' || cap->cmdchar == 'D')
 	    curwin->w_curswant = MAXCOL;
     }
@@ -7450,7 +7459,10 @@ nv_subst(cap)
     if (VIsual_active)	/* "vs" and "vS" are the same as "vc" */
     {
 	if (cap->cmdchar == 'S')
+	{
+	    VIsual_mode_orig = VIsual_mode;
 	    VIsual_mode = 'V';
+	}
 	cap->cmdchar = 'c';
 	nv_operator(cap);
     }
