@@ -392,6 +392,13 @@
 #endif
 
 /*
+ * +python and +python3 require FEAT_EVAL.
+ */
+#if !defined(FEAT_EVAL) && (defined(FEAT_PYTHON3) || defined(FEAT_PYTHON))
+# define FEAT_EVAL
+#endif
+
+/*
  * +profile		Profiling for functions and scripts.
  */
 #if defined(FEAT_HUGE) \
@@ -889,7 +896,7 @@
 /*
  * VIMRC_FILE		Name of the .vimrc file in current dir.
  */
-/* #define VIMRC_FILE	".vimrc" */
+#define VIMRC_FILE	".vimrc"
 
 /*
  * EXRC_FILE		Name of the .exrc file in current dir.
@@ -938,12 +945,12 @@
 /*
  * SYS_VIMRC_FILE	Name of the system-wide .vimrc file.
  */
-/* #define SYS_VIMRC_FILE	"/etc/vimrc" */
+#define SYS_VIMRC_FILE	"/etc/vimrc"
 
 /*
  * SYS_GVIMRC_FILE	Name of the system-wide .gvimrc file.
  */
-/* #define SYS_GVIMRC_FILE	"/etc/gvimrc" */
+#define SYS_GVIMRC_FILE	"/etc/gvimrc"
 
 /*
  * DFLT_HELPFILE	Name of the help file.
@@ -1122,6 +1129,11 @@
  * +xterm_clipboard	Unix only: Include code for handling the clipboard
  *			in an xterm like in the GUI.
  */
+
+#ifdef FEAT_CYGWIN_WIN32_CLIPBOARD
+# define FEAT_CLIPBOARD
+#endif
+
 #ifdef FEAT_GUI
 # ifndef FEAT_CLIPBOARD
 #  define FEAT_CLIPBOARD
