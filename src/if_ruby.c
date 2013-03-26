@@ -285,6 +285,16 @@ static VALUE (*dll_rb_int2inum) (long);
 static long (*dll_rb_fix2int) (VALUE);
 static long (*dll_rb_num2int) (VALUE);
 static unsigned long (*dll_rb_num2uint) (VALUE);
+#undef NUM2INT
+static inline int
+vim_rb_num2int_inline(VALUE x)
+{
+    if (FIXNUM_P(x))
+	return FIX2INT(x);
+    else
+	return (int)rb_num2int(x);
+}
+#define NUM2INT(x) vim_rb_num2int_inline(x)
 #endif
 static VALUE (*dll_rb_lastline_get) (void);
 static void (*dll_rb_lastline_set) (VALUE);
