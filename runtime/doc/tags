@@ -237,6 +237,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'fileencodings'	options.txt	/*'fileencodings'*
 'fileformat'	options.txt	/*'fileformat'*
 'fileformats'	options.txt	/*'fileformats'*
+'fileignorecase'	options.txt	/*'fileignorecase'*
 'filetype'	options.txt	/*'filetype'*
 'fillchars'	options.txt	/*'fillchars'*
 'fk'	options.txt	/*'fk'*
@@ -523,6 +524,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'noexpandtab'	options.txt	/*'noexpandtab'*
 'noexrc'	options.txt	/*'noexrc'*
 'nofen'	options.txt	/*'nofen'*
+'nofileignorecase'	options.txt	/*'nofileignorecase'*
 'nofk'	options.txt	/*'nofk'*
 'nofkmap'	options.txt	/*'nofkmap'*
 'nofoldenable'	options.txt	/*'nofoldenable'*
@@ -662,6 +664,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'noweirdinvert'	options.txt	/*'noweirdinvert'*
 'nowfh'	options.txt	/*'nowfh'*
 'nowfw'	options.txt	/*'nowfw'*
+'nowic'	options.txt	/*'nowic'*
 'nowic'	options.txt	/*'nowic'*
 'nowildignorecase'	options.txt	/*'nowildignorecase'*
 'nowildmenu'	options.txt	/*'nowildmenu'*
@@ -1072,6 +1075,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'wh'	options.txt	/*'wh'*
 'whichwrap'	options.txt	/*'whichwrap'*
 'wi'	options.txt	/*'wi'*
+'wic'	options.txt	/*'wic'*
 'wic'	options.txt	/*'wic'*
 'wig'	options.txt	/*'wig'*
 'wildchar'	options.txt	/*'wildchar'*
@@ -4992,7 +4996,6 @@ cino-(	indent.txt	/*cino-(*
 cino-)	indent.txt	/*cino-)*
 cino-+	indent.txt	/*cino-+*
 cino-/	indent.txt	/*cino-\/*
-cino-2	indent.txt	/*cino-2*
 cino-:	indent.txt	/*cino-:*
 cino-=	indent.txt	/*cino-=*
 cino->	indent.txt	/*cino->*
