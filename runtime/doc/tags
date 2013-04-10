@@ -233,6 +233,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'fex'	options.txt	/*'fex'*
 'ff'	options.txt	/*'ff'*
 'ffs'	options.txt	/*'ffs'*
+'fic'	options.txt	/*'fic'*
 'fileencoding'	options.txt	/*'fileencoding'*
 'fileencodings'	options.txt	/*'fileencodings'*
 'fileformat'	options.txt	/*'fileformat'*
@@ -524,6 +525,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'noexpandtab'	options.txt	/*'noexpandtab'*
 'noexrc'	options.txt	/*'noexrc'*
 'nofen'	options.txt	/*'nofen'*
+'nofic'	options.txt	/*'nofic'*
 'nofileignorecase'	options.txt	/*'nofileignorecase'*
 'nofk'	options.txt	/*'nofk'*
 'nofkmap'	options.txt	/*'nofkmap'*
@@ -4485,6 +4487,8 @@ TabLeave	autocmd.txt	/*TabLeave*
 Tcl	if_tcl.txt	/*Tcl*
 TermChanged	autocmd.txt	/*TermChanged*
 TermResponse	autocmd.txt	/*TermResponse*
+TextChanged	autocmd.txt	/*TextChanged*
+TextChangedI	autocmd.txt	/*TextChangedI*
 Transact-SQL	ft_sql.txt	/*Transact-SQL*
 U	undo.txt	/*U*
 UTF-8	mbyte.txt	/*UTF-8*
@@ -4775,7 +4779,7 @@ aw	motion.txt	/*aw*
 a{	motion.txt	/*a{*
 a}	motion.txt	/*a}*
 b	motion.txt	/*b*
-b:changedtick-variable	eval.txt	/*b:changedtick-variable*
+b:changedtick	eval.txt	/*b:changedtick*
 b:changelog_name	filetype.txt	/*b:changelog_name*
 b:current_syntax-variable	syntax.txt	/*b:current_syntax-variable*
 b:netrw_lastfile	pi_netrw.txt	/*b:netrw_lastfile*
