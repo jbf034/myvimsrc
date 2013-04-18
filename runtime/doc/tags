@@ -667,7 +667,6 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'nowfh'	options.txt	/*'nowfh'*
 'nowfw'	options.txt	/*'nowfw'*
 'nowic'	options.txt	/*'nowic'*
-'nowic'	options.txt	/*'nowic'*
 'nowildignorecase'	options.txt	/*'nowildignorecase'*
 'nowildmenu'	options.txt	/*'nowildmenu'*
 'nowinfixheight'	options.txt	/*'nowinfixheight'*
@@ -1077,7 +1076,6 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'wh'	options.txt	/*'wh'*
 'whichwrap'	options.txt	/*'whichwrap'*
 'wi'	options.txt	/*'wi'*
-'wic'	options.txt	/*'wic'*
 'wic'	options.txt	/*'wic'*
 'wig'	options.txt	/*'wig'*
 'wildchar'	options.txt	/*'wildchar'*
