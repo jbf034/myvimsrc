@@ -10,7 +10,11 @@ STARTTEST
 =/end of AUTO
 ENDTEST
 
-/* start of AUTO matically checked vim: set ts=4 : */
+et ai modeline modelines=3
+:sp Xxx             " split to Xxx, autocmd will do :brew
+G?this is a
+this should be in column 1
+othis should be auto-indented* start of AUTO matically checked vim: set ts=4 : */
 {
 	if (test)
 		cmd1;
@@ -118,7 +122,7 @@ ENDTEST
 {
 	if (asdfasdf;asldkfj asdlkfj as;ldkfj sal;d
 			aal;sdkjf  ( ;asldfkja;sldfk
-					al;sdjfka ;slkdf ) sa;ldkjfsa dlk;)
+				al;sdjfka ;slkdf ) sa;ldkjfsa dlk;)
 		line up here;
 }
 
@@ -193,9 +197,9 @@ ENDTEST
 
 {
 	if (alskdfj ;alsdkfjal;skdjf (;sadlkfsa ;dlkf j;alksdfj ;alskdjf
-			alsdkfj (asldk;fj
+				alsdkfj (asldk;fj
 					awith cino=(0 ;lf this one goes to below the paren with ==
-							;laksjfd ;lsakdjf ;alskdf asd)
+						;laksjfd ;lsakdjf ;alskdf asd)
 					asdfasdf;)))
 		asdfasdf;
 }
@@ -206,7 +210,7 @@ func(a, b)
 	int c;
 {
 	if (c1 && (c2 ||
-			c3))
+				c3))
 		foo;
 	if (c1 &&
 			(c2 || c3)
@@ -299,37 +303,37 @@ char *(array[100]) = {
 
 enum soppie
 {
-yes = 0,
-no,
-maybe
+	yes = 0,
+	no,
+	maybe
 };
 
 typedef enum soppie
 {
-yes = 0,
-no,
-maybe
+	yes = 0,
+	no,
+	maybe
 };
 
 static enum
 {
-yes = 0,
-no,
-maybe
+	yes = 0,
+	no,
+	maybe
 } soppie;
 
 public static enum
 {
-yes = 0,
-no,
-maybe
+	yes = 0,
+	no,
+	maybe
 } soppie;
 
 static private enum
 {
-yes = 0,
-no,
-maybe
+	yes = 0,
+	no,
+	maybe
 } soppie;
 
 {
@@ -467,40 +471,40 @@ label:  if (asdf &&
 class bob
 {
 	int foo() {return 1;}
-		int bar;
+	int bar;
 }
 
 main()
 {
-while(1)
-if (foo)
-{
-bar;
-}
-else {
-asdf;
-}
-misplacedline;
+	while(1)
+		if (foo)
+		{
+			bar;
+		}
+		else {
+			asdf;
+		}
+	misplacedline;
 }
 
 {
 	if (clipboard.state == SELECT_DONE
-	&& ((row == clipboard.start.lnum
-	&& col >= clipboard.start.col)
-	|| row > clipboard.start.lnum))
+			&& ((row == clipboard.start.lnum
+					&& col >= clipboard.start.col)
+				|| row > clipboard.start.lnum))
 }
 
 {
-if (1) {i += 4;}
-where_am_i;
-return 0;
+	if (1) {i += 4;}
+	where_am_i;
+	return 0;
 }
 
 {
-{
-} // sdf(asdf
-if (asdf)
-asd;
+	{
+	} // sdf(asdf
+	if (asdf)
+		asd;
 }
 
 {
@@ -509,15 +513,15 @@ label2:
 }
 
 {
-int fooRet = foo(pBar1, false /*fKB*/,
-	true /*fPTB*/, 3 /*nT*/, false /*fDF*/);
-f() {
-for ( i = 0;
-	i < m;
-	/* c */ i++ ) {
-a = b;
-}
-}
+	int fooRet = foo(pBar1, false /*fKB*/,
+			true /*fPTB*/, 3 /*nT*/, false /*fDF*/);
+	f() {
+		for ( i = 0;
+				i < m;
+				/* c */ i++ ) {
+			a = b;
+		}
+	}
 }
 
 {
@@ -526,12 +530,12 @@ a = b;
 }
 
 {
-do {
-if (foo) {
-} else
-;
-} while (foo);
-foo();	// was wrong
+	do {
+		if (foo) {
+		} else
+			;
+	} while (foo);
+	foo();	// was wrong
 }
 
 int x;	    // no extra indent because of the ;
@@ -560,7 +564,7 @@ int not_indented;
 						bar;
 		}
 	} while (boo);
-					wrong;
+	wrong;
 }
 
 int	foo,
@@ -570,38 +574,38 @@ int foo;
 #if defined(foo) \
 	&& defined(bar)
 char * xx = "asdf\
-	foo\
-	bor";
+			 foo\
+			 bor";
 int x;
 
 char    *foo = "asdf\
-	asdf\
-	asdf",
-	*bar;
+				asdf\
+				asdf",
+		*bar;
 
 void f()
 {
 #if defined(foo) \
 	&& defined(bar)
-char    *foo = "asdf\
-	asdf\
-	asdf",
-	*bar;
+	char    *foo = "asdf\
+					asdf\
+					asdf",
+			*bar;
 	{
-	int i;
-char    *foo = "asdf\
-	asdf\
-	asdf",
-	*bar;
+		int i;
+		char    *foo = "asdf\
+						asdf\
+						asdf",
+				*bar;
 	}
 #endif
 }
 #endif
 
 int y;		// comment
-		// comment
+// comment
 
-	// comment
+// comment
 
 {
 	Constructor(int a,
@@ -613,18 +617,18 @@ int y;		// comment
 void foo()
 {
 	char one,
-	two;
+		 two;
 	struct bla piet,
-	jan;
+			   jan;
 	enum foo kees,
-	jannie;
+			 jannie;
 	static unsigned sdf,
-	krap;
+					krap;
 	unsigned int piet,
-	jan;
+				 jan;
 	int
-	kees,
-	jan;
+		kees,
+		jan;
 }
 
 {
@@ -634,83 +638,83 @@ void foo()
 }
 
 Constructor::Constructor(int a,
-                         int b 
-                        )  : 
-   BaseClass(a,
-             b,
-             c),
-   mMember(b),
+		int b 
+		)  : 
+	BaseClass(a,
+			b,
+			c),
+	mMember(b),
 {
 }
 
 Constructor::Constructor(int a,
-                         int b )  : 
-   BaseClass(a)
+		int b )  : 
+	BaseClass(a)
 {
 }
 
 Constructor::Constructor(int a,
-                         int b ) /*x*/ : /*x*/ BaseClass(a),
-                                               member(b)
+		int b ) /*x*/ : /*x*/ BaseClass(a),
+	member(b)
 {
 }
 
 class CAbc :
-   public BaseClass1,
-   protected BaseClass2
+	public BaseClass1,
+	protected BaseClass2
 {
-   int Test() { return FALSE; }
-   int Test1() { return TRUE; }
+	int Test() { return FALSE; }
+	int Test1() { return TRUE; }
 
-   CAbc(int a, int b )  : 
-      BaseClass(a)
-   { 
-      switch(xxx)
-      {
-         case abc:
-            asdf();
-            break;
+	CAbc(int a, int b )  : 
+		BaseClass(a)
+	{ 
+		switch(xxx)
+		{
+			case abc:
+				asdf();
+				break;
 
-         case 999:
-            baer();
-            break;
-      }
-   }
+			case 999:
+				baer();
+				break;
+		}
+	}
 
-public: // <-- this was incoreectly indented before!!
-   void testfall();
-protected:
-   void testfall();
+	public: // <-- this was incoreectly indented before!!
+	void testfall();
+	protected:
+	void testfall();
 };
 
 class CAbc : public BaseClass1,
-             protected BaseClass2
+	protected BaseClass2
 {
 };
 
 static struct
 {
-    int a;
-    int b;
+	int a;
+	int b;
 } variable[COUNT] =
 {
-    {
-        123,
-        456
-    },
 	{
-        123,
-        456
-    }
+		123,
+		456
+	},
+	{
+		123,
+		456
+	}
 };
 
 static struct
 {
-    int a;
-    int b;
+	int a;
+	int b;
 } variable[COUNT] =
 {
-    { 123, 456 },
+	{ 123, 456 },
 	{ 123, 456 }
 };
 
@@ -747,11 +751,11 @@ void asdf()		/* ind_maxparen may cause trouble here */
 foo()
 {
 	a = cond ? foo() : asdf
-					   + asdf;
+		+ asdf;
 
 	a = cond ?
 		foo() : asdf
-				+ asdf;
+		+ asdf;
 }
 
 int  main(void)
@@ -787,24 +791,24 @@ Constructor::Constructor(int a,
 	mMember(b)
 {
 }
-       int main ()
-       {
-	 if (lala)
-	   do
-	     ++(*lolo);
-	   while (lili
-		  && lele);
-	   lulu;
-       }
+int main ()
+{
+	if (lala)
+		do
+			++(*lolo);
+		while (lili
+				&& lele);
+	lulu;
+}
 
 int main ()
 {
-switch (c)
-{
-case 'c': if (cond)
-{
-}
-}
+	switch (c)
+	{
+		case 'c': if (cond)
+				  {
+				  }
+	}
 }
 
 main()
@@ -817,70 +821,70 @@ main()
 {
 	char	foo[] = "/*";
 	/* as
-	df */
-		hello
+	   df */
+	hello
 }
 
 /* valid namespaces with normal indent */
 namespace
 {
-{
-  111111111111;
-}
+	{
+		111111111111;
+	}
 }
 namespace /* test */
 {
-  11111111111111111;
+	11111111111111111;
 }
 namespace // test
 {
-  111111111111111111;
+	111111111111111111;
 }
 namespace
 {
-  111111111111111111;
+	111111111111111111;
 }
 namespace test
 {
-  111111111111111111;
+	111111111111111111;
 }
 namespace{
-  111111111111111111;
+	111111111111111111;
 }
 namespace test{
-  111111111111111111;
+	111111111111111111;
 }
 namespace {
-  111111111111111111;
+	111111111111111111;
 }
 namespace test {
-  111111111111111111;
-namespace test2 {
-  22222222222222222;
-}
+	111111111111111111;
+	namespace test2 {
+		22222222222222222;
+	}
 }
 
 /* invalid namespaces use block indent */
 namespace test test2 {
-  111111111111111111111;
+	111111111111111111111;
 }
 namespace11111111111 {
-  111111111111;
+	111111111111;
 }
 namespace() {
-  1111111111111;
+	1111111111111;
 }
 namespace()
 {
-  111111111111111111;
+	111111111111111111;
 }
 namespace test test2
 {
-  1111111111111111111;
+	1111111111111111111;
 }
 namespace111111111
 {
-  111111111111111111;
+	111111111111111111;
 }
 
 /* end of AUTO */

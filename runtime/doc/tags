@@ -7329,7 +7329,9 @@ python-input	if_pyth.txt	/*python-input*
 python-output	if_pyth.txt	/*python-output*
 python-pyeval	if_pyth.txt	/*python-pyeval*
 python-range	if_pyth.txt	/*python-range*
+python-vars	if_pyth.txt	/*python-vars*
 python-vim	if_pyth.txt	/*python-vim*
+python-vvars	if_pyth.txt	/*python-vvars*
 python-window	if_pyth.txt	/*python-window*
 python-windows	if_pyth.txt	/*python-windows*
 python.vim	syntax.txt	/*python.vim*
