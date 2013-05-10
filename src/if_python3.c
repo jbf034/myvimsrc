@@ -788,7 +788,7 @@ Python3_Init(void)
 
 	/* Remove the element from sys.path that was added because of our
 	 * argv[0] value in Py3Init_vim().  Previously we used an empty
-	 * string, but dependinding on the OS we then get an empty entry or
+	 * string, but depending on the OS we then get an empty entry or
 	 * the current directory in sys.path.
 	 * Only after vim has been imported, the element does exist in
 	 * sys.path.
@@ -1740,6 +1740,7 @@ Py3Init_vim(void)
     PyType_Ready(&DictionaryType);
     PyType_Ready(&ListType);
     PyType_Ready(&FunctionType);
+    PyType_Ready(&OptionsType);
 
     /* Set sys.argv[] to avoid a crash in warn(). */
     PySys_SetArgv(1, argv);
@@ -1761,6 +1762,8 @@ Py3Init_vim(void)
 
     PyModule_AddObject(mod, "vars", DictionaryNew(&globvardict));
     PyModule_AddObject(mod, "vvars", DictionaryNew(&vimvardict));
+    PyModule_AddObject(mod, "options",
+	    OptionsNew(SREQ_GLOBAL, NULL, dummy_check, NULL));
 
 #define ADD_INT_CONSTANT(name, value) \
     tmp = PyLong_FromLong(value); \

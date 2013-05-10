@@ -1094,7 +1094,7 @@ do_cmdline(cmdline, fgetline, cookie, flags)
 		msg_didany = FALSE; /* no output yet */
 		msg_start();
 		msg_scroll = TRUE;  /* put messages below each other */
-		++no_wait_return;   /* dont wait for return until finished */
+		++no_wait_return;   /* don't wait for return until finished */
 		++RedrawingDisabled;
 		did_inc = TRUE;
 	    }
@@ -1299,7 +1299,7 @@ do_cmdline(cmdline, fgetline, cookie, flags)
 	    && !(did_emsg
 #ifdef FEAT_EVAL
 		/* Keep going when inside try/catch, so that the error can be
-		 * dealth with, except when it is a syntax error, it may cause
+		 * deal with, except when it is a syntax error, it may cause
 		 * the :endtry to be missed. */
 		&& (cstack.cs_trylevel == 0 || did_emsg_syntax)
 #endif
@@ -3890,6 +3890,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_imap:	    case CMD_inoremap:
 	case CMD_cmap:	    case CMD_cnoremap:
 	case CMD_lmap:	    case CMD_lnoremap:
+	case CMD_smap:	    case CMD_snoremap:
+	case CMD_xmap:	    case CMD_xnoremap:
 	    return set_context_in_map_cmd(xp, cmd, arg, forceit,
 						     FALSE, FALSE, ea.cmdidx);
 	case CMD_unmap:
@@ -3899,6 +3901,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_iunmap:
 	case CMD_cunmap:
 	case CMD_lunmap:
+	case CMD_sunmap:
+	case CMD_xunmap:
 	    return set_context_in_map_cmd(xp, cmd, arg, forceit,
 						      FALSE, TRUE, ea.cmdidx);
 	case CMD_abbreviate:	case CMD_noreabbrev:
@@ -10983,7 +10987,7 @@ ses_put_fname(fd, name, flagp)
 		*p = '/';
     }
 
-    /* escapse special characters */
+    /* escape special characters */
     p = vim_strsave_fnameescape(sname, FALSE);
     vim_free(sname);
     if (p == NULL)
