@@ -3574,6 +3574,7 @@ utf_allow_break_before(cc)
 	0xff01, /* ！ fullwidth exclamation mark */
 	0xff09, /* ） fullwidth right parenthesis */
 	0xff0c, /* ， fullwidth comma */
+	0xff0e, /* ． fullwidth full stop */
 	0xff1a, /* ： fullwidth colon */
 	0xff1b, /* ； fullwidth semicolon */
 	0xff1f, /* ？ fullwidth question mark */
@@ -3616,6 +3617,7 @@ utf_allow_break_after(cc)
 	0x201c, /* “ left double quotation mark */
 	/*0x2053,*/ /* ～ swung dash */
 	0x2103, /* ℃ degree celsius */
+	0x2109, /* ℉ degree fahrenheit */
 	0x3008, /* 〈 left angle bracket */
 	0x300a, /* 《 left double angle bracket */
 	0x300c, /* 「 left corner bracket */
@@ -3626,8 +3628,8 @@ utf_allow_break_after(cc)
 	0x3018, /* 〘 left white tortoise shell bracket */
 	0x301a, /* 〚 left white square bracket */
 	0xff08, /* （ fullwidth left parenthesis */
-	0xff3b, /* ［ fullwidht left square bracket */
-	0xff5b, /* ｛ fullwidht left curly bracket */
+	0xff3b, /* ［ fullwidth left square bracket */
+	0xff5b, /* ｛ fullwidth left curly bracket */
     };
 
     int first = 0;
