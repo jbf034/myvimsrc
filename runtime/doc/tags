@@ -233,10 +233,12 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'fex'	options.txt	/*'fex'*
 'ff'	options.txt	/*'ff'*
 'ffs'	options.txt	/*'ffs'*
+'fic'	options.txt	/*'fic'*
 'fileencoding'	options.txt	/*'fileencoding'*
 'fileencodings'	options.txt	/*'fileencodings'*
 'fileformat'	options.txt	/*'fileformat'*
 'fileformats'	options.txt	/*'fileformats'*
+'fileignorecase'	options.txt	/*'fileignorecase'*
 'filetype'	options.txt	/*'filetype'*
 'fillchars'	options.txt	/*'fillchars'*
 'fk'	options.txt	/*'fk'*
@@ -523,6 +525,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'noexpandtab'	options.txt	/*'noexpandtab'*
 'noexrc'	options.txt	/*'noexrc'*
 'nofen'	options.txt	/*'nofen'*
+'nofic'	options.txt	/*'nofic'*
+'nofileignorecase'	options.txt	/*'nofileignorecase'*
 'nofk'	options.txt	/*'nofk'*
 'nofkmap'	options.txt	/*'nofkmap'*
 'nofoldenable'	options.txt	/*'nofoldenable'*
@@ -964,6 +968,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 't_te'	term.txt	/*'t_te'*
 't_ti'	term.txt	/*'t_ti'*
 't_ts'	term.txt	/*'t_ts'*
+'t_u7'	term.txt	/*'t_u7'*
 't_ue'	term.txt	/*'t_ue'*
 't_us'	term.txt	/*'t_us'*
 't_ut'	term.txt	/*'t_ut'*
@@ -1829,6 +1834,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :RmVimball	pi_vimball.txt	/*:RmVimball*
 :Sexplore	pi_netrw.txt	/*:Sexplore*
 :TOhtml	syntax.txt	/*:TOhtml*
+:TarDiff	pi_tar.txt	/*:TarDiff*
 :Texplore	pi_netrw.txt	/*:Texplore*
 :UseVimball	pi_vimball.txt	/*:UseVimball*
 :Vexplore	pi_netrw.txt	/*:Vexplore*
@@ -4251,6 +4257,7 @@ E859	eval.txt	/*E859*
 E86	windows.txt	/*E86*
 E860	eval.txt	/*E860*
 E861	eval.txt	/*E861*
+E862	eval.txt	/*E862*
 E87	windows.txt	/*E87*
 E88	windows.txt	/*E88*
 E89	message.txt	/*E89*
@@ -4478,6 +4485,8 @@ TabLeave	autocmd.txt	/*TabLeave*
 Tcl	if_tcl.txt	/*Tcl*
 TermChanged	autocmd.txt	/*TermChanged*
 TermResponse	autocmd.txt	/*TermResponse*
+TextChanged	autocmd.txt	/*TextChanged*
+TextChangedI	autocmd.txt	/*TextChangedI*
 Transact-SQL	ft_sql.txt	/*Transact-SQL*
 U	undo.txt	/*U*
 UTF-8	mbyte.txt	/*UTF-8*
@@ -4768,7 +4777,8 @@ aw	motion.txt	/*aw*
 a{	motion.txt	/*a{*
 a}	motion.txt	/*a}*
 b	motion.txt	/*b*
-b:changedtick-variable	eval.txt	/*b:changedtick-variable*
+b:	eval.txt	/*b:*
+b:changedtick	eval.txt	/*b:changedtick*
 b:changelog_name	filetype.txt	/*b:changelog_name*
 b:current_syntax-variable	syntax.txt	/*b:current_syntax-variable*
 b:netrw_lastfile	pi_netrw.txt	/*b:netrw_lastfile*
@@ -5032,6 +5042,7 @@ clipboard-exclude	options.txt	/*clipboard-exclude*
 clipboard-html	options.txt	/*clipboard-html*
 clipboard-unnamed	options.txt	/*clipboard-unnamed*
 clipboard-unnamedplus	options.txt	/*clipboard-unnamedplus*
+clojure-indent	indent.txt	/*clojure-indent*
 cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*
@@ -5180,6 +5191,7 @@ cpo-w	options.txt	/*cpo-w*
 cpo-x	options.txt	/*cpo-x*
 cpo-y	options.txt	/*cpo-y*
 cpo-{	options.txt	/*cpo-{*
+cpp.vim	syntax.txt	/*cpp.vim*
 crash-recovery	recover.txt	/*crash-recovery*
 creating-menus	gui.txt	/*creating-menus*
 credits	intro.txt	/*credits*
@@ -5653,8 +5665,10 @@ ft-ch-syntax	syntax.txt	/*ft-ch-syntax*
 ft-changelog-plugin	filetype.txt	/*ft-changelog-plugin*
 ft-changelog-syntax	syntax.txt	/*ft-changelog-syntax*
 ft-chill-syntax	syntax.txt	/*ft-chill-syntax*
+ft-clojure-indent	indent.txt	/*ft-clojure-indent*
 ft-cobol-syntax	syntax.txt	/*ft-cobol-syntax*
 ft-coldfusion-syntax	syntax.txt	/*ft-coldfusion-syntax*
+ft-cpp-syntax	syntax.txt	/*ft-cpp-syntax*
 ft-csh-syntax	syntax.txt	/*ft-csh-syntax*
 ft-css-omni	insert.txt	/*ft-css-omni*
 ft-cweb-syntax	syntax.txt	/*ft-cweb-syntax*
@@ -5728,6 +5742,7 @@ ft-quake-syntax	syntax.txt	/*ft-quake-syntax*
 ft-r-indent	indent.txt	/*ft-r-indent*
 ft-readline-syntax	syntax.txt	/*ft-readline-syntax*
 ft-rexx-syntax	syntax.txt	/*ft-rexx-syntax*
+ft-rst-syntax	syntax.txt	/*ft-rst-syntax*
 ft-ruby-omni	insert.txt	/*ft-ruby-omni*
 ft-ruby-syntax	syntax.txt	/*ft-ruby-syntax*
 ft-scheme-syntax	syntax.txt	/*ft-scheme-syntax*
@@ -5791,6 +5806,7 @@ g,	motion.txt	/*g,*
 g-	undo.txt	/*g-*
 g0	motion.txt	/*g0*
 g8	various.txt	/*g8*
+g:	eval.txt	/*g:*
 g:NetrwTopLvlMenu	pi_netrw.txt	/*g:NetrwTopLvlMenu*
 g:Netrw_corehandler	pi_netrw.txt	/*g:Netrw_corehandler*
 g:Netrw_funcref	pi_netrw.txt	/*g:Netrw_funcref*
@@ -5816,6 +5832,12 @@ g:ada_space_errors	ft_ada.txt	/*g:ada_space_errors*
 g:ada_standard_types	ft_ada.txt	/*g:ada_standard_types*
 g:ada_with_gnat_project_files	ft_ada.txt	/*g:ada_with_gnat_project_files*
 g:ada_withuse_ordinary	ft_ada.txt	/*g:ada_withuse_ordinary*
+g:clojure_align_multiline_strings	indent.txt	/*g:clojure_align_multiline_strings*
+g:clojure_fuzzy_indent	indent.txt	/*g:clojure_fuzzy_indent*
+g:clojure_fuzzy_indent_blacklist	indent.txt	/*g:clojure_fuzzy_indent_blacklist*
+g:clojure_fuzzy_indent_patterns	indent.txt	/*g:clojure_fuzzy_indent_patterns*
+g:clojure_maxlines	indent.txt	/*g:clojure_maxlines*
+g:clojure_special_indent_words	indent.txt	/*g:clojure_special_indent_words*
 g:colors_name	options.txt	/*g:colors_name*
 g:decada	ft_ada.txt	/*g:decada*
 g:decada.Error_Format	ft_ada.txt	/*g:decada.Error_Format*
@@ -5872,6 +5894,7 @@ g:netrw_cygwin	pi_netrw.txt	/*g:netrw_cygwin*
 g:netrw_dav_cmd	pi_netrw.txt	/*g:netrw_dav_cmd*
 g:netrw_decompress	pi_netrw.txt	/*g:netrw_decompress*
 g:netrw_dirhistmax	pi_netrw.txt	/*g:netrw_dirhistmax*
+g:netrw_dynamic_maxfilenamelen	pi_netrw.txt	/*g:netrw_dynamic_maxfilenamelen*
 g:netrw_errorlvl	pi_netrw.txt	/*g:netrw_errorlvl*
 g:netrw_fastbrowse	pi_netrw.txt	/*g:netrw_fastbrowse*
 g:netrw_fetch_cmd	pi_netrw.txt	/*g:netrw_fetch_cmd*
@@ -5947,6 +5970,7 @@ g:tar_readoptions	pi_tar.txt	/*g:tar_readoptions*
 g:tar_secure	pi_tar.txt	/*g:tar_secure*
 g:tar_writeoptions	pi_tar.txt	/*g:tar_writeoptions*
 g:tex_conceal	syntax.txt	/*g:tex_conceal*
+g:tex_fast	syntax.txt	/*g:tex_fast*
 g:tex_isk	syntax.txt	/*g:tex_isk*
 g:var	eval.txt	/*g:var*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
@@ -6148,6 +6172,7 @@ gui_w16.txt	gui_w16.txt	/*gui_w16.txt*
 gui_w32.txt	gui_w32.txt	/*gui_w32.txt*
 gui_x11.txt	gui_x11.txt	/*gui_x11.txt*
 guifontwide_gtk2	options.txt	/*guifontwide_gtk2*
+guifontwide_win_mbyte	options.txt	/*guifontwide_win_mbyte*
 guioptions_a	options.txt	/*guioptions_a*
 guu	change.txt	/*guu*
 gv	visual.txt	/*gv*
@@ -6549,6 +6574,7 @@ keypad-point	intro.txt	/*keypad-point*
 keys()	eval.txt	/*keys()*
 known-bugs	todo.txt	/*known-bugs*
 l	motion.txt	/*l*
+l:	eval.txt	/*l:*
 l:var	eval.txt	/*l:var*
 lCursor	mbyte.txt	/*lCursor*
 lace.vim	syntax.txt	/*lace.vim*
@@ -6683,6 +6709,7 @@ mapmode-s	map.txt	/*mapmode-s*
 mapmode-v	map.txt	/*mapmode-v*
 mapmode-x	map.txt	/*mapmode-x*
 mapping	map.txt	/*mapping*
+mapping-functions	usr_41.txt	/*mapping-functions*
 mark	motion.txt	/*mark*
 mark-functions	usr_41.txt	/*mark-functions*
 mark-motions	motion.txt	/*mark-motions*
@@ -6794,6 +6821,7 @@ mzscheme-buffer	if_mzsch.txt	/*mzscheme-buffer*
 mzscheme-commands	if_mzsch.txt	/*mzscheme-commands*
 mzscheme-dynamic	if_mzsch.txt	/*mzscheme-dynamic*
 mzscheme-examples	if_mzsch.txt	/*mzscheme-examples*
+mzscheme-funcref	if_mzsch.txt	/*mzscheme-funcref*
 mzscheme-mzeval	if_mzsch.txt	/*mzscheme-mzeval*
 mzscheme-sandbox	if_mzsch.txt	/*mzscheme-sandbox*
 mzscheme-threads	if_mzsch.txt	/*mzscheme-threads*
@@ -6838,8 +6866,10 @@ netrw-O	pi_netrw.txt	/*netrw-O*
 netrw-P	pi_netrw.txt	/*netrw-P*
 netrw-R	pi_netrw.txt	/*netrw-R*
 netrw-S	pi_netrw.txt	/*netrw-S*
-netrw-T	pi_netrw.txt	/*netrw-T*
+netrw-Tb	pi_netrw.txt	/*netrw-Tb*
+netrw-Th	pi_netrw.txt	/*netrw-Th*
 netrw-U	pi_netrw.txt	/*netrw-U*
+netrw-X	pi_netrw.txt	/*netrw-X*
 netrw-a	pi_netrw.txt	/*netrw-a*
 netrw-activate	pi_netrw.txt	/*netrw-activate*
 netrw-bookmark	pi_netrw.txt	/*netrw-bookmark*
@@ -6906,6 +6936,7 @@ netrw-listbookmark	pi_netrw.txt	/*netrw-listbookmark*
 netrw-listhack	pi_netrw.txt	/*netrw-listhack*
 netrw-login	pi_netrw.txt	/*netrw-login*
 netrw-mB	pi_netrw.txt	/*netrw-mB*
+netrw-mF	pi_netrw.txt	/*netrw-mF*
 netrw-mT	pi_netrw.txt	/*netrw-mT*
 netrw-mb	pi_netrw.txt	/*netrw-mb*
 netrw-mc	pi_netrw.txt	/*netrw-mc*
@@ -6960,6 +6991,7 @@ netrw-prvwin	pi_netrw.txt	/*netrw-prvwin*
 netrw-pscp	pi_netrw.txt	/*netrw-pscp*
 netrw-psftp	pi_netrw.txt	/*netrw-psftp*
 netrw-putty	pi_netrw.txt	/*netrw-putty*
+netrw-qF	pi_netrw.txt	/*netrw-qF*
 netrw-qb	pi_netrw.txt	/*netrw-qb*
 netrw-qf	pi_netrw.txt	/*netrw-qf*
 netrw-quickcom	pi_netrw.txt	/*netrw-quickcom*
@@ -7300,10 +7332,13 @@ python-error	if_pyth.txt	/*python-error*
 python-eval	if_pyth.txt	/*python-eval*
 python-examples	if_pyth.txt	/*python-examples*
 python-input	if_pyth.txt	/*python-input*
+python-options	if_pyth.txt	/*python-options*
 python-output	if_pyth.txt	/*python-output*
 python-pyeval	if_pyth.txt	/*python-pyeval*
 python-range	if_pyth.txt	/*python-range*
+python-vars	if_pyth.txt	/*python-vars*
 python-vim	if_pyth.txt	/*python-vim*
+python-vvars	if_pyth.txt	/*python-vvars*
 python-window	if_pyth.txt	/*python-window*
 python-windows	if_pyth.txt	/*python-windows*
 python.vim	syntax.txt	/*python.vim*
@@ -7426,6 +7461,7 @@ rileft.txt	rileft.txt	/*rileft.txt*
 riscos	os_risc.txt	/*riscos*
 rot13	change.txt	/*rot13*
 round()	eval.txt	/*round()*
+rst.vim	syntax.txt	/*rst.vim*
 rsync	pi_netrw.txt	/*rsync*
 ruby	if_ruby.txt	/*ruby*
 ruby-buffer	if_ruby.txt	/*ruby-buffer*
@@ -7477,6 +7513,8 @@ save-file	editing.txt	/*save-file*
 save-settings	starting.txt	/*save-settings*
 scheme.vim	syntax.txt	/*scheme.vim*
 scp	pi_netrw.txt	/*scp*
+screencol()	eval.txt	/*screencol()*
+screenrow()	eval.txt	/*screenrow()*
 script	usr_41.txt	/*script*
 script-here	if_perl.txt	/*script-here*
 script-local	map.txt	/*script-local*
@@ -7545,6 +7583,7 @@ sgr-mouse	options.txt	/*sgr-mouse*
 sh-awk	syntax.txt	/*sh-awk*
 sh-embed	syntax.txt	/*sh-embed*
 sh.vim	syntax.txt	/*sh.vim*
+sha256()	eval.txt	/*sha256()*
 shell-window	tips.txt	/*shell-window*
 shell_error-variable	eval.txt	/*shell_error-variable*
 shellescape()	eval.txt	/*shellescape()*
@@ -7956,6 +7995,7 @@ t_ti	term.txt	/*t_ti*
 t_tp	version4.txt	/*t_tp*
 t_ts	term.txt	/*t_ts*
 t_ts_old	version4.txt	/*t_ts_old*
+t_u7	term.txt	/*t_u7*
 t_ue	term.txt	/*t_ue*
 t_undo	version4.txt	/*t_undo*
 t_us	term.txt	/*t_us*
@@ -8206,6 +8246,7 @@ utf-8-in-xwindows	mbyte.txt	/*utf-8-in-xwindows*
 utf-8-typing	mbyte.txt	/*utf-8-typing*
 utf8	mbyte.txt	/*utf8*
 v	visual.txt	/*v*
+v:	eval.txt	/*v:*
 v:beval_bufnr	eval.txt	/*v:beval_bufnr*
 v:beval_col	eval.txt	/*v:beval_col*
 v:beval_lnum	eval.txt	/*v:beval_lnum*
@@ -8499,6 +8540,7 @@ vt100-function-keys	term.txt	/*vt100-function-keys*
 w	motion.txt	/*w*
 w32-clientserver	remote.txt	/*w32-clientserver*
 w32-xpm-support	gui_w32.txt	/*w32-xpm-support*
+w:	eval.txt	/*w:*
 w:current_syntax	syntax.txt	/*w:current_syntax*
 w:quickfix_title	quickfix.txt	/*w:quickfix_title*
 w:var	eval.txt	/*w:var*
@@ -8507,6 +8549,7 @@ white-space	pattern.txt	/*white-space*
 whitespace	pattern.txt	/*whitespace*
 wildcard	editing.txt	/*wildcard*
 wildcards	editing.txt	/*wildcards*
+wildmenumode()	eval.txt	/*wildmenumode()*
 win16-!start	gui_w16.txt	/*win16-!start*
 win16-clipboard	gui_w16.txt	/*win16-clipboard*
 win16-colors	gui_w16.txt	/*win16-colors*

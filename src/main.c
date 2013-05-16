@@ -147,8 +147,8 @@ static char *(main_errors[]) =
 #define ME_INVALID_ARG		5
 };
 
-#ifndef NO_VIM_MAIN	/* skip this for unittests */
 #ifndef PROTO		/* don't want a prototype for main() */
+#ifndef NO_VIM_MAIN	/* skip this for unittests */
     int
 # ifdef VIMDLL
 _export
@@ -190,6 +190,13 @@ main
 #endif
 #ifdef FEAT_WINDOWS
     params.window_count = -1;
+#endif
+
+#ifdef FEAT_RUBY
+    {
+	int ruby_stack_start;
+	vim_ruby_init((void *)&ruby_stack_start);
+    }
 #endif
 
 #ifdef FEAT_TCL
@@ -574,15 +581,27 @@ main
 	return mzscheme_main(2, args);
     }
 }
+#endif
+#endif /* NO_VIM_MAIN */
 
-int vim_main2(int argc, char **argv)
+/* vim_main2() needs to be produced when FEAT_MZSCHEME is defined even when
+ * NO_VIM_MAIN is defined. */
+#ifdef FEAT_MZSCHEME
+    int
+vim_main2(int argc UNUSED, char **argv UNUSED)
 {
+# ifndef NO_VIM_MAIN
     char_u	*fname = (char_u *)argv[0];
     mparm_T	params;
 
     memcpy(&params, argv[1], sizeof(params));
+# else
+    return 0;
+}
+# endif
 #endif
 
+#ifndef NO_VIM_MAIN
     /* Execute --cmd arguments. */
     exe_pre_commands(&params);
 
@@ -796,6 +815,9 @@ int vim_main2(int argc, char **argv)
 
     starttermcap();	    /* start termcap if not done by wait_return() */
     TIME_MSG("start termcap");
+#if defined(FEAT_TERMRESPONSE) && defined(FEAT_MBYTE)
+    may_req_ambiguous_character_width();
+#endif
 
 #ifdef FEAT_MOUSE
     setmouse();				/* may start using the mouse */
@@ -1003,8 +1025,8 @@ int vim_main2(int argc, char **argv)
 
     return 0;
 }
-#endif /* PROTO */
 #endif /* NO_VIM_MAIN */
+#endif /* PROTO */
 
 /*
  * Main loop: Execute Normal mode commands until exiting Vim.
@@ -1154,6 +1176,19 @@ main_loop(cmdwin, noexmode)
 		}
 # endif
 		last_cursormoved = curwin->w_cursor;
+	    }
+#endif
+
+#ifdef FEAT_AUTOCMD
+	    /* Trigger TextChanged if b_changedtick differs. */
+	    if (!finish_op && has_textchanged()
+		    && last_changedtick != curbuf->b_changedtick)
+	    {
+		if (last_changedtick_buf == curbuf)
+		    apply_autocmds(EVENT_TEXTCHANGED, NULL, NULL,
+							       FALSE, curbuf);
+		last_changedtick_buf = curbuf;
+		last_changedtick = curbuf->b_changedtick;
 	    }
 #endif
 
@@ -1368,6 +1403,9 @@ getout(exitval)
 	    for (wp = (tp == curtab)
 		    ? firstwin : tp->tp_firstwin; wp != NULL; wp = wp->w_next)
 	    {
+		if (wp->w_buffer == NULL)
+		    /* Autocmd must have close the buffer already, skip. */
+		    continue;
 		buf = wp->w_buffer;
 		if (buf->b_changedtick != -1)
 		{
@@ -4014,8 +4052,6 @@ server_to_input_buf(str)
 
 /*
  * Evaluate an expression that the client sent to a string.
- * Handles disabling error messages and disables debugging, otherwise Vim
- * hangs, waiting for "cont" to be typed.
  */
     char_u *
 eval_client_expr_to_string(expr)
@@ -4025,15 +4061,21 @@ eval_client_expr_to_string(expr)
     int		save_dbl = debug_break_level;
     int		save_ro = redir_off;
 
+     /* Disable debugging, otherwise Vim hangs, waiting for "cont" to be
+      * typed. */
     debug_break_level = -1;
     redir_off = 0;
-    ++emsg_skip;
+    /* Do not display error message, otherwise Vim hangs, waiting for "cont"
+     * to be typed.  Do generate errors so that try/catch works. */
+    ++emsg_silent;
 
     res = eval_to_string(expr, NULL, TRUE);
 
     debug_break_level = save_dbl;
     redir_off = save_ro;
-    --emsg_skip;
+    --emsg_silent;
+    if (emsg_silent < 0)
+	emsg_silent = 0;
 
     /* A client can tell us to redraw, but not to display the cursor, so do
      * that here. */

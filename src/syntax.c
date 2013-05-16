@@ -1954,9 +1954,9 @@ syn_current_attr(syncing, displaying, can_spell, keep_state)
 	    if (do_keywords)
 	    {
 	      line = syn_getcurline();
-	      if (vim_iswordc_buf(line + current_col, syn_buf)
+	      if (vim_iswordp_buf(line + current_col, syn_buf)
 		      && (current_col == 0
-			  || !vim_iswordc_buf(line + current_col - 1
+			  || !vim_iswordp_buf(line + current_col - 1
 #ifdef FEAT_MBYTE
 			      - (has_mbyte
 				  ? (*mb_head_off)(line, line + current_col - 1)
@@ -3280,7 +3280,7 @@ check_keyword_id(line, startcol, endcolp, flagsp, next_listp, cur_si, ccharp)
 #endif
 	    ++kwlen;
     }
-    while (vim_iswordc_buf(kwp + kwlen, syn_buf));
+    while (vim_iswordp_buf(kwp + kwlen, syn_buf));
 
     if (kwlen > MAXKEYWLEN)
 	return 0;
@@ -6069,7 +6069,7 @@ in_id_list(cur_si, list, ssp, contained)
     static int	depth = 0;
     int		r;
 
-    /* If spp has a "containedin" list and "cur_si" is in it, return TRUE. */
+    /* If ssp has a "containedin" list and "cur_si" is in it, return TRUE. */
     if (cur_si != NULL && ssp->cont_in_list != NULL
 					    && !(cur_si->si_flags & HL_MATCH))
     {
@@ -8082,6 +8082,7 @@ hl_do_font(idx, arg, do_normal, do_menu, do_tooltip, free_font)
 	|| do_tooltip
 #  endif
 	    )
+    {
 	if (free_font)
 	    gui_mch_free_fontset(HL_TABLE()[idx].sg_fontset);
 	HL_TABLE()[idx].sg_fontset = fontset_name2handle(arg, 0
@@ -8092,6 +8093,7 @@ hl_do_font(idx, arg, do_normal, do_menu, do_tooltip, free_font)
 		|| do_tooltip
 #  endif
 		);
+    }
     if (HL_TABLE()[idx].sg_fontset != NOFONTSET)
     {
 	/* If it worked and it's the Normal group, use it as the normal

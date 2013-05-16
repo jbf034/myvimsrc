@@ -23,8 +23,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim(Esperanto)\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-01-22 15:37+0100\n"
-"PO-Revision-Date: 2012-01-22 15:38+0100\n"
+"POT-Creation-Date: 2013-02-10 14:05+0100\n"
+"PO-Revision-Date: 2013-02-10 14:23+0100\n"
 "Last-Translator: Dominique PELLÉ <dominique.pelle@gmail.com>\n"
 "Language-Team: \n"
 "Language: eo\n"
@@ -53,6 +53,9 @@ msgstr "[Listo de lokoj]"
 # DP: Ĉu vere indas traduki Quickfix?
 msgid "[Quickfix List]"
 msgstr "[Listo de rapidriparoj]"
+
+msgid "E855: Autocommands caused command to abort"
+msgstr "E855: Aŭtokomandoj haltigis komandon"
 
 msgid "E82: Cannot allocate any buffer, exiting..."
 msgstr "E82: Ne eblas disponigi iun ajn bufron, nun eliras..."
@@ -256,7 +259,7 @@ msgid "E787: Buffer changed unexpectedly"
 msgstr "E787: Bufro ŝanĝiĝis neatendite"
 
 msgid "E104: Escape not allowed in digraph"
-msgstr "E104: Eskapsigno malpermesita en duliteraĵo"
+msgstr "E104: Eskapsigno nepermesebla en duliteraĵo"
 
 msgid "E544: Keymap file not found"
 msgstr "E544: Dosiero de klavmapo ne troveblas"
@@ -628,7 +631,7 @@ msgid "insert() argument"
 msgstr "argumento de insert()"
 
 msgid "E786: Range not allowed"
-msgstr "E786: Amplekso malpermesita"
+msgstr "E786: Amplekso nepermesebla"
 
 msgid "E701: Invalid type for len()"
 msgstr "E701: Nevalida datumtipo de len()"
@@ -962,7 +965,7 @@ msgid "E144: non-numeric argument to :z"
 msgstr "E144: nenumera argumento de :z"
 
 msgid "E145: Shell commands not allowed in rvim"
-msgstr "E145: Ŝelkomandoj ne permesataj en rvim"
+msgstr "E145: Ŝelkomandoj nepermeseblaj en rvim"
 
 msgid "E146: Regular expressions can't be delimited by letters"
 msgstr "E146: Ne eblas limigi regulesprimon per literoj"
@@ -1254,7 +1257,7 @@ msgid "E319: Sorry, the command is not available in this version"
 msgstr "E319: Bedaŭrinde, tiu komando ne haveblas en tiu versio"
 
 msgid "E172: Only one file name allowed"
-msgstr "E172: Nur unu dosiernomo permesita"
+msgstr "E172: Nur unu dosiernomo permesebla"
 
 msgid "1 more file to edit.  Quit anyway?"
 msgstr "1 plia redaktenda dosiero. Ĉu tamen eliri?"
@@ -1322,7 +1325,7 @@ msgstr "E180: Nevalida valoro de kompletigo: %s"
 
 msgid "E468: Completion argument only allowed for custom completion"
 msgstr ""
-"E468: Argumento de kompletigo nur permesata por kompletigo difinita de uzanto"
+"E468: Argumento de kompletigo nur permesebla por kompletigo difinita de uzanto"
 
 msgid "E467: Custom completion requires a function argument"
 msgstr "E467: Uzula kompletigo bezonas funkcian argumenton"
@@ -1331,8 +1334,8 @@ msgid "unknown"
 msgstr "nekonata"
 
 #, c-format
-msgid "E185: Cannot find color scheme %s"
-msgstr "E185: Ne eblas trovi agordaron de koloroj %s"
+msgid "E185: Cannot find color scheme '%s'"
+msgstr "E185: Ne eblas trovi agordaron de koloroj '%s'"
 
 msgid "Greetings, Vim user!"
 msgstr "Bonvenon, uzanto de Vim!"
@@ -1558,7 +1561,7 @@ msgid "E193: :endfunction not inside a function"
 msgstr "E193: \":endfunction\" ekster funkcio"
 
 msgid "E788: Not allowed to edit another buffer now"
-msgstr "E788: Nun malpermesas redakti alian bufron"
+msgstr "E788: Ne eblas redakti alian bufron nun"
 
 msgid "E811: Not allowed to change buffer information now"
 msgstr "E811: Ne eblas ŝanĝi informon de bufro nun"
@@ -2254,7 +2257,7 @@ msgstr "E252: Nomo de tiparo: %s"
 
 #, c-format
 msgid "Font '%s' is not fixed-width"
-msgstr "Tiparo \"%s\" ne estas egallarĝa"
+msgstr "Tiparo '%s' ne estas egallarĝa"
 
 #, c-format
 msgid "E253: Fontset name: %s\n"
@@ -2614,6 +2617,9 @@ msgstr "ne eblas enmeti linion"
 msgid "string cannot contain newlines"
 msgstr "ĉeno ne rajtas enhavi liniavancojn"
 
+msgid "error converting Scheme values to Vim"
+msgstr "eraro dum konverto de Scheme-valoro al Vim"
+
 msgid "Vim error: ~a"
 msgstr "Eraro de Vim: ~a"
 
@@ -2630,10 +2636,13 @@ msgid "linenr out of range"
 msgstr "numero de linio ekster limoj"
 
 msgid "not allowed in the Vim sandbox"
-msgstr "nepermesita en sabloludejo de Vim"
+msgstr "nepermesebla en sabloludejo de Vim"
 
 msgid "E836: This Vim cannot execute :python after using :py3"
 msgstr "E836: Vim ne povas plenumi :python post uzo de :py3"
+
+msgid "only string keys are allowed"
+msgstr "nur ĉenaj ŝlosiloj estas permeseblaj"
 
 msgid ""
 "E263: Sorry, this command is disabled, the Python library could not be "
@@ -2645,14 +2654,11 @@ msgstr ""
 msgid "E659: Cannot invoke Python recursively"
 msgstr "E659: Ne eblas alvoki Pitonon rekursie"
 
-msgid "can't delete OutputObject attributes"
-msgstr "ne eblas forviŝi atributojn de OutputObject"
+msgid "E858: Eval did not return a valid python object"
+msgstr "E858: Eval ne revenis kun valida python-objekto"
 
-msgid "softspace must be an integer"
-msgstr "malmolspaceto (softspace) devas esti entjero"
-
-msgid "invalid attribute"
-msgstr "nevalida atributo"
+msgid "E859: Failed to convert returned python object to vim value"
+msgstr "E859: Konverto de revena python-objekto al vim-valoro fiaskis"
 
 #, c-format
 msgid "<buffer object (deleted) at %p>"
@@ -2660,6 +2666,12 @@ msgstr "<bufra objekto (forviŝita) ĉe %p>"
 
 msgid "E837: This Vim cannot execute :py3 after using :python"
 msgstr "E837: Vim ne povas plenumi :py3  post uzo de :python"
+
+msgid "E860: Eval did not return a valid python 3 object"
+msgstr "E860: Eval ne revenis kun valida python3-objekto"
+
+msgid "E861: Failed to convert returned python 3 object to vim value"
+msgstr "E861: Konverto de revena python3-objekto al vim-valoro fiaskis"
 
 msgid "E265: $_ must be an instance of String"
 msgstr "E265: $_ devas esti apero de Ĉeno"
@@ -2849,12 +2861,6 @@ msgstr ""
 "E571: Bedaŭrinde tiu komando estas malŝaltita: la biblioteko Tcl ne "
 "ŝargeblis."
 
-msgid ""
-"E281: TCL ERROR: exit code is not int!? Please report this to vim-dev@vim.org"
-msgstr ""
-"E281: TCL-ERARO: elira kodo ne estas entjera!? Bv. retpoŝti al vim-dev@vim."
-"org"
-
 #, c-format
 msgid "E572: exit code %d"
 msgstr "E572: elira kodo %d"
@@ -3012,6 +3018,9 @@ msgstr "-v\t\t\tReĝimo Vi (kiel \"vi\")"
 msgid "-e\t\t\tEx mode (like \"ex\")"
 msgstr "-e\t\t\tReĝimo Ex (kiel \"ex\")"
 
+msgid "-E\t\t\tImproved Ex mode"
+msgstr "-E\t\t\tPlibonigita Ex-reĝimo"
+
 msgid "-s\t\t\tSilent (batch) mode (only for \"ex\")"
 msgstr "-s\t\t\tSilenta (stapla) reĝimo (nur por \"ex\")"
 
@@ -3028,10 +3037,10 @@ msgid "-Z\t\t\tRestricted mode (like \"rvim\")"
 msgstr "-Z\t\t\tLimigita reĝimo (kiel \"rvim\")"
 
 msgid "-m\t\t\tModifications (writing files) not allowed"
-msgstr "-m\t\t\tŜanĝoj (skribo al dosieroj) malpermesitaj"
+msgstr "-m\t\t\tŜanĝoj (skribo al dosieroj) nepermeseblaj"
 
 msgid "-M\t\t\tModifications in text not allowed"
-msgstr "-M\t\t\tŜanĝoj al teksto malpermesitaj"
+msgstr "-M\t\t\tŜanĝoj al teksto nepermeseblaj"
 
 msgid "-b\t\t\tBinary mode"
 msgstr "-b\t\t\tDuuma reĝimo"
@@ -3268,6 +3277,9 @@ msgstr "--role <rolo>\tDoni unikan rolon por identigi la ĉefan fenestron"
 
 msgid "--socketid <xid>\tOpen Vim inside another GTK widget"
 msgstr "--socketid <xid>\tMalfermi Vim en alia GTK fenestraĵo"
+
+msgid "--echo-wid\t\tMake gvim echo the Window ID on stdout"
+msgstr "--echo-wid\t\tIgas gvim afiŝi la identigilon de vindozo sur stdout"
 
 msgid "-P <parent title>\tOpen Vim inside parent application"
 msgstr "-P <gepatra titolo>\tMalfermi Vim en gepatra aplikaĵo"
@@ -4284,7 +4296,7 @@ msgid "E519: Option not supported"
 msgstr "E519: Opcio ne subtenata"
 
 msgid "E520: Not allowed in a modeline"
-msgstr "E520: Ne permesita en reĝimlinio"
+msgstr "E520: Nepermesebla en reĝimlinio"
 
 msgid "E846: Key code not set"
 msgstr "E846: Klavkodo ne agordita"
@@ -4512,7 +4524,7 @@ msgstr "E238: Eraro de presado: %s"
 
 #, c-format
 msgid "Printing '%s'"
-msgstr "Presas \"%s\""
+msgstr "Presas '%s'"
 
 #, c-format
 msgid "E244: Illegal charset name \"%s\" in font name \"%s\""
@@ -4798,11 +4810,11 @@ msgid "E65: Illegal back reference"
 msgstr "E65: Nevalida retro-referenco"
 
 msgid "E66: \\z( not allowed here"
-msgstr "E66: \\z( estas malpermesa tie"
+msgstr "E66: \\z( estas permesebla tie"
 
 # DP: vidu http://www.thefreedictionary.com/et+al.
 msgid "E67: \\z1 et al. not allowed here"
-msgstr "E67: \\z1 kaj aliaj estas malpermesataj tie"
+msgstr "E67: \\z1 kaj aliaj estas nepermeseblaj tie"
 
 msgid "E68: Invalid character after \\z"
 msgstr "E68: Nevalida signo malantaŭ \\z"
@@ -5451,7 +5463,7 @@ msgstr "E406: Malplena argumento: %s"
 
 #, c-format
 msgid "E407: %s not allowed here"
-msgstr "E407: %s ne estas permesata tie"
+msgstr "E407: %s ne estas permesebla tie"
 
 #, c-format
 msgid "E408: %s must be first in contains list"
@@ -5788,7 +5800,7 @@ msgid "%ld seconds ago"
 msgstr "antaŭ %ld sekundoj"
 
 msgid "E790: undojoin is not allowed after undo"
-msgstr "E790: undojoin estas nepermesita malantaŭ malfaro"
+msgstr "E790: undojoin estas nepermesebla malantaŭ malfaro"
 
 msgid "E439: undo list corrupt"
 msgstr "E439: listo de malfaro estas difekta"
@@ -6221,7 +6233,7 @@ msgstr ""
 
 msgid "E12: Command not allowed from exrc/vimrc in current dir or tag search"
 msgstr ""
-"E12: Malpermesata komando el exrc/vimrc en aktuala dosierujo aŭ etikeda serĉo"
+"E12: Nepermesebla komando el exrc/vimrc en aktuala dosierujo aŭ etikeda serĉo"
 
 msgid "E171: Missing :endif"
 msgstr "E171: Mankas \":endif\""
@@ -6316,7 +6328,7 @@ msgid "E24: No such abbreviation"
 msgstr "E24: Ne estas tia mallongigo"
 
 msgid "E477: No ! allowed"
-msgstr "E477: Neniu ! permesita"
+msgstr "E477: Neniu ! permesebla"
 
 msgid "E25: GUI cannot be used: Not enabled at compile time"
 msgstr "E25: Grafika interfaco ne uzeblas: Malŝaltita dum kompilado"
@@ -6363,7 +6375,7 @@ msgid "E35: No previous regular expression"
 msgstr "E35: Neniu antaŭa regulesprimo"
 
 msgid "E481: No range allowed"
-msgstr "E481: Amplekso ne permesita"
+msgstr "E481: Amplekso nepermesebla"
 
 msgid "E36: Not enough room"
 msgstr "E36: Ne sufiĉe da spaco"
@@ -6446,10 +6458,10 @@ msgid "E47: Error while reading errorfile"
 msgstr "E47: Eraro dum legado de erardosiero"
 
 msgid "E48: Not allowed in sandbox"
-msgstr "E48: Ne permesita en sabloludejo"
+msgstr "E48: Nepermesebla en sabloludejo"
 
 msgid "E523: Not allowed here"
-msgstr "E523: Ne permesita tie"
+msgstr "E523: Nepermesebla tie"
 
 msgid "E359: Screen mode setting not supported"
 msgstr "E359: Reĝimo de ekrano ne subtenata"
@@ -6547,6 +6559,15 @@ msgstr "serĉo atingis SUBON, daŭrigonte al SUPRO"
 msgid "Need encryption key for \"%s\""
 msgstr "Ŝlosilo de ĉifrado bezonata por \"%s\""
 
+msgid "can't delete OutputObject attributes"
+msgstr "ne eblas forviŝi atributojn de OutputObject"
+
+msgid "softspace must be an integer"
+msgstr "malmolspaceto (softspace) devas esti entjero"
+
+msgid "invalid attribute"
+msgstr "nevalida atributo"
+
 msgid "writelines() requires list of strings"
 msgstr "writelines() bezonas liston de ĉenoj"
 
@@ -6555,6 +6576,60 @@ msgstr "E264: Pitono: Eraro de pravalorizo de eneligaj objektoj"
 
 msgid "no such buffer"
 msgstr "ne estas tia bufro"
+
+msgid "empty keys are not allowed"
+msgstr "malplenaj ŝlosiloj nepermeseblaj"
+
+msgid "failed to add key to dictionary"
+msgstr "aldono de ŝlosilo al vortaro fiaskis"
+
+msgid "Cannot delete DictionaryObject attributes"
+msgstr "ne eblas forviŝi atributojn de DictionaryObject"
+
+msgid "Cannot modify fixed dictionary"
+msgstr "Ne eblas ŝanĝi fiksan vortaron"
+
+msgid "Only boolean objects are allowed"
+msgstr "Nur buleaj objektoj estas permeseblaj"
+
+msgid "Cannot set this attribute"
+msgstr "Ne eblas agordi tiun atributon"
+
+msgid "no such key in dictionary"
+msgstr "tiu ŝlosilo ne ekzistas en vortaro"
+
+msgid "dict is locked"
+msgstr "vortaro estas ŝlosita"
+
+msgid "internal error: failed to get vim list item"
+msgstr "interna eraro: obteno de vim-a listero fiaskis"
+
+msgid "list is locked"
+msgstr "listo estas ŝlosita"
+
+msgid "Failed to add item to list"
+msgstr "Aldono de listero fiaskis"
+
+msgid "internal error: no vim list item"
+msgstr "interna eraro: neniu vim-a listero"
+
+msgid "can only assign lists to slice"
+msgstr "nur eblas pravalorizi listojn al segmento"
+
+msgid "internal error: failed to add item to list"
+msgstr "interna eraro: aldono de listero fiaskis"
+
+msgid "can only concatenate with lists"
+msgstr "eblas nur kunmeti kun listoj"
+
+msgid "Cannot modify fixed list"
+msgstr "Ne eblas ŝanĝi fiksan liston"
+
+msgid "'self' argument must be a dictionary"
+msgstr "argumento 'self' devas esti vortaro"
+
+msgid "failed to run function"
+msgstr "fiaskis ruli funkcion"
 
 msgid "attempt to refer to deleted window"
 msgstr "provo de referenco al forviŝita fenestro"
@@ -6583,22 +6658,11 @@ msgstr "ne estas tia fenestro"
 msgid "attempt to refer to deleted buffer"
 msgstr "provo de referenco al forviŝita bufro"
 
-#~ msgid ""
-#~ "\n"
-#~ "Arguments recognised by gvim (RISC OS version):\n"
-#~ msgstr ""
-#~ "\n"
-#~ "Argumentoj agnoskitaj de gvim (versio RISC OS):\n"
+msgid "unable to convert to vim structure"
+msgstr "ne povis konverti al vim-strukturo"
 
-#~ msgid "--columns <number>\tInitial width of window in columns"
-#~ msgstr "--columns <nombro>\tKomenca larĝo de fenestro en kolumnoj"
+msgid "NULL reference passed"
+msgstr "NULL-referenco argumento"
 
-#~ msgid "--rows <number>\tInitial height of window in rows"
-#~ msgstr "--rows <nombro>\tKomenca alto de fenestro en vicoj"
-
-#~ msgid ""
-#~ "\n"
-#~ "RISC OS version"
-#~ msgstr ""
-#~ "\n"
-#~ "Versio RISC operaciumo"
+msgid "internal error: invalid value type"
+msgstr "interna eraro: nevalida typo de valoro"

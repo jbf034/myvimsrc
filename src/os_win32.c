@@ -29,7 +29,11 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <limits.h>
-#include <process.h>
+
+/* cproto fails on missing include files */
+#ifndef PROTO
+# include <process.h>
+#endif
 
 #undef chdir
 #ifdef __GNUC__
@@ -40,8 +44,10 @@
 # include <direct.h>
 #endif
 
-#if defined(FEAT_TITLE) && !defined(FEAT_GUI_W32)
-# include <shellapi.h>
+#ifndef PROTO
+# if defined(FEAT_TITLE) && !defined(FEAT_GUI_W32)
+#  include <shellapi.h>
+# endif
 #endif
 
 #ifdef __MINGW32__
@@ -125,6 +131,7 @@ typedef int TRUSTEE;
 typedef int WORD;
 typedef int WCHAR;
 typedef void VOID;
+typedef int BY_HANDLE_FILE_INFORMATION;
 #endif
 
 #ifndef FEAT_GUI_W32
@@ -152,13 +159,17 @@ static PFNGCKLN    s_pfnGetConsoleKeyboardLayoutName = NULL;
 # define wcsicmp(a, b) wcscmpi((a), (b))
 #endif
 
-/* Enable common dialogs input unicode from IME if posible. */
+#ifndef PROTO
+
+/* Enable common dialogs input unicode from IME if possible. */
 #ifdef FEAT_MBYTE
-LRESULT (WINAPI *pDispatchMessage)(LPMSG) = DispatchMessage;
+LRESULT (WINAPI *pDispatchMessage)(CONST MSG *) = DispatchMessage;
 BOOL (WINAPI *pGetMessage)(LPMSG, HWND, UINT, UINT) = GetMessage;
 BOOL (WINAPI *pIsDialogMessage)(HWND, LPMSG) = IsDialogMessage;
 BOOL (WINAPI *pPeekMessage)(LPMSG, HWND, UINT, UINT, UINT) = PeekMessage;
 #endif
+
+#endif /* PROTO */
 
 #ifndef FEAT_GUI_W32
 /* Win32 Console handles for input and output */
@@ -453,7 +464,10 @@ null_libintl_textdomain(const char *domainname)
 DWORD g_PlatformId;
 
 #ifdef HAVE_ACL
-# include <aclapi.h>
+# ifndef PROTO
+#  include <aclapi.h>
+# endif
+
 /*
  * These are needed to dynamically load the ADVAPI DLL, which is not
  * implemented under Windows 95 (and causes VIM to crash)
@@ -1018,7 +1032,7 @@ decode_mouse_event(
 	    DWORD dwLR = (pmer->dwButtonState & LEFT_RIGHT);
 
 	    /* if either left or right button only is pressed, see if the
-	     * the next mouse event has both of them pressed */
+	     * next mouse event has both of them pressed */
 	    if (dwLR == LEFT || dwLR == RIGHT)
 	    {
 		for (;;)
@@ -1452,6 +1466,11 @@ mch_inchar(
 #define TYPEAHEADLEN 20
     static char_u   typeahead[TYPEAHEADLEN];	/* previously typed bytes. */
     static int	    typeaheadlen = 0;
+#ifdef FEAT_MBYTE
+    static char_u   *rest = NULL;	/* unconverted rest of previous read */
+    static int	    restlen = 0;
+    int		    unconverted;
+#endif
 
     /* First use any typeahead that was kept because "buf" was too small. */
     if (typeaheadlen > 0)
@@ -1555,6 +1574,33 @@ mch_inchar(
 
 	    c = tgetch(&modifiers, &ch2);
 
+#ifdef FEAT_MBYTE
+	    /* stolen from fill_input_buf() in ui.c */
+	    if (rest != NULL)
+	    {
+		/* Use remainder of previous call, starts with an invalid
+		 * character that may become valid when reading more. */
+		if (restlen > TYPEAHEADLEN - typeaheadlen)
+		    unconverted = TYPEAHEADLEN - typeaheadlen;
+		else
+		    unconverted = restlen;
+		mch_memmove(typeahead + typeaheadlen, rest, unconverted);
+		if (unconverted == restlen)
+		{
+		    vim_free(rest);
+		    rest = NULL;
+		}
+		else
+		{
+		    restlen -= unconverted;
+		    mch_memmove(rest, rest + unconverted, restlen);
+		}
+		typeaheadlen += unconverted;
+	    }
+	    else
+		unconverted = 0;
+#endif
+
 	    if (typebuf_changed(tb_change_cnt))
 	    {
 		/* "buf" may be invalid now if a client put something in the
@@ -1590,8 +1636,12 @@ mch_inchar(
 		 * when 'tenc' is set. */
 		if (input_conv.vc_type != CONV_NONE
 						&& (ch2 == NUL || c != K_NUL))
-		    n = convert_input(typeahead + typeaheadlen, n,
-						 TYPEAHEADLEN - typeaheadlen);
+		{
+		    typeaheadlen -= unconverted;
+		    n = convert_input_safe(typeahead + typeaheadlen,
+				n + unconverted, TYPEAHEADLEN - typeaheadlen,
+				rest == NULL ? &rest : NULL, &restlen);
+		}
 #endif
 
 		/* Use the ALT key to set the 8th bit of the character
@@ -1658,8 +1708,10 @@ theend:
 #endif /* FEAT_GUI_W32 */
 }
 
-#ifndef __MINGW32__
-# include <shellapi.h>	/* required for FindExecutable() */
+#ifndef PROTO
+# ifndef __MINGW32__
+#  include <shellapi.h>	/* required for FindExecutable() */
+# endif
 #endif
 
 /*
@@ -1799,16 +1851,7 @@ mch_init(void)
 	set_option_value((char_u *)"grepprg", 0, (char_u *)"grep -n", 0);
 
 #ifdef FEAT_CLIPBOARD
-    clip_init(TRUE);
-
-    /*
-     * Vim's own clipboard format recognises whether the text is char, line,
-     * or rectangular block.  Only useful for copying between two Vims.
-     * "VimClipboard" was used for previous versions, using the first
-     * character to specify MCHAR, MLINE or MBLOCK.
-     */
-    clip_star.format = RegisterClipboardFormat("VimClipboard2");
-    clip_star.format_raw = RegisterClipboardFormat("VimRawBytes");
+    win_clip_init();
 #endif
 }
 
@@ -2293,16 +2336,7 @@ mch_init(void)
 #endif
 
 #ifdef FEAT_CLIPBOARD
-    clip_init(TRUE);
-
-    /*
-     * Vim's own clipboard format recognises whether the text is char, line, or
-     * rectangular block.  Only useful for copying between two Vims.
-     * "VimClipboard" was used for previous versions, using the first
-     * character to specify MCHAR, MLINE or MBLOCK.
-     */
-    clip_star.format = RegisterClipboardFormat("VimClipboard2");
-    clip_star.format_raw = RegisterClipboardFormat("VimRawBytes");
+    win_clip_init();
 #endif
 
     /* This will be NULL on anything but NT 4.0 */
@@ -3430,7 +3464,7 @@ sub_process_writer(LPVOID param)
 		    && (lnum != curbuf->b_ml.ml_line_count
 			|| curbuf->b_p_eol)))
 	    {
-		WriteFile(g_hChildStd_IN_Wr, "\n", 1, &ignored, NULL);
+		WriteFile(g_hChildStd_IN_Wr, "\n", 1, (LPDWORD)&ignored, NULL);
 	    }
 
 	    ++lnum;

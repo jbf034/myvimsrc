@@ -4737,13 +4737,24 @@ $as_echo "no" >&6; }
       if test -f "${vi_cv_path_lua_pfx}/bin/cyglua-${vi_cv_version_lua}.dll"; then
 	vi_cv_dll_name_lua="cyglua-${vi_cv_version_lua}.dll"
       else
-			for i in 0 1 2 3 4 5 6 7 8 9; do
-	  if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
-	    LUA_SONAME=".$i"
-	    break
+	multiarch=`dpkg-architecture -qDEB_HOST_MULTIARCH 2> /dev/null`
+	if test "X$multiarch" != "X"; then
+	  lib_multiarch="lib/${multiarch}"
+	fi
+			for subdir in "${lib_multiarch}" lib64 lib; do
+	  if test -z "$subdir"; then
+	    continue
 	  fi
+	  for sover in "${vi_cv_version_lua}.so" "-${vi_cv_version_lua}.so" ".so.${vi_cv_version_lua}"; do
+	    for i in .0 .1 .2 .3 .4 .5 .6 .7 .8 .9 ""; do
+	      if test -f "${vi_cv_path_lua_pfx}/${subdir}/liblua${sover}$i"; then
+		sover2="$i"
+		break 3
+	      fi
+	    done
+	  done
 	done
-	vi_cv_dll_name_lua="liblua${vi_cv_version_lua}.so$LUA_SONAME"
+	vi_cv_dll_name_lua="liblua${sover}$sover2"
       fi
       $as_echo "#define DYNAMIC_LUA 1" >>confdefs.h
 
@@ -4927,7 +4938,8 @@ $as_echo "no" >&6; }
 
   if test "X$vi_cv_path_mzscheme_pfx" != "X"; then
     if test "x$MACOSX" = "xyes"; then
-      MZSCHEME_LIBS="-framework PLT_MzScheme"
+      MZSCHEME_LIBS="-framework Racket"
+      MZSCHEME_CFLAGS="-DMZ_PRECISE_GC"
     elif test -f "${vi_cv_path_mzscheme_pfx}/lib/libmzscheme3m.a"; then
       MZSCHEME_LIBS="${vi_cv_path_mzscheme_pfx}/lib/libmzscheme3m.a"
       MZSCHEME_CFLAGS="-DMZ_PRECISE_GC"
@@ -4957,26 +4969,53 @@ $as_echo "no" >&6; }
 	MZSCHEME_LIBS="${MZSCHEME_LIBS} -R ${vi_cv_path_mzscheme_pfx}/lib"
       fi
     fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for racket collects directory" >&5
+$as_echo_n "checking for racket collects directory... " >&6; }
     if test -d $vi_cv_path_mzscheme_pfx/lib/plt/collects; then
-      SCHEME_COLLECTS=lib/plt/
+      SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/lib/plt/
     else
       if test -d $vi_cv_path_mzscheme_pfx/lib/racket/collects; then
-	SCHEME_COLLECTS=lib/racket/
+	SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/lib/racket/
+      else
+	if test -d $vi_cv_path_mzscheme_pfx/share/racket/collects; then
+	  SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/share/racket/
+	else
+	  if test -d $vi_cv_path_mzscheme_pfx/collects; then
+	    SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/
+	  fi
+	fi
       fi
     fi
-    if test -f "${vi_cv_path_mzscheme_pfx}/${SCHEME_COLLECTS}collects/scheme/base.ss" ; then
+    if test "X$SCHEME_COLLECTS" != "X" ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${SCHEME_COLLECTS}" >&5
+$as_echo "${SCHEME_COLLECTS}" >&6; }
+    else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+$as_echo "not found" >&6; }
+    fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for mzscheme_base.c" >&5
+$as_echo_n "checking for mzscheme_base.c... " >&6; }
+    if test -f "${SCHEME_COLLECTS}collects/scheme/base.ss" ; then
       MZSCHEME_EXTRA="mzscheme_base.c"
     else
-      if test -f "${vi_cv_path_mzscheme_pfx}/${SCHEME_COLLECTS}collects/scheme/base.rkt" ; then
+      if test -f "${SCHEME_COLLECTS}collects/scheme/base.rkt" ; then
 	MZSCHEME_EXTRA="mzscheme_base.c"
       fi
     fi
     if test "X$MZSCHEME_EXTRA" != "X" ; then
             MZSCHEME_CFLAGS="${MZSCHEME_CFLAGS} -DINCLUDE_MZSCHEME_BASE"
       MZSCHEME_MZC="${vi_cv_path_mzscheme_pfx}/bin/mzc"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: needed" >&5
+$as_echo "needed" >&6; }
+    else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: not needed" >&5
+$as_echo "not needed" >&6; }
     fi
+
     MZSCHEME_CFLAGS="${MZSCHEME_CFLAGS} -I${SCHEME_INC} \
-      -DMZSCHEME_COLLECTS='\"${vi_cv_path_mzscheme_pfx}/${SCHEME_COLLECTS}collects\"'"
+      -DMZSCHEME_COLLECTS='\"${SCHEME_COLLECTS}collects\"'"
     MZSCHEME_SRC="if_mzsch.c"
     MZSCHEME_OBJ="objects/if_mzsch.o"
     MZSCHEME_PRO="if_mzsch.pro"
@@ -5191,8 +5230,10 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_pythoninterp" >&5
 $as_echo "$enable_pythoninterp" >&6; }
 if test "$enable_pythoninterp" = "yes" -o "$enable_pythoninterp" = "dynamic"; then
-    # Extract the first word of "python", so it can be a program name with args.
-set dummy python; ac_word=$2
+    for ac_prog in python2 python
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
 if test "${ac_cv_path_vi_cv_path_python+set}" = set; then :
@@ -5231,6 +5272,9 @@ $as_echo "no" >&6; }
 fi
 
 
+  test -n "$vi_cv_path_python" && break
+done
+
   if test "X$vi_cv_path_python" != "X"; then
 
         { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python version" >&5
@@ -5245,10 +5289,10 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $vi_cv_var_python_version" >&5
 $as_echo "$vi_cv_var_python_version" >&6; }
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python is 1.4 or better" >&5
-$as_echo_n "checking Python is 1.4 or better... " >&6; }
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python is 2.2 or better" >&5
+$as_echo_n "checking Python is 2.2 or better... " >&6; }
     if ${vi_cv_path_python} -c \
-	"import sys; sys.exit(${vi_cv_var_python_version} < 1.4)"
+	"import sys; sys.exit(${vi_cv_var_python_version} < 2.2)"
     then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: yep" >&5
 $as_echo "yep" >&6; }
@@ -5486,8 +5530,10 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_python3interp" >&5
 $as_echo "$enable_python3interp" >&6; }
 if test "$enable_python3interp" = "yes" -o "$enable_python3interp" = "dynamic"; then
-    # Extract the first word of "python3", so it can be a program name with args.
-set dummy python3; ac_word=$2
+    for ac_prog in python3 python
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
 if test "${ac_cv_path_vi_cv_path_python3+set}" = set; then :
@@ -5525,6 +5571,9 @@ else
 $as_echo "no" >&6; }
 fi
 
+
+  test -n "$vi_cv_path_python3" && break
+done
 
   if test "X$vi_cv_path_python3" != "X"; then
 
@@ -5782,7 +5831,7 @@ else
     /* If this program fails, then RTLD_GLOBAL is needed.
      * RTLD_GLOBAL will be used and then it is not possible to
      * have both python versions enabled in the same vim instance.
-     * Only the first pyhton version used will be switched on.
+     * Only the first python version used will be switched on.
      */
 
     int no_rtl_global_needed_for(char *python_instsoname, char *prefix)
@@ -5848,7 +5897,7 @@ else
     /* If this program fails, then RTLD_GLOBAL is needed.
      * RTLD_GLOBAL will be used and then it is not possible to
      * have both python versions enabled in the same vim instance.
-     * Only the first pyhton version used will be switched on.
+     * Only the first python version used will be switched on.
      */
 
     int no_rtl_global_needed_for(char *python_instsoname, wchar_t *prefix)
@@ -7607,7 +7656,11 @@ fi
         { $as_echo "$as_me:${as_lineno-$LINENO}: checking if X11 header files implicitly declare return values" >&5
 $as_echo_n "checking if X11 header files implicitly declare return values... " >&6; }
     cflags_save=$CFLAGS
-    CFLAGS="$CFLAGS $X_CFLAGS -Werror"
+        if test "$GCC" = yes; then
+      CFLAGS="$CFLAGS $X_CFLAGS -Werror"
+    else
+      CFLAGS="$CFLAGS $X_CFLAGS"
+    fi
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <X11/Xlib.h>
@@ -8806,6 +8859,27 @@ fi
 
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for CYGWIN environment" >&5
+$as_echo_n "checking for CYGWIN environment... " >&6; }
+case `uname` in
+    CYGWIN*)    CYGWIN=yes; { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CYGWIN clipboard support" >&5
+$as_echo_n "checking for CYGWIN clipboard support... " >&6; }
+                if test "x$with_x" = "xno" ; then
+                  OS_EXTRA_SRC=winclip.c; OS_EXTRA_OBJ=objects/winclip.o
+                  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+                  $as_echo "#define FEAT_CYGWIN_WIN32_CLIPBOARD 1" >>confdefs.h
+
+                else
+                  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no - using X11" >&5
+$as_echo "no - using X11" >&6; }
+                fi ;;
+
+    *)          CYGWIN=no; { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; };;
+esac
 
 if test "$enable_hangulinput" = "yes"; then
   if test "x$GUITYPE" = "xNONE"; then
@@ -10519,7 +10593,7 @@ if test "x$vim_cv_tty_group" != "xworld" ; then
 _ACEOF
 
   if test "x$vim_cv_tty_mode" = "x" ; then
-    as_fn_error "It seems you're cross compiling and have 'vim_cv_tty_group' set, please also set the environment variable 'vim_cv_tty_mode' to the correct mode (propably 0620)" "$LINENO" 5
+    as_fn_error "It seems you're cross compiling and have 'vim_cv_tty_group' set, please also set the environment variable 'vim_cv_tty_mode' to the correct mode (probably 0620)" "$LINENO" 5
   else
     $as_echo "#define PTYMODE 0620" >>confdefs.h
 

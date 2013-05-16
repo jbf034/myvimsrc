@@ -398,7 +398,7 @@ shift_block(oap, amount)
 #ifdef FEAT_RIGHTLEFT
     int			old_p_ri = p_ri;
 
-    p_ri = 0;			/* don't want revins in ident */
+    p_ri = 0;			/* don't want revins in indent */
 #endif
 
     State = INSERT;		/* don't want REPLACE for State */
@@ -1016,6 +1016,19 @@ put_register(name, reg)
     /* Send text written to clipboard register to the clipboard. */
     may_set_selection();
 # endif
+}
+
+    void
+free_register(reg)
+    void	*reg;
+{
+    struct yankreg tmp;
+
+    tmp = *y_current;
+    *y_current = *(struct yankreg *)reg;
+    free_yank_all();
+    vim_free(reg);
+    *y_current = tmp;
 }
 #endif
 
@@ -2194,7 +2207,8 @@ op_replace(oap, c)
 		{
 		    /* This is slow, but it handles replacing a single-byte
 		     * with a multi-byte and the other way around. */
-		    oap->end.col += (*mb_char2len)(c) - (*mb_char2len)(n);
+		    if (curwin->w_cursor.lnum == oap->end.lnum)
+			oap->end.col += (*mb_char2len)(c) - (*mb_char2len)(n);
 		    n = State;
 		    State = REPLACE;
 		    ins_char(c);
@@ -3350,6 +3364,12 @@ do_put(regname, dir, count, flags)
 	if (insert_string == NULL)
 	    return;
     }
+
+#ifdef FEAT_AUTOCMD
+    /* Autocommands may be executed when saving lines for undo, which may make
+     * y_array invalid.  Start undo now to avoid that. */
+    u_save(curwin->w_cursor.lnum, curwin->w_cursor.lnum + 1);
+#endif
 
     if (insert_string != NULL)
     {
@@ -5822,6 +5842,8 @@ x11_export_final_selection()
 					       && len < 1024*1024 && len > 0)
     {
 #ifdef FEAT_MBYTE
+	int ok = TRUE;
+
 	/* The CUT_BUFFER0 is supposed to always contain latin1.  Convert from
 	 * 'enc' when it is a multi-byte encoding.  When 'enc' is an 8-bit
 	 * encoding conversion usually doesn't work, so keep the text as-is.
@@ -5836,6 +5858,7 @@ x11_export_final_selection()
 		int	intlen = len;
 		char_u	*conv_str;
 
+		vc.vc_fail = TRUE;
 		conv_str = string_convert(&vc, str, &intlen);
 		len = intlen;
 		if (conv_str != NULL)
@@ -5843,12 +5866,26 @@ x11_export_final_selection()
 		    vim_free(str);
 		    str = conv_str;
 		}
+		else
+		{
+		    ok = FALSE;
+		}
 		convert_setup(&vc, NULL, NULL);
 	    }
+	    else
+	    {
+		ok = FALSE;
+	    }
 	}
+
+	/* Do not store the string if conversion failed.  Better to use any
+	 * other selection than garbled text. */
+	if (ok)
 #endif
-	XStoreBuffer(dpy, (char *)str, (int)len, 0);
-	XFlush(dpy);
+	{
+	    XStoreBuffer(dpy, (char *)str, (int)len, 0);
+	    XFlush(dpy);
+	}
     }
 
     vim_free(str);

@@ -6,7 +6,7 @@
 #  FIRST AUTHOR  DindinX         <David.Odin@bigfoot.com>     2000.
 # SECOND AUTHOR  Adrien Beau     <version.francaise@free.fr>  2002, 2003.
 #  THIRD AUTHOR  David Blanchet  <david.blanchet@free.fr>     2006, 2008.
-# FOURTH AUTHOR  Dominique Pellé <dominique.pelle@gmail.com>  2008, 2011.
+# FOURTH AUTHOR  Dominique Pellé <dominique.pelle@gmail.com>  2008, 2013.
 #
 # Latest translation available at:
 #   http://dominique.pelle.free.fr/vim-fr.php
@@ -15,8 +15,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim(Français)\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-01-22 15:37+0100\n"
-"PO-Revision-Date: 2012-01-22 15:40+0100\n"
+"POT-Creation-Date: 2013-02-10 14:05+0100\n"
+"PO-Revision-Date: 2013-02-10 14:48+0100\n"
 "Last-Translator: Dominique Pellé <dominique.pelle@gmail.com>\n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -45,6 +45,9 @@ msgstr "[Liste des emplacements]"
 
 msgid "[Quickfix List]"
 msgstr "[Liste Quickfix]"
+
+msgid "E855: Autocommands caused command to abort"
+msgstr "E855: Des autocommandes ont causé la termination de la commande"
 
 # AB - Il faut respecter l'esprit plus que la lettre.
 msgid "E82: Cannot allocate any buffer, exiting..."
@@ -1518,8 +1521,8 @@ msgid "unknown"
 msgstr "inconnu"
 
 #, c-format
-msgid "E185: Cannot find color scheme %s"
-msgstr "E185: Impossible de trouver le jeu de couleurs %s"
+msgid "E185: Cannot find color scheme '%s'"
+msgstr "E185: Impossible de trouver le jeu de couleurs '%s'"
 
 msgid "Greetings, Vim user!"
 msgstr "Bienvenue, utilisateur de Vim !"
@@ -2845,6 +2848,9 @@ msgstr "impossible d'insérer la ligne"
 msgid "string cannot contain newlines"
 msgstr "une chaîne ne peut pas contenir de saut-de-ligne"
 
+msgid "error converting Scheme values to Vim"
+msgstr "erreur lors de la conversion d'une valeur de Scheme à Vim"
+
 msgid "Vim error: ~a"
 msgstr "Erreur Vim : ~a"
 
@@ -2866,6 +2872,9 @@ msgstr "non autorisé dans le bac à sable"
 msgid "E836: This Vim cannot execute :python after using :py3"
 msgstr "E836: Vim ne peut pas exécuter :python après avoir utilisé :py3"
 
+msgid "only string keys are allowed"
+msgstr "seule une chaine est autorisée comme clé"
+
 msgid ""
 "E263: Sorry, this command is disabled, the Python library could not be "
 "loaded."
@@ -2876,14 +2885,11 @@ msgstr ""
 msgid "E659: Cannot invoke Python recursively"
 msgstr "E659: Impossible d'invoquer Python récursivement"
 
-msgid "can't delete OutputObject attributes"
-msgstr "impossible d'effacer les attributs d'OutputObject"
+msgid "E858: Eval did not return a valid python object"
+msgstr "E858: Eval n'a pas retourné un objet python valide"
 
-msgid "softspace must be an integer"
-msgstr "softspace doit être un nombre entier"
-
-msgid "invalid attribute"
-msgstr "attribut invalide"
+msgid "E859: Failed to convert returned python object to vim value"
+msgstr "E859: Conversion d'objet python à une valeur de vim a échoué"
 
 #, c-format
 msgid "<buffer object (deleted) at %p>"
@@ -2891,6 +2897,12 @@ msgstr "<objet tampon (effacé) à %p>"
 
 msgid "E837: This Vim cannot execute :py3 after using :python"
 msgstr "E837: Vim ne peut pas exécuter :py3 après avoir utilisé :python"
+
+msgid "E860: Eval did not return a valid python 3 object"
+msgstr "E860: Eval n'a pas retourné un object python 3 valid"
+
+msgid "E861: Failed to convert returned python 3 object to vim value"
+msgstr "E861: Conversion d'objet python 3 à une valeur de vim a échoué"
 
 msgid "E265: $_ must be an instance of String"
 msgstr "E265: $_ doit être une instance de chaîne (String)"
@@ -3080,11 +3092,6 @@ msgstr ""
 "E571: Désolé, commande désactivée: la bibliothèque Tcl n'a pas pu être "
 "chargée."
 
-msgid ""
-"E281: TCL ERROR: exit code is not int!? Please report this to vim-dev@vim.org"
-msgstr ""
-"E281: ERREUR TCL: code de sortie non entier ?! Contactez vim-dev@vim.org, SVP"
-
 #, c-format
 msgid "E572: exit code %d"
 msgstr "E572: code de sortie %d"
@@ -3167,7 +3174,7 @@ msgid ""
 "More info with: \"vim -h\"\n"
 msgstr ""
 "\n"
-"Plus d'info avec: \"vim -h\"\n"
+"Plus d'info avec : \"vim -h\"\n"
 
 msgid "[file ..]       edit specified file(s)"
 msgstr "[fichier ...]  ouvrir le ou les fichiers spécifiés"
@@ -3243,6 +3250,9 @@ msgstr "-v\t\tMode Vi (comme \"vi\")"
 
 msgid "-e\t\t\tEx mode (like \"ex\")"
 msgstr "-e\t\tMode Ex (comme \"ex\")"
+
+msgid "-E\t\t\tImproved Ex mode"
+msgstr "-E\t\t\tMode Ex amélioré"
 
 msgid "-s\t\t\tSilent (batch) mode (only for \"ex\")"
 msgstr "-s\t\tMode silencieux (batch) (seulement pour \"ex\")"
@@ -3500,6 +3510,9 @@ msgstr "--role <rôle>\tDonner un rôle pour identifier la fenêtre principale"
 
 msgid "--socketid <xid>\tOpen Vim inside another GTK widget"
 msgstr "--socketid <xid>\tOuvrir Vim dans un autre widget GTK"
+
+msgid "--echo-wid\t\tMake gvim echo the Window ID on stdout"
+msgstr "--echo-wid\t\tGvim affiche l'ID de la fenêtre sur stdout"
 
 msgid "-P <parent title>\tOpen Vim inside parent application"
 msgstr "-P <titre parent>\tOuvrir Vim dans une application parente"
@@ -6813,6 +6826,15 @@ msgstr "La recherche a atteint le BAS, et continue en HAUT"
 msgid "Need encryption key for \"%s\""
 msgstr "Besoin de la clé de chiffrement pour \"%s\""
 
+msgid "can't delete OutputObject attributes"
+msgstr "impossible d'effacer les attributs d'OutputObject"
+
+msgid "softspace must be an integer"
+msgstr "softspace doit être un nombre entier"
+
+msgid "invalid attribute"
+msgstr "attribut invalide"
+
 msgid "writelines() requires list of strings"
 msgstr "writelines() requiert une liste de chaînes"
 
@@ -6820,7 +6842,61 @@ msgid "E264: Python: Error initialising I/O objects"
 msgstr "E264: Python : Erreur d'initialisation des objets d'E/S"
 
 msgid "no such buffer"
-msgstr "Ce tampon n'existe pas"
+msgstr "ce tampon n'existe pas"
+
+msgid "empty keys are not allowed"
+msgstr "les clés vides ne sont pas autorisées"
+
+msgid "failed to add key to dictionary"
+msgstr "l'ajout de clé au dictionnaire a échoué"
+
+msgid "Cannot delete DictionaryObject attributes"
+msgstr "Impossible d'effacer les attributs de DictionaryObject"
+
+msgid "Cannot modify fixed dictionary"
+msgstr "Impossible de modifier un dictionnaire fixe"
+
+msgid "Only boolean objects are allowed"
+msgstr "Seuls les objets booléens sont autorisés"
+
+msgid "Cannot set this attribute"
+msgstr "Impossible d'initialiser cet attribut"
+
+msgid "no such key in dictionary"
+msgstr "cette clé est inexistante dans le dictionnaire"
+
+msgid "dict is locked"
+msgstr "dictionnaire est verrouillé"
+
+msgid "internal error: failed to get vim list item"
+msgstr "erreur interne : accès à un élément de liste a échoué"
+
+msgid "list is locked"
+msgstr "liste verrouillée"
+
+msgid "Failed to add item to list"
+msgstr "Ajout à la liste a échoué"
+
+msgid "internal error: no vim list item"
+msgstr "erreur interne : pas d'élément de liste vim"
+
+msgid "can only assign lists to slice"
+msgstr "seules des tranches peuvent être assignées aux listes"
+
+msgid "internal error: failed to add item to list"
+msgstr "erreur interne : ajout d'élément à la liste a échoué"
+
+msgid "can only concatenate with lists"
+msgstr "on ne peut que concaténer avec des listes"
+
+msgid "Cannot modify fixed list"
+msgstr "Impossible de modifier une liste fixe"
+
+msgid "'self' argument must be a dictionary"
+msgstr "l'argument 'self' doit être un dictionnaire"
+
+msgid "failed to run function"
+msgstr "exécution de la fonction a échoué"
 
 msgid "attempt to refer to deleted window"
 msgstr "tentative de référencer une fenêtre effacée"
@@ -6849,25 +6925,11 @@ msgstr "Cette fenêtre n'existe pas"
 msgid "attempt to refer to deleted buffer"
 msgstr "tentative de référencer un tampon effacé"
 
-#~ msgid ""
-#~ "\n"
-#~ "Arguments recognised by gvim (RISC OS version):\n"
-#~ msgstr ""
-#~ "\n"
-#~ "Arguments reconnus par gvim (version RISC OS) :\n"
+msgid "unable to convert to vim structure"
+msgstr "conversion à une structure vim impossible"
 
-#~ msgid "--columns <number>\tInitial width of window in columns"
-#~ msgstr "--columns <nombre>\tNombre de colonnes initial de la fenêtre"
+msgid "NULL reference passed"
+msgstr "référence NULL passée"
 
-#~ msgid "--rows <number>\tInitial height of window in rows"
-#~ msgstr "--rows <nombre>\tNombre de lignes initial de la fenêtre"
-
-#~ msgid ""
-#~ "\n"
-#~ "RISC OS version"
-#~ msgstr ""
-#~ "\n"
-#~ "Version RISC OS"
-
-#~ msgid "E505: "
-#~ msgstr "E505: "
+msgid "internal error: invalid value type"
+msgstr "erreur interne : type de valeur invalide"

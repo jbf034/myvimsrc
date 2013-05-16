@@ -198,11 +198,17 @@ static BalloonEval  *cur_beval = NULL;
 static UINT_PTR	    BevalTimerId = 0;
 static DWORD	    LastActivity = 0;
 
+
+/* cproto fails on missing include files */
+#ifndef PROTO
+
 /*
  * excerpts from headers since this may not be presented
  * in the extremely old compilers
  */
-#include <pshpack1.h>
+# include <pshpack1.h>
+
+#endif
 
 typedef struct _DllVersionInfo
 {
@@ -213,7 +219,9 @@ typedef struct _DllVersionInfo
     DWORD dwPlatformID;
 } DLLVERSIONINFO;
 
-#include <poppack.h>
+#ifndef PROTO
+# include <poppack.h>
+#endif
 
 typedef struct tagTOOLINFOA_NEW
 {
@@ -1250,7 +1258,7 @@ gui_mch_prepare(int *argc, char **argv)
 
 #ifdef FEAT_NETBEANS_INTG
     {
-	/* stolen from gui_x11.x */
+	/* stolen from gui_x11.c */
 	int arg;
 
 	for (arg = 1; arg < *argc; arg++)
@@ -1606,7 +1614,7 @@ gui_mch_init(void)
 #endif
 
 #ifdef FEAT_EVAL
-# if _MSC_VER < 1400
+# ifndef HandleToLong
 /* HandleToLong() only exists in compilers that can do 64 bit builds */
 #  define HandleToLong(h) ((long)(h))
 # endif
@@ -1668,7 +1676,7 @@ gui_mch_set_shellsize(int width, int height,
      * used by the taskbar or appbars. */
     get_work_area(&workarea_rect);
 
-    /* Get current posision of our window.  Note that the .left and .top are
+    /* Get current position of our window.  Note that the .left and .top are
      * relative to the work area.  */
     wndpl.length = sizeof(WINDOWPLACEMENT);
     GetWindowPlacement(s_hwnd, &wndpl);
@@ -3092,7 +3100,7 @@ gui_mch_dialog(
 	return -1;
 
     /*
-     * make a copy of 'buttons' to fiddle with it.  complier grizzles because
+     * make a copy of 'buttons' to fiddle with it.  compiler grizzles because
      * vim_strsave() doesn't take a const arg (why not?), so cast away the
      * const.
      */
@@ -4383,7 +4391,7 @@ gui_mch_register_sign(signfile)
     }
 
     sign.hImage = NULL;
-    ext = signfile + STRLEN(signfile) - 4; /* get extention */
+    ext = signfile + STRLEN(signfile) - 4; /* get extension */
     if (ext > signfile)
     {
 	int do_load = 1;

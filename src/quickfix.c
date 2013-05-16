@@ -2085,7 +2085,7 @@ qf_age(eap)
 	    if (qi->qf_curlist == 0)
 	    {
 		EMSG(_("E380: At bottom of quickfix stack"));
-		return;
+		break;
 	    }
 	    --qi->qf_curlist;
 	}
@@ -2094,13 +2094,12 @@ qf_age(eap)
 	    if (qi->qf_curlist >= qi->qf_listcount - 1)
 	    {
 		EMSG(_("E381: At top of quickfix stack"));
-		return;
+		break;
 	    }
 	    ++qi->qf_curlist;
 	}
     }
     qf_msg(qi);
-
 }
 
     static void
@@ -2124,13 +2123,23 @@ qf_free(qi, idx)
     int		idx;
 {
     qfline_T	*qfp;
+    int		stop = FALSE;
 
     while (qi->qf_lists[idx].qf_count)
     {
 	qfp = qi->qf_lists[idx].qf_start->qf_next;
-	vim_free(qi->qf_lists[idx].qf_start->qf_text);
-	vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
-	vim_free(qi->qf_lists[idx].qf_start);
+	if (qi->qf_lists[idx].qf_title != NULL && !stop)
+	{
+	    vim_free(qi->qf_lists[idx].qf_start->qf_text);
+	    stop = (qi->qf_lists[idx].qf_start == qfp);
+	    vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
+	    vim_free(qi->qf_lists[idx].qf_start);
+	    if (stop)
+		/* Somehow qf_count may have an incorrect value, set it to 1
+		 * to avoid crashing when it's wrong.
+		 * TODO: Avoid qf_count being incorrect. */
+		qi->qf_lists[idx].qf_count = 1;
+	}
 	qi->qf_lists[idx].qf_start = qfp;
 	--qi->qf_lists[idx].qf_count;
     }
@@ -2340,8 +2349,10 @@ ex_copen(eap)
 	/* The current window becomes the previous window afterwards. */
 	win = curwin;
 
-	if (eap->cmdidx == CMD_copen || eap->cmdidx == CMD_cwindow)
-	    /* Create the new window at the very bottom. */
+	if ((eap->cmdidx == CMD_copen || eap->cmdidx == CMD_cwindow)
+		&& cmdmod.split == 0)
+	    /* Create the new window at the very bottom, except when
+	     * :belowright or :aboveleft is used. */
 	    win_goto(lastwin);
 	if (win_split(height, WSP_BELOW | WSP_NEWLOC) == FAIL)
 	    return;		/* not enough room for window */
@@ -3097,6 +3108,9 @@ ex_vimgrep(eap)
     char_u	*p;
     int		fi;
     qf_info_T	*qi = &ql_info;
+#ifdef FEAT_AUTOCMD
+    qfline_T	*cur_qf_start;
+#endif
     qfline_T	*prevp = NULL;
     long	lnum;
     buf_T	*buf;
@@ -3164,7 +3178,20 @@ ex_vimgrep(eap)
 	EMSG(_(e_invalpat));
 	goto theend;
     }
-    regmatch.regprog = vim_regcomp(s, RE_MAGIC);
+
+    if (s != NULL && *s == NUL)
+    {
+	/* Pattern is empty, use last search pattern. */
+	if (last_search_pat() == NULL)
+	{
+	    EMSG(_(e_noprevre));
+	    goto theend;
+	}
+	regmatch.regprog = vim_regcomp(last_search_pat(), RE_MAGIC);
+    }
+    else
+	regmatch.regprog = vim_regcomp(s, RE_MAGIC);
+
     if (regmatch.regprog == NULL)
 	goto theend;
     regmatch.rmm_ic = p_ic;
@@ -3205,6 +3232,12 @@ ex_vimgrep(eap)
     /* Remember the current directory, because a BufRead autocommand that does
      * ":lcd %:p:h" changes the meaning of short path names. */
     mch_dirname(dirname_start, MAXPATHL);
+
+#ifdef FEAT_AUTOCMD
+     /* Remember the value of qf_start, so that we can check for autocommands
+      * changing the current quickfix list. */
+    cur_qf_start = qi->qf_lists[qi->qf_curlist].qf_start;
+#endif
 
     seconds = (time_t)0;
     for (fi = 0; fi < fcount && !got_int && tomatch > 0; ++fi)
@@ -3261,6 +3294,28 @@ ex_vimgrep(eap)
 	    /* Use existing, loaded buffer. */
 	    using_dummy = FALSE;
 
+#ifdef FEAT_AUTOCMD
+	if (cur_qf_start != qi->qf_lists[qi->qf_curlist].qf_start)
+	{
+	    int idx;
+
+	    /* Autocommands changed the quickfix list.  Find the one we were
+	     * using and restore it. */
+	    for (idx = 0; idx < LISTCOUNT; ++idx)
+		if (cur_qf_start == qi->qf_lists[idx].qf_start)
+		{
+		    qi->qf_curlist = idx;
+		    break;
+		}
+	    if (idx == LISTCOUNT)
+	    {
+		/* List cannot be found, create a new one. */
+		qf_new_list(qi, *eap->cmdlinep);
+		cur_qf_start = qi->qf_lists[qi->qf_curlist].qf_start;
+	    }
+	}
+#endif
+
 	if (buf == NULL)
 	{
 	    if (!got_int)
@@ -3312,6 +3367,9 @@ ex_vimgrep(eap)
 		if (got_int)
 		    break;
 	    }
+#ifdef FEAT_AUTOCMD
+	    cur_qf_start = qi->qf_lists[qi->qf_curlist].qf_start;
+#endif
 
 	    if (using_dummy)
 	    {
@@ -3510,6 +3568,7 @@ restore_start_dir(dirname_start)
 	    ea.cmdidx = (curwin->w_localdir == NULL) ? CMD_cd : CMD_lcd;
 	    ex_cd(&ea);
 	}
+	vim_free(dirname_now);
     }
 }
 
