@@ -1007,7 +1007,7 @@
 
 /*
  * MODIFIED_BY		Name of who modified Vim.  Required when distributing
- *			a modifed version of Vim.
+ *			a modified version of Vim.
  *			Also from the "--with-modified-by" configure argument.
  */
 /* #define MODIFIED_BY "John Doe" */
@@ -1088,6 +1088,13 @@
 # endif
 #endif
 
+/*
+ * Note: Only one of the following may be defined:
+ * FEAT_MOUSE_GPM
+ * FEAT_SYSMOUSE
+ * FEAT_MOUSE_JSB
+ * FEAT_MOUSE_PTERM
+ */
 #if defined(FEAT_NORMAL) && defined(HAVE_GPM)
 # define FEAT_MOUSE_GPM
 #endif

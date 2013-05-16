@@ -88,6 +88,14 @@
 # define rb_int2big rb_int2big_stub
 #endif
 
+#if defined(DYNAMIC_RUBY_VER) && DYNAMIC_RUBY_VER >= 20 \
+	&& SIZEOF_INT < SIZEOF_LONG
+/* Ruby 2.0 defines a number of static functions which use rb_fix2int and
+ * rb_num2int if SIZEOF_INT < SIZEOF_LONG (64bit) */
+# define rb_fix2int rb_fix2int_stub
+# define rb_num2int rb_num2int_stub
+#endif
+
 #include <ruby.h>
 #ifdef RUBY19_OR_LATER
 # include <ruby/encoding.h>
@@ -105,7 +113,7 @@
 #endif
 
 /*
- * Backward compatiblity for Ruby 1.8 and earlier.
+ * Backward compatibility for Ruby 1.8 and earlier.
  * Ruby 1.9 does not provide STR2CSTR, instead StringValuePtr is provided.
  * Ruby 1.9 does not provide RXXX(s)->len and RXXX(s)->ptr, instead
  * RXXX_LEN(s) and RXXX_PTR(s) are provided.
@@ -352,6 +360,17 @@ VALUE rb_int2big_stub(SIGNED_VALUE x)
 {
     return dll_rb_int2big(x);
 }
+#if defined(DYNAMIC_RUBY_VER) && DYNAMIC_RUBY_VER >= 20 \
+	&& SIZEOF_INT < SIZEOF_LONG
+long rb_fix2int_stub(VALUE x)
+{
+    return dll_rb_fix2int(x);
+}
+long rb_num2int_stub(VALUE x)
+{
+    return dll_rb_num2int(x);
+}
+#endif
 #if defined(DYNAMIC_RUBY_VER) && DYNAMIC_RUBY_VER >= 20
 VALUE
 rb_float_new_in_heap(double d)
@@ -1314,7 +1333,7 @@ static void ruby_vim_init(void)
     rb_global_variable(&objtbl);
 
     /* The Vim module used to be called "VIM", but "Vim" is better.  Make an
-     * alias "VIM" for backwards compatiblity. */
+     * alias "VIM" for backwards compatibility. */
     mVIM = rb_define_module("Vim");
     rb_define_const(rb_cObject, "VIM", mVIM);
     rb_define_const(mVIM, "VERSION_MAJOR", INT2NUM(VIM_VERSION_MAJOR));

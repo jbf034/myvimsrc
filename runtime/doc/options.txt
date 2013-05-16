@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.3.  Last change: 2013 Mar 19
+*options.txt*	For Vim version 7.3.  Last change: 2013 Apr 27
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -277,8 +277,10 @@ Now the 'list' option is not set, because ":set nolist" resets the global
 value, ":setlocal list" only changes the local value and ":e two" gets the
 global value.  Note that if you do this next: >
 	:e one
-You will not get back the 'list' value as it was the last time you edited
-"one".  The options local to a window are not remembered for each buffer.
+You will get back the 'list' value as it was the last time you edited "one".
+The options local to a window are remembered for each buffer.  This also
+happens when the buffer is not loaded, but they are lost when the buffer is
+wiped out |:bwipe|.
 
 							*:setl* *:setlocal*
 :setl[ocal] ...		Like ":set" but set only the value local to the
@@ -701,7 +703,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	Vim may set this option automatically at startup time when Vim is
 	compiled with the |+termresponse| feature and if |t_u7| is set to the
-	sescape sequense to request cursor position report.
+	escape sequence to request cursor position report.
 
 			*'antialias'* *'anti'* *'noantialias'* *'noanti'*
 'antialias' 'anti'	boolean (default: off)
@@ -2872,7 +2874,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	See |file-formats| and |file-read|.
 	For the character encoding of the file see 'fileencoding'.
 	When 'binary' is set, the value of 'fileformat' is ignored, file I/O
-	works like it was set to "unix'.
+	works like it was set to "unix".
 	This option is set automatically when starting to edit a file and
 	'fileformats' is not empty and 'binary' is off.
 	When this option is set, after starting to edit a file, the 'modified'
@@ -2941,9 +2943,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	NOTE: This option is set to the Vi default value when 'compatible' is
 	set and to the Vim default value when 'compatible' is reset.
 
-			*'fileignorecase'* *'wic'* *'nofileignorecase'* *'nowic'*
-'fileignorecase' 'wic'	boolean	(default on for systems where case in file
-				 names is normally ignored.
+		*'fileignorecase'* *'fic'* *'nofileignorecase'* *'nofic'*
+'fileignorecase' 'fic'	boolean	(default on for systems where case in file
+				 names is normally ignored)
 			global
 			{not in Vi}
 	When set case is ignored when using file names and directories.
