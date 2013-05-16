@@ -1215,7 +1215,7 @@ typedef struct {
 #ifdef FEAT_SYN_HL
     hashtab_T	b_keywtab;		/* syntax keywords hash table */
     hashtab_T	b_keywtab_ic;		/* idem, ignore case */
-    int		b_syn_error;		/* TRUE when error occured in HL */
+    int		b_syn_error;		/* TRUE when error occurred in HL */
     int		b_syn_ic;		/* ignore case for :syn cmds */
     int		b_syn_spell;		/* SYNSPL_ values */
     garray_T	b_syn_patterns;		/* table for syntax patterns */
@@ -1758,6 +1758,14 @@ struct tabpage_S
 #ifdef FEAT_EVAL
     dictitem_T	    tp_winvar;	    /* variable for "t:" Dictionary */
     dict_T	    *tp_vars;	    /* internal variables, local to tab page */
+#endif
+
+#ifdef FEAT_PYTHON
+    void	    *tp_python_ref;	/* The Python value for this tab page */
+#endif
+
+#ifdef FEAT_PYTHON3
+    void	    *tp_python3_ref;	/* The Python value for this tab page */
 #endif
 };
 

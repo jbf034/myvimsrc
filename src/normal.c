@@ -1504,11 +1504,14 @@ do_pending_operator(cap, old_col, gui_yank)
 	}
 #endif
 
-	/* only redo yank when 'y' flag is in 'cpoptions' */
-	/* never redo "zf" (define fold) */
+	/* Only redo yank when 'y' flag is in 'cpoptions'. */
+	/* Never redo "zf" (define fold). */
 	if ((vim_strchr(p_cpo, CPO_YANK) != NULL || oap->op_type != OP_YANK)
 #ifdef FEAT_VISUAL
-		&& (!VIsual_active || oap->motion_force)
+		&& ((!VIsual_active || oap->motion_force)
+		    /* Also redo Operator-pending Visual mode mappings */
+		    || (VIsual_active && cap->cmdchar == ':'
+						 && oap->op_type != OP_COLON))
 #endif
 		&& cap->cmdchar != 'D'
 #ifdef FEAT_FOLDING
@@ -1797,7 +1800,7 @@ do_pending_operator(cap, old_col, gui_yank)
 		    prep_redo(oap->regname, 0L, NUL, cap->cmdchar, cap->nchar,
 					get_op_char(oap->op_type),
 					get_extra_op_char(oap->op_type));
-		else
+		else if (cap->cmdchar != ':')
 		    prep_redo(oap->regname, 0L, NUL, 'v',
 					get_op_char(oap->op_type),
 					get_extra_op_char(oap->op_type),
@@ -2510,7 +2513,7 @@ do_mouse(oap, c, dir, count, fixindent)
 
 #ifndef FEAT_VISUAL
     /*
-     * ALT is only used for starging/extending Visual mode.
+     * ALT is only used for starting/extending Visual mode.
      */
     if ((mod_mask & MOD_MASK_ALT))
 	return FALSE;
@@ -5081,7 +5084,7 @@ dozet:
 		}
 		break;
 
-		/* "zE": erease all folds */
+		/* "zE": erase all folds */
     case 'E':	if (foldmethodIsManual(curwin))
 		{
 		    clearFolding(curwin);
@@ -7462,7 +7465,7 @@ v_visop(cap)
     static char_u trans[] = "YyDdCcxdXdAAIIrr";
 
     /* Uppercase means linewise, except in block mode, then "D" deletes till
-     * the end of the line, and "C" replaces til EOL */
+     * the end of the line, and "C" replaces till EOL */
     if (isupper(cap->cmdchar))
     {
 	if (VIsual_mode != Ctrl_V)
@@ -8801,7 +8804,7 @@ nv_wordcmd(cap)
 		 * at first, but it's really more what we mean when we say
 		 * 'cw'.
 		 * Another strangeness: When standing on the end of a word
-		 * "ce" will change until the end of the next wordt, but "cw"
+		 * "ce" will change until the end of the next word, but "cw"
 		 * will change only one character! This is done by setting
 		 * flag.
 		 */
@@ -9147,7 +9150,7 @@ nv_edit(cap)
 		{
 		    int save_State = State;
 
-		    /* Pretent Insert mode here to allow the cursor on the
+		    /* Pretend Insert mode here to allow the cursor on the
 		     * character past the end of the line */
 		    State = INSERT;
 		    coladvance((colnr_T)MAXCOL);
@@ -9186,7 +9189,7 @@ nv_edit(cap)
 	{
 	    int save_State = State;
 
-	    /* Pretent Insert mode here to allow the cursor on the
+	    /* Pretend Insert mode here to allow the cursor on the
 	     * character past the end of the line */
 	    State = INSERT;
 	    coladvance(getviscol());
