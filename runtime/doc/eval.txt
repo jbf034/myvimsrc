@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2013 May 06
+*eval.txt*	For Vim version 7.3.  Last change: 2013 May 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1171,7 +1171,7 @@ b:changedtick	The total number of changes to the current buffer.  It is
 A variable name that is preceded with "w:" is local to the current window.  It
 is deleted when the window is closed.
 
-						*tabpage-variable* *t:var*
+						*tabpage-variable* *t:var* *t:*
 A variable name that is preceded with "t:" is local to the current tab page,
 It is deleted when the tab page is closed. {not available when compiled
 without the |+windows| feature}
@@ -1297,7 +1297,7 @@ v:beval_winnr	The number of the window, over which the mouse pointer is. Only
 					*v:char* *char-variable*
 v:char		Argument for evaluating 'formatexpr' and used for the typed
 		character when using <expr> in an abbreviation |:map-<expr>|.
-		It is also used by the |InsertCharPre| event.
+		It is also used by the |InsertCharPre| and |InsertEnter| events.
 
 			*v:charconvert_from* *charconvert_from-variable*
 v:charconvert_from
@@ -4639,7 +4639,7 @@ pumvisible()						*pumvisible()*
 		This can be used to avoid some things that would remove the
 		popup menu.
 
-							*E860* *E861*
+							*E860*
 py3eval({expr})						*py3eval()*
 		Evaluate Python expression {expr} and return its result
 		converted to Vim data structures.
