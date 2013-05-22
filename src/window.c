@@ -2124,7 +2124,9 @@ close_last_window_tabpage(win, free_buf, prev_curtab)
 {
     if (firstwin == lastwin)
     {
+#ifdef FEAT_AUTOCMD
 	buf_T	*old_curbuf = curbuf;
+#endif
 
 	/*
 	 * Closing the last window in a tab page.  First go to another tab
@@ -3510,6 +3512,15 @@ free_tabpage(tp)
     hash_init(&tp->tp_vars->dv_hashtab);
     unref_var_dict(tp->tp_vars);
 #endif
+
+#ifdef FEAT_PYTHON
+    python_tabpage_free(tp);
+#endif
+
+#ifdef FEAT_PYTHON3
+    python3_tabpage_free(tp);
+#endif
+
     vim_free(tp);
 }
 
@@ -4044,6 +4055,26 @@ win_find_nr(winnr)
 # else
     return curwin;
 # endif
+}
+#endif
+
+#if (defined(FEAT_WINDOWS) && (defined(FEAT_PYTHON) || defined(FEAT_PYTHON3))) \
+	|| defined(PROTO)
+/*
+ * Find the tabpage for window "win".
+ */
+    tabpage_T *
+win_find_tabpage(win)
+    win_T	*win;
+{
+    win_T	*wp;
+    tabpage_T	*tp;
+
+    for (tp = first_tabpage; tp != NULL; tp = tp->tp_next)
+	for (wp = tp->tp_firstwin; wp != NULL; wp = wp->w_next)
+	    if (wp == win)
+		return tp;
+    return NULL;
 }
 #endif
 
@@ -6539,6 +6570,105 @@ restore_snapshot_rec(sn, fr)
 
 #endif
 
+#if defined(FEAT_EVAL) || defined(PROTO)
+/*
+ * Set "win" to be the curwin and "tp" to be the current tab page.
+ * restore_win() MUST be called to undo.
+ * No autocommands will be executed.
+ * Returns FAIL if switching to "win" failed.
+ */
+    int
+switch_win(save_curwin, save_curtab, win, tp)
+    win_T	**save_curwin;
+    tabpage_T	**save_curtab;
+    win_T	*win;
+    tabpage_T	*tp;
+{
+# ifdef FEAT_AUTOCMD
+    block_autocmds();
+# endif
+# ifdef FEAT_WINDOWS
+    *save_curwin = curwin;
+    if (tp != NULL)
+    {
+	*save_curtab = curtab;
+	goto_tabpage_tp(tp, FALSE, FALSE);
+    }
+    if (!win_valid(win))
+    {
+# ifdef FEAT_AUTOCMD
+	unblock_autocmds();
+# endif
+	return FAIL;
+    }
+    curwin = win;
+    curbuf = curwin->w_buffer;
+# endif
+    return OK;
+}
+
+/*
+ * Restore current tabpage and window saved by switch_win(), if still valid.
+ */
+    void
+restore_win(save_curwin, save_curtab)
+    win_T	*save_curwin;
+    tabpage_T	*save_curtab;
+{
+# ifdef FEAT_WINDOWS
+    if (save_curtab != NULL && valid_tabpage(save_curtab))
+	goto_tabpage_tp(save_curtab, FALSE, FALSE);
+    if (win_valid(save_curwin))
+    {
+	curwin = save_curwin;
+	curbuf = curwin->w_buffer;
+    }
+# endif
+# ifdef FEAT_AUTOCMD
+    unblock_autocmds();
+# endif
+}
+
+/*
+ * Make "buf" the current buffer.  restore_buffer() MUST be called to undo.
+ * No autocommands will be executed.  Use aucmd_prepbuf() if there are any.
+ */
+    void
+switch_buffer(save_curbuf, buf)
+    buf_T *buf;
+    buf_T **save_curbuf;
+{
+# ifdef FEAT_AUTOCMD
+    block_autocmds();
+# endif
+    *save_curbuf = curbuf;
+    --curbuf->b_nwindows;
+    curbuf = buf;
+    curwin->w_buffer = buf;
+    ++curbuf->b_nwindows;
+}
+
+/*
+ * Restore the current buffer after using switch_buffer().
+ */
+    void
+restore_buffer(save_curbuf)
+    buf_T *save_curbuf;
+{
+# ifdef FEAT_AUTOCMD
+    unblock_autocmds();
+# endif
+    /* Check for valid buffer, just in case. */
+    if (buf_valid(save_curbuf))
+    {
+	--curbuf->b_nwindows;
+	curwin->w_buffer = save_curbuf;
+	curbuf = save_curbuf;
+	++curbuf->b_nwindows;
+    }
+}
+#endif
+
 #if (defined(FEAT_GUI) && defined(FEAT_VERTSPLIT)) || defined(PROTO)
 /*
  * Return TRUE if there is any vertically split window.
@@ -6729,5 +6859,37 @@ get_match(wp, id)
     while (cur != NULL && cur->id != id)
 	cur = cur->next;
     return cur;
+}
+#endif
+
+#if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3) || defined(PROTO)
+    int
+get_win_number(win_T *wp, win_T *first_win)
+{
+    int		i = 1;
+    win_T	*w;
+
+    for (w = first_win; w != NULL && w != wp; w = W_NEXT(w))
+	++i;
+
+    if (w == NULL)
+	return 0;
+    else
+	return i;
+}
+
+    int
+get_tab_number(tabpage_T *tp)
+{
+    int		i = 1;
+    tabpage_T	*t;
+
+    for (t = first_tabpage; t != NULL && t != tp; t = t->tp_next)
+	++i;
+
+    if (t == NULL)
+	return 0;
+    else
+	return i;
 }
 #endif

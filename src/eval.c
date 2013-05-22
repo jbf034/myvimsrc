@@ -390,8 +390,6 @@ static char_u *get_lval __ARGS((char_u *name, typval_T *rettv, lval_T *lp, int u
 static void clear_lval __ARGS((lval_T *lp));
 static void set_var_lval __ARGS((lval_T *lp, char_u *endp, typval_T *rettv, int copy, char_u *op));
 static int tv_op __ARGS((typval_T *tv1, typval_T *tv2, char_u  *op));
-static void list_add_watch __ARGS((list_T *l, listwatch_T *lw));
-static void list_rem_watch __ARGS((list_T *l, listwatch_T *lwrem));
 static void list_fix_watch __ARGS((list_T *l, listitem_T *item));
 static void ex_unletlock __ARGS((exarg_T *eap, char_u *argstart, int deep));
 static int do_unlet_var __ARGS((lval_T *lp, char_u *name_end, int forceit));
@@ -3106,7 +3104,7 @@ tv_op(tv1, tv2, op)
 /*
  * Add a watcher to a list.
  */
-    static void
+    void
 list_add_watch(l, lw)
     list_T	*l;
     listwatch_T	*lw;
@@ -3119,7 +3117,7 @@ list_add_watch(l, lw)
  * Remove a watcher from a list.
  * No warning when it isn't found...
  */
-    static void
+    void
 list_rem_watch(l, lwrem)
     list_T	*l;
     listwatch_T	*lwrem;
@@ -11896,7 +11894,7 @@ getwinvar(argvars, rettv, off)
     win_T	*win, *oldcurwin;
     char_u	*varname;
     dictitem_T	*v;
-    tabpage_T	*tp;
+    tabpage_T	*tp, *oldtabpage;
     int		done = FALSE;
 
 #ifdef FEAT_WINDOWS
@@ -11914,11 +11912,9 @@ getwinvar(argvars, rettv, off)
 
     if (win != NULL && varname != NULL)
     {
-	/* Set curwin to be our win, temporarily.  Also set curbuf, so
-	 * that we can get buffer-local options. */
-	oldcurwin = curwin;
-	curwin = win;
-	curbuf = win->w_buffer;
+	/* Set curwin to be our win, temporarily.  Also set the tabpage,
+	 * otherwise the window is not valid. */
+	switch_win(&oldcurwin, &oldtabpage, win, tp);
 
 	if (*varname == '&')	/* window-local-option */
 	{
@@ -11938,8 +11934,7 @@ getwinvar(argvars, rettv, off)
 	}
 
 	/* restore previous notion of curwin */
-	curwin = oldcurwin;
-	curbuf = curwin->w_buffer;
+	restore_win(oldcurwin, oldtabpage);
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -16641,44 +16636,6 @@ f_setwinvar(argvars, rettv)
     typval_T	*rettv;
 {
     setwinvar(argvars, rettv, 0);
-}
-
-    int
-switch_win(save_curwin, save_curtab, win, tp)
-    win_T	**save_curwin;
-    tabpage_T	**save_curtab;
-    win_T	*win;
-    tabpage_T	*tp;
-{
-#ifdef FEAT_WINDOWS
-    /* set curwin to be our win, temporarily */
-    *save_curwin = curwin;
-    *save_curtab = curtab;
-    goto_tabpage_tp(tp, FALSE, FALSE);
-    if (!win_valid(win))
-	return FAIL;
-    curwin = win;
-    curbuf = curwin->w_buffer;
-#endif
-    return OK;
-}
-
-    void
-restore_win(save_curwin, save_curtab)
-    win_T	*save_curwin;
-    tabpage_T	*save_curtab;
-{
-#ifdef FEAT_WINDOWS
-    /* Restore current tabpage and window, if still valid (autocommands can
-     * make them invalid). */
-    if (valid_tabpage(save_curtab))
-	goto_tabpage_tp(save_curtab, FALSE, FALSE);
-    if (win_valid(save_curwin))
-    {
-	curwin = save_curwin;
-	curbuf = curwin->w_buffer;
-    }
-#endif
 }
 
 /*

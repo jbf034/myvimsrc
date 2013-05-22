@@ -63,15 +63,16 @@ typedef struct growarray
 
 #define GA_EMPTY    {0, 0, 0, 0, NULL}
 
-/*
- * This is here because regexp.h needs pos_T and below regprog_T is used.
- */
-#include "regexp.h"
-
 typedef struct window_S		win_T;
 typedef struct wininfo_S	wininfo_T;
 typedef struct frame_S		frame_T;
 typedef int			scid_T;		/* script ID */
+typedef struct file_buffer	buf_T;  /* forward declaration */
+
+/*
+ * This is here because regexp.h needs pos_T and below regprog_T is used.
+ */
+#include "regexp.h"
 
 /*
  * This is here because gui.h needs the pos_T and win_T, and win_T needs gui.h
@@ -525,8 +526,6 @@ typedef struct
     char_u	*save_ei;		/* saved value of 'eventignore' */
 # endif
 } cmdmod_T;
-
-typedef struct file_buffer buf_T;  /* forward declaration */
 
 #define MF_SEED_LEN	8
 
@@ -1758,6 +1757,14 @@ struct tabpage_S
 #ifdef FEAT_EVAL
     dictitem_T	    tp_winvar;	    /* variable for "t:" Dictionary */
     dict_T	    *tp_vars;	    /* internal variables, local to tab page */
+#endif
+
+#ifdef FEAT_PYTHON
+    void	    *tp_python_ref;	/* The Python value for this tab page */
+#endif
+
+#ifdef FEAT_PYTHON3
+    void	    *tp_python3_ref;	/* The Python value for this tab page */
 #endif
 };
 
