@@ -361,6 +361,8 @@ static char_u e_missingbracket[] = N_("E769: Missing ] after %s[");
 static char_u e_unmatchedpp[] = N_("E53: Unmatched %s%%(");
 static char_u e_unmatchedp[] = N_("E54: Unmatched %s(");
 static char_u e_unmatchedpar[] = N_("E55: Unmatched %s)");
+static char_u e_z_not_allowed[] = N_("E66: \\z( not allowed here");
+static char_u e_z1_not_allowed[] = N_("E67: \\z1 et al. not allowed here");
 
 #define NOT_MULTI	0
 #define MULTI_ONE	1
@@ -665,10 +667,25 @@ static int	nextchr;	/* used for ungetchr() */
 #define REG_ZPAREN	2	/* \z(\) */
 #define REG_NPAREN	3	/* \%(\) */
 
+typedef struct
+{
+     char_u	*regparse;
+     int	prevchr_len;
+     int	curchr;
+     int	prevchr;
+     int	prevprevchr;
+     int	nextchr;
+     int	at_start;
+     int	prev_at_start;
+     int	regnpar;
+} parse_state_T;
+
 /*
  * Forward declarations for vim_regcomp()'s friends.
  */
 static void	initchr __ARGS((char_u *));
+static void	save_parse_state __ARGS((parse_state_T *ps));
+static void	restore_parse_state __ARGS((parse_state_T *ps));
 static int	getchr __ARGS((void));
 static void	skipchr_keepstart __ARGS((void));
 static int	peekchr __ARGS((void));
@@ -2105,7 +2122,7 @@ regatom(flagp)
 	    {
 #ifdef FEAT_SYN_HL
 		case '(': if (reg_do_extmatch != REX_SET)
-			      EMSG_RET_NULL(_("E66: \\z( not allowed here"));
+			      EMSG_RET_NULL(_(e_z_not_allowed));
 			  if (one_exactly)
 			      EMSG_ONE_RET_NULL;
 			  ret = reg(REG_ZPAREN, &flags);
@@ -2124,7 +2141,7 @@ regatom(flagp)
 		case '7':
 		case '8':
 		case '9': if (reg_do_extmatch != REX_USE)
-			      EMSG_RET_NULL(_("E67: \\z1 et al. not allowed here"));
+			      EMSG_RET_NULL(_(e_z1_not_allowed));
 			  ret = regnode(ZREF + c - '0');
 			  re_has_z = REX_USE;
 			  break;
@@ -2949,6 +2966,44 @@ initchr(str)
     at_start = TRUE;
     prev_at_start = FALSE;
 }
+
+/*
+ * Save the current parse state, so that it can be restored and parsing
+ * starts in the same state again.
+ */
+    static void
+save_parse_state(ps)
+    parse_state_T *ps;
+{
+    ps->regparse = regparse;
+    ps->prevchr_len = prevchr_len;
+    ps->curchr = curchr;
+    ps->prevchr = prevchr;
+    ps->prevprevchr = prevprevchr;
+    ps->nextchr = nextchr;
+    ps->at_start = at_start;
+    ps->prev_at_start = prev_at_start;
+    ps->regnpar = regnpar;
+}
+
+/*
+ * Restore a previously saved parse state.
+ */
+    static void
+restore_parse_state(ps)
+    parse_state_T *ps;
+{
+    regparse = ps->regparse;
+    prevchr_len = ps->prevchr_len;
+    curchr = ps->curchr;
+    prevchr = ps->prevchr;
+    prevprevchr = ps->prevprevchr;
+    nextchr = ps->nextchr;
+    at_start = ps->at_start;
+    prev_at_start = ps->prev_at_start;
+    regnpar = ps->regnpar;
+}
+
 
 /*
  * Get the next character without advancing.
@@ -5523,7 +5578,14 @@ regmatch(scan)
 		limit = OPERAND_MIN(rp->rs_scan);
 		if (REG_MULTI)
 		{
-		    if (rp->rs_un.regsave.rs_u.pos.col == 0)
+		    if (limit > 0
+			    && ((rp->rs_un.regsave.rs_u.pos.lnum
+						    < behind_pos.rs_u.pos.lnum
+				    ? (colnr_T)STRLEN(regline)
+				    : behind_pos.rs_u.pos.col)
+				- rp->rs_un.regsave.rs_u.pos.col >= limit))
+			no = FAIL;
+		    else if (rp->rs_un.regsave.rs_u.pos.col == 0)
 		    {
 			if (rp->rs_un.regsave.rs_u.pos.lnum
 					< behind_pos.rs_u.pos.lnum
@@ -5548,13 +5610,6 @@ regmatch(scan)
 			else
 #endif
 			    --rp->rs_un.regsave.rs_u.pos.col;
-			if (limit > 0
-				&& ((rp->rs_un.regsave.rs_u.pos.lnum
-						    < behind_pos.rs_u.pos.lnum
-					? (colnr_T)STRLEN(regline)
-					: behind_pos.rs_u.pos.col)
-				    - rp->rs_un.regsave.rs_u.pos.col > limit))
-			    no = FAIL;
 		    }
 		}
 		else
