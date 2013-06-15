@@ -1180,12 +1180,12 @@ typedef struct dictitem_S dictitem_T;
  */
 struct dictvar_S
 {
-    int		dv_refcount;	/* reference count */
-    hashtab_T	dv_hashtab;	/* hashtab that refers to the items */
-    int		dv_copyID;	/* ID used by deepcopy() */
-    dict_T	*dv_copydict;	/* copied dict used by deepcopy() */
     char	dv_lock;	/* zero, VAR_LOCKED, VAR_FIXED */
     char	dv_scope;	/* zero, VAR_SCOPE, VAR_DEF_SCOPE */
+    int		dv_refcount;	/* reference count */
+    int		dv_copyID;	/* ID used by deepcopy() */
+    hashtab_T	dv_hashtab;	/* hashtab that refers to the items */
+    dict_T	*dv_copydict;	/* copied dict used by deepcopy() */
     dict_T	*dv_used_next;	/* next dict in used dicts list */
     dict_T	*dv_used_prev;	/* previous dict in used dicts list */
 };
@@ -1204,6 +1204,18 @@ struct dictvar_S
 
 #ifdef FEAT_QUICKFIX
 typedef struct qf_info_S qf_info_T;
+#endif
+
+#ifdef FEAT_PROFILE
+/*
+ * Used for :syntime: timing of executing a syntax pattern.
+ */
+typedef struct {
+    proftime_T	total;		/* total time used */
+    proftime_T	slowest;	/* time of slowest call */
+    long	count;		/* nr of times used */
+    long	match;		/* nr of times matched */
+} syn_time_T;
 #endif
 
 /*
@@ -1230,6 +1242,9 @@ typedef struct {
     long	b_syn_sync_linebreaks;	/* offset for multi-line pattern */
     char_u	*b_syn_linecont_pat;	/* line continuation pattern */
     regprog_T	*b_syn_linecont_prog;	/* line continuation program */
+#ifdef FEAT_PROFILE
+    syn_time_T  b_syn_linecont_time;
+#endif
     int		b_syn_linecont_ic;	/* ignore-case flag for above */
     int		b_syn_topgrp;		/* for ":syntax include" */
 # ifdef FEAT_CONCEAL

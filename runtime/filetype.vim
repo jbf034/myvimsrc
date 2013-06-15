@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2013 May 15
+" Last Change:	2013 Jun 12
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -757,6 +757,7 @@ au BufNewFile,BufRead *.git/MERGE_MSG		setf gitcommit
 au BufNewFile,BufRead *.git/config,.gitconfig,.gitmodules setf gitconfig
 au BufNewFile,BufRead *.git/modules/**/COMMIT_EDITMSG setf gitcommit
 au BufNewFile,BufRead *.git/modules/**/config	setf gitconfig
+au BufNewFile,BufRead */.config/git/config	setf gitconfig
 au BufNewFile,BufRead git-rebase-todo		setf gitrebase
 au BufNewFile,BufRead .msg.[0-9]*
       \ if getline(1) =~ '^From.*# This line is ignored.$' |
@@ -868,6 +869,9 @@ au BufNewFile,BufRead */etc/hosts.allow,*/etc/hosts.deny  setf hostsaccess
 
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
+
+" Httest
+au BufNewFile,BufRead *.htt,*.htb		setf httest
 
 " Icon
 au BufNewFile,BufRead *.icn			setf icon
@@ -1101,7 +1105,7 @@ au BufNewFile,BufRead *.mv,*.mpl,*.mws		setf maple
 au BufNewFile,BufRead *.map			setf map
 
 " Markdown
-au BufNewFile,BufRead *.markdown,*.mdown,*.mkd,*.mkdn,README.md  setf markdown
+au BufNewFile,BufRead *.markdown,*.mdown,*.mkd,*.mkdn,*.mdwn,README.md  setf markdown
 
 " Mason
 au BufNewFile,BufRead *.mason,*.mhtml		setf mason
@@ -1546,6 +1550,9 @@ au BufNewFile,BufRead *.pdb			setf prolog
 
 " Promela
 au BufNewFile,BufRead *.pml			setf promela
+
+" Google protocol buffers
+au BufNewFile,BufRead *.proto			setf proto
 
 " Protocols
 au BufNewFile,BufRead */etc/protocols		setf protocols
