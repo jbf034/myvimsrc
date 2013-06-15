@@ -3120,7 +3120,7 @@ modifier_len(cmd)
 	for (j = 0; p[j] != NUL; ++j)
 	    if (p[j] != cmdmods[i].name[j])
 		break;
-	if (!isalpha(p[j]) && j >= cmdmods[i].minlen
+	if (!ASCII_ISALPHA(p[j]) && j >= cmdmods[i].minlen
 					&& (p == cmd || cmdmods[i].has_count))
 	    return j + (int)(p - cmd);
     }
@@ -8568,11 +8568,13 @@ ex_operators(eap)
 	    break;
 
 	default:    /* CMD_rshift or CMD_lshift */
-	    if ((eap->cmdidx == CMD_rshift)
+	    if (
 #ifdef FEAT_RIGHTLEFT
-				    ^ curwin->w_p_rl
+		(eap->cmdidx == CMD_rshift) ^ curwin->w_p_rl
+#else
+		eap->cmdidx == CMD_rshift
 #endif
-						    )
+						)
 		oa.op_type = OP_RSHIFT;
 	    else
 		oa.op_type = OP_LSHIFT;

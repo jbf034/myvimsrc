@@ -180,6 +180,12 @@ vim.strwidth(str)					*python-strwidth*
 	Like |strwidth()|: returns number of display cells str occupies, tab 
 	is counted as one cell.
 
+vim.foreach_rtp(callable)				*python-foreach_rtp*
+	Call the given callable for each path in 'runtimepath' until either 
+	callable returns something but None, the exception is raised or there 
+	are no longer paths. If stopped in case callable returned non-None, 
+	vim.foreach_rtp function returns the value returned by callable.
+
 vim.chdir(*args, **kwargs)				*python-chdir*
 vim.fchdir(*args, **kwargs)				*python-fchdir*
 	Run os.chdir or os.fchdir, then all appropriate vim stuff.
@@ -299,6 +305,88 @@ Output from Python					*python-output*
 	Input (via sys.stdin, including input() and raw_input()) is not
 	supported, and may cause the program to crash.  This should probably be
 	fixed.
+
+		    *python2-directory* *python3-directory* *pythonx-directory*
+Python 'runtimepath' handling				*python-special-path*
+
+In python vim.VIM_SPECIAL_PATH special directory is used as a replacement for 
+the list of paths found in 'runtimepath': with this directory in sys.path and 
+vim.path_hooks in sys.path_hooks python will try to load module from 
+{rtp}/python2 (or python3) and {rtp}/pythonx (for both python versions) for 
+each {rtp} found in 'runtimepath'.
+
+Implementation is similar to the following, but written in C: >
+
+    from imp import find_module, load_module
+    import vim
+    import sys
+
+    class VimModuleLoader(object):
+        def __init__(self, module):
+            self.module = module
+
+        def load_module(self, fullname, path=None):
+            return self.module
+
+    def _find_module(fullname, oldtail, path):
+        idx = oldtail.find('.')
+        if idx > 0:
+            name = oldtail[:idx]
+            tail = oldtail[idx+1:]
+            fmr = find_module(name, path)
+            module = load_module(fullname[:-len(oldtail)] + name, *fmr)
+            return _find_module(fullname, tail, module.__path__)
+        else:
+            fmr = find_module(fullname, path)
+            return load_module(fullname, *fmr)
+
+    # It uses vim module itself in place of VimPathFinder class: it does not 
+    # matter for python which object has find_module function attached to as 
+    # an attribute.
+    class VimPathFinder(object):
+        @classmethod
+        def find_module(cls, fullname, path=None):
+            try:
+                return VimModuleLoader(_find_module(fullname, fullname, path or vim._get_paths()))
+            except ImportError:
+                return None
+
+        @classmethod
+        def load_module(cls, fullname, path=None):
+            return _find_module(fullname, fullname, path or vim._get_paths())
+
+    def hook(path):
+        if path == vim.VIM_SPECIAL_PATH:
+            return VimPathFinder
+        else:
+            raise ImportError
+
+    sys.path_hooks.append(hook)
+
+vim.VIM_SPECIAL_PATH					*python-VIM_SPECIAL_PATH*
+	String constant used in conjunction with vim path hook. If path hook 
+	installed by vim is requested to handle anything but path equal to 
+	vim.VIM_SPECIAL_PATH constant it raises ImportError. In the only other 
+	case it uses special loader.
+
+	Note: you must not use value of this constant directly, always use 
+	      vim.VIM_SPECIAL_PATH object.
+
+vim.find_module(...)					*python-find_module*
+vim.path_hook(path)					*python-path_hook*
+	Methods or objects used to implement path loading as described above. 
+	You should not be using any of these directly except for vim.path_hook 
+	in case you need to do something with sys.meta_path. It is not 
+	guaranteed that any of the objects will exist in the future vim 
+	versions.
+
+vim._get_paths						*python-_get_paths*
+	Methods returning a list of paths which will be searched for by path 
+	hook. You should not rely on this method being present in future 
+	versions, but can use it for debugging.
+
+	It returns a list of {rtp}/python2 (or {rtp}/python3) and 
+	{rtp}/pythonx directories for each {rtp} in 'runtimepath'.
 
 ==============================================================================
 3. Buffer objects					*python-buffer*
