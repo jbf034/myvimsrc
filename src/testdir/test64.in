@@ -392,6 +392,7 @@ STARTTEST
 :call add(tl, [2, '\v\C%(<Last Changed:\s+)@<=.*$', '" Last Changed: 1970', '1970'])
 :call add(tl, [2, '\(foo\)\@<=\>', 'foobar'])
 :call add(tl, [2, '\(foo\)\@<=\>', 'barfoo', '', 'foo'])
+:call add(tl, [2, '\(foo\)\@<=.*', 'foobar', 'bar', 'foo'])
 :"
 :""""" \@>
 :call add(tl, [2, '\(a*\)\@>a', 'aaaa'])
@@ -479,6 +480,18 @@ Gop:"
 :.yank
 y$Gop:"
 :"
+:" Check a pattern with a line break and ^ and $
+/^Abc:
+/a\n^b$\n^c/e
+:.yank
+Gop:"
+:"
+:" Check using a backref matching in a previous line
+/^Backref:
+/\v.*\/(.*)\n.*\/\1$
+:.yank
+Gop:"
+:"
 :" Check a pattern with a look beind crossing a line boundary
 /^Behind:
 /\(<\_[xy]\+\)\@3<=start
@@ -553,6 +566,18 @@ def
 ghi
 xjk
 lmn
+
+Abc:
+a
+b
+c
+
+Backref:
+./Dir1/Dir2/zyxwvuts.txt
+./Dir1/Dir2/abcdefgh.bat
+
+./Dir1/Dir2/file1.txt
+./OtherDir1/OtherDir2/file1.txt
 
 Behind:
 asdfasd<yyy
