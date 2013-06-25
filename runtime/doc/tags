@@ -496,8 +496,10 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'nocopyindent'	options.txt	/*'nocopyindent'*
 'nocp'	options.txt	/*'nocp'*
 'nocrb'	options.txt	/*'nocrb'*
+'nocscoperelative'	options.txt	/*'nocscoperelative'*
 'nocscopetag'	options.txt	/*'nocscopetag'*
 'nocscopeverbose'	options.txt	/*'nocscopeverbose'*
+'nocsre'	options.txt	/*'nocsre'*
 'nocst'	options.txt	/*'nocst'*
 'nocsverb'	options.txt	/*'nocsverb'*
 'nocuc'	options.txt	/*'nocuc'*
@@ -4806,6 +4808,7 @@ b:changedtick	eval.txt	/*b:changedtick*
 b:changelog_name	filetype.txt	/*b:changelog_name*
 b:current_syntax-variable	syntax.txt	/*b:current_syntax-variable*
 b:netrw_lastfile	pi_netrw.txt	/*b:netrw_lastfile*
+b:tex_stylish	syntax.txt	/*b:tex_stylish*
 b:var	eval.txt	/*b:var*
 baan-folding	syntax.txt	/*baan-folding*
 baan-syntax	syntax.txt	/*baan-syntax*
@@ -5664,6 +5667,7 @@ format-comments	change.txt	/*format-comments*
 formatting	change.txt	/*formatting*
 formfeed	intro.txt	/*formfeed*
 fortran.vim	syntax.txt	/*fortran.vim*
+friendship	intro.txt	/*friendship*
 frombook	usr_01.txt	/*frombook*
 ft-abel-syntax	syntax.txt	/*ft-abel-syntax*
 ft-ada-commands	ft_ada.txt	/*ft-ada-commands*
@@ -5717,6 +5721,7 @@ ft-gitcommit-plugin	filetype.txt	/*ft-gitcommit-plugin*
 ft-groff-syntax	syntax.txt	/*ft-groff-syntax*
 ft-gsp-syntax	syntax.txt	/*ft-gsp-syntax*
 ft-haskell-syntax	syntax.txt	/*ft-haskell-syntax*
+ft-html-indent	indent.txt	/*ft-html-indent*
 ft-html-omni	insert.txt	/*ft-html-omni*
 ft-html-syntax	syntax.txt	/*ft-html-syntax*
 ft-htmlos-syntax	syntax.txt	/*ft-htmlos-syntax*
@@ -5995,10 +6000,18 @@ g:tar_nomax	pi_tar.txt	/*g:tar_nomax*
 g:tar_readoptions	pi_tar.txt	/*g:tar_readoptions*
 g:tar_secure	pi_tar.txt	/*g:tar_secure*
 g:tar_writeoptions	pi_tar.txt	/*g:tar_writeoptions*
+g:tex_comment_nospell	syntax.txt	/*g:tex_comment_nospell*
 g:tex_conceal	syntax.txt	/*g:tex_conceal*
 g:tex_fast	syntax.txt	/*g:tex_fast*
+g:tex_fast	syntax.txt	/*g:tex_fast*
 g:tex_flavor	filetype.txt	/*g:tex_flavor*
+g:tex_fold_enabled	syntax.txt	/*g:tex_fold_enabled*
 g:tex_isk	syntax.txt	/*g:tex_isk*
+g:tex_isk	syntax.txt	/*g:tex_isk*
+g:tex_no_error	syntax.txt	/*g:tex_no_error*
+g:tex_nospell	syntax.txt	/*g:tex_nospell*
+g:tex_stylish	syntax.txt	/*g:tex_stylish*
+g:tex_verbspell	syntax.txt	/*g:tex_verbspell*
 g:var	eval.txt	/*g:var*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
 g:vimball_mkdir	pi_vimball.txt	/*g:vimball_mkdir*
@@ -6132,6 +6145,7 @@ graphic-option-gone	version4.txt	/*graphic-option-gone*
 greek	options.txt	/*greek*
 grep	quickfix.txt	/*grep*
 groff.vim	syntax.txt	/*groff.vim*
+gross-national-happiness	intro.txt	/*gross-national-happiness*
 group-name	syntax.txt	/*group-name*
 gs	various.txt	/*gs*
 gsp.vim	syntax.txt	/*gsp.vim*
@@ -6343,6 +6357,8 @@ howto.txt	howto.txt	/*howto.txt*
 hpterm	term.txt	/*hpterm*
 hpterm-color	syntax.txt	/*hpterm-color*
 html-flavor	insert.txt	/*html-flavor*
+html-indent	indent.txt	/*html-indent*
+html-indenting	indent.txt	/*html-indenting*
 html.vim	syntax.txt	/*html.vim*
 htmlos.vim	syntax.txt	/*htmlos.vim*
 http	pi_netrw.txt	/*http*
@@ -6610,6 +6626,7 @@ language-mapping	map.txt	/*language-mapping*
 last-pattern	pattern.txt	/*last-pattern*
 last-position-jump	eval.txt	/*last-position-jump*
 last_buffer_nr()	eval.txt	/*last_buffer_nr()*
+latex-syntax	syntax.txt	/*latex-syntax*
 lc_time-variable	eval.txt	/*lc_time-variable*
 lcs-conceal	options.txt	/*lcs-conceal*
 lcs-eol	options.txt	/*lcs-eol*
@@ -6663,6 +6680,7 @@ location-list-window	quickfix.txt	/*location-list-window*
 log()	eval.txt	/*log()*
 log10()	eval.txt	/*log10()*
 long-lines	version5.txt	/*long-lines*
+love	intro.txt	/*love*
 lowercase	change.txt	/*lowercase*
 lpc.vim	syntax.txt	/*lpc.vim*
 lua	if_lua.txt	/*lua*
@@ -6670,6 +6688,7 @@ lua-buffer	if_lua.txt	/*lua-buffer*
 lua-commands	if_lua.txt	/*lua-commands*
 lua-dict	if_lua.txt	/*lua-dict*
 lua-eval	if_lua.txt	/*lua-eval*
+lua-funcref	if_lua.txt	/*lua-funcref*
 lua-list	if_lua.txt	/*lua-list*
 lua-luaeval	if_lua.txt	/*lua-luaeval*
 lua-vim	if_lua.txt	/*lua-vim*
@@ -6709,6 +6728,7 @@ map-listing	map.txt	/*map-listing*
 map-modes	map.txt	/*map-modes*
 map-multibyte	map.txt	/*map-multibyte*
 map-overview	map.txt	/*map-overview*
+map-precedence	map.txt	/*map-precedence*
 map-self-destroy	tips.txt	/*map-self-destroy*
 map-typing	map.txt	/*map-typing*
 map-which-keys	map.txt	/*map-which-keys*
@@ -7238,6 +7258,7 @@ pattern-searches	pattern.txt	/*pattern-searches*
 pattern.txt	pattern.txt	/*pattern.txt*
 patterns-composing	pattern.txt	/*patterns-composing*
 pdev-option	print.txt	/*pdev-option*
+peace	intro.txt	/*peace*
 penc-option	print.txt	/*penc-option*
 perl	if_perl.txt	/*perl*
 perl-Append	if_perl.txt	/*perl-Append*
@@ -7353,6 +7374,8 @@ python-.locked	if_pyth.txt	/*python-.locked*
 python-Dictionary	if_pyth.txt	/*python-Dictionary*
 python-Function	if_pyth.txt	/*python-Function*
 python-List	if_pyth.txt	/*python-List*
+python-VIM_SPECIAL_PATH	if_pyth.txt	/*python-VIM_SPECIAL_PATH*
+python-_get_paths	if_pyth.txt	/*python-_get_paths*
 python-bindeval	if_pyth.txt	/*python-bindeval*
 python-bindeval-objects	if_pyth.txt	/*python-bindeval-objects*
 python-buffer	if_pyth.txt	/*python-buffer*
@@ -7366,11 +7389,15 @@ python-error	if_pyth.txt	/*python-error*
 python-eval	if_pyth.txt	/*python-eval*
 python-examples	if_pyth.txt	/*python-examples*
 python-fchdir	if_pyth.txt	/*python-fchdir*
+python-find_module	if_pyth.txt	/*python-find_module*
+python-foreach_rtp	if_pyth.txt	/*python-foreach_rtp*
 python-input	if_pyth.txt	/*python-input*
 python-options	if_pyth.txt	/*python-options*
 python-output	if_pyth.txt	/*python-output*
+python-path_hook	if_pyth.txt	/*python-path_hook*
 python-pyeval	if_pyth.txt	/*python-pyeval*
 python-range	if_pyth.txt	/*python-range*
+python-special-path	if_pyth.txt	/*python-special-path*
 python-strwidth	if_pyth.txt	/*python-strwidth*
 python-tabpage	if_pyth.txt	/*python-tabpage*
 python-tabpages	if_pyth.txt	/*python-tabpages*
@@ -7380,7 +7407,10 @@ python-vvars	if_pyth.txt	/*python-vvars*
 python-window	if_pyth.txt	/*python-window*
 python-windows	if_pyth.txt	/*python-windows*
 python.vim	syntax.txt	/*python.vim*
+python2-directory	if_pyth.txt	/*python2-directory*
 python3	if_pyth.txt	/*python3*
+python3-directory	if_pyth.txt	/*python3-directory*
+pythonx-directory	if_pyth.txt	/*pythonx-directory*
 q	repeat.txt	/*q*
 q/	cmdline.txt	/*q\/*
 q:	cmdline.txt	/*q:*
@@ -7551,6 +7581,8 @@ save-file	editing.txt	/*save-file*
 save-settings	starting.txt	/*save-settings*
 scheme.vim	syntax.txt	/*scheme.vim*
 scp	pi_netrw.txt	/*scp*
+screenattr()	eval.txt	/*screenattr()*
+screenchar()	eval.txt	/*screenchar()*
 screencol()	eval.txt	/*screencol()*
 screenrow()	eval.txt	/*screenrow()*
 script	usr_41.txt	/*script*
@@ -8169,7 +8201,9 @@ tex-nospell	syntax.txt	/*tex-nospell*
 tex-package	syntax.txt	/*tex-package*
 tex-runon	syntax.txt	/*tex-runon*
 tex-slow	syntax.txt	/*tex-slow*
+tex-stopzone	syntax.txt	/*tex-stopzone*
 tex-style	syntax.txt	/*tex-style*
+tex-sync	syntax.txt	/*tex-sync*
 tex-verb	syntax.txt	/*tex-verb*
 tex.vim	syntax.txt	/*tex.vim*
 text-functions	usr_41.txt	/*text-functions*

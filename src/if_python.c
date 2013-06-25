@@ -24,9 +24,9 @@
 /* uncomment this if used with the debug version of python.
  * Checked on 2.7.4. */
 /* #define Py_DEBUG */
-/* Note: most of time you can add -DPy_DEBUG to CFLAGS in place of uncommenting 
+/* Note: most of time you can add -DPy_DEBUG to CFLAGS in place of uncommenting
  */
-/* uncomment this if used with the debug version of python, but without its 
+/* uncomment this if used with the debug version of python, but without its
  * allocator */
 /* #define Py_DEBUG_NO_PYMALLOC */
 
@@ -53,7 +53,14 @@
 # undef _XOPEN_SOURCE	/* pyconfig.h defines it as well. */
 #endif
 
+#define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
+
+#if !defined(PY_VERSION_HEX) || PY_VERSION_HEX < 0x02050000
+# undef PY_SSIZE_T_CLEAN
+#endif
+
 #if defined(MACOS) && !defined(MACOS_X_UNIX)
 # include "macglue.h"
 # include <CodeFragments.h>
@@ -61,16 +68,9 @@
 #undef main /* Defined in python.h - aargh */
 #undef HAVE_FCNTL_H /* Clash with os_win32.h */
 
-#if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x02050000
-# define PY_SSIZE_T_CLEAN
-#endif
-
-#define PyBytes_FromString PyString_FromString
-#define PyBytes_Check PyString_Check
-
-/* No-op conversion functions, use with care! */
-#define PyString_AsBytes(obj) (obj)
-#define PyString_FreeBytes(obj)
+#define PyBytes_FromString      PyString_FromString
+#define PyBytes_Check           PyString_Check
+#define PyBytes_AsStringAndSize PyString_AsStringAndSize
 
 #if !defined(FEAT_PYTHON) && defined(PROTO)
 /* Use this to be able to generate prototypes without python being used. */
@@ -147,6 +147,7 @@ struct PyMethodDef { Py_ssize_t a; };
 # undef Py_InitModule4
 # undef Py_InitModule4_64
 # undef PyObject_CallMethod
+# undef PyObject_CallFunction
 
 /*
  * Wrapper defines
@@ -159,12 +160,14 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PyErr_BadArgument dll_PyErr_BadArgument
 # define PyErr_NewException dll_PyErr_NewException
 # define PyErr_Clear dll_PyErr_Clear
+# define PyErr_Format dll_PyErr_Format
 # define PyErr_PrintEx dll_PyErr_PrintEx
 # define PyErr_NoMemory dll_PyErr_NoMemory
 # define PyErr_Occurred dll_PyErr_Occurred
 # define PyErr_SetNone dll_PyErr_SetNone
 # define PyErr_SetString dll_PyErr_SetString
 # define PyErr_SetObject dll_PyErr_SetObject
+# define PyErr_ExceptionMatches dll_PyErr_ExceptionMatches
 # define PyEval_InitThreads dll_PyEval_InitThreads
 # define PyEval_RestoreThread dll_PyEval_RestoreThread
 # define PyEval_SaveThread dll_PyEval_SaveThread
@@ -181,6 +184,7 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PyLong_Type (*dll_PyLong_Type)
 # define PyList_GetItem dll_PyList_GetItem
 # define PyList_Append dll_PyList_Append
+# define PyList_Insert dll_PyList_Insert
 # define PyList_New dll_PyList_New
 # define PyList_SetItem dll_PyList_SetItem
 # define PyList_Size dll_PyList_Size
@@ -207,13 +211,16 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PyMapping_Check dll_PyMapping_Check
 # define PyIter_Next dll_PyIter_Next
 # define PyModule_GetDict dll_PyModule_GetDict
+# define PyModule_AddObject dll_PyModule_AddObject
 # define PyRun_SimpleString dll_PyRun_SimpleString
 # define PyRun_String dll_PyRun_String
 # define PyObject_GetAttrString dll_PyObject_GetAttrString
 # define PyObject_HasAttrString dll_PyObject_HasAttrString
 # define PyObject_SetAttrString dll_PyObject_SetAttrString
 # define PyObject_CallFunctionObjArgs dll_PyObject_CallFunctionObjArgs
+# define PyObject_CallFunction dll_PyObject_CallFunction
 # define PyObject_Call dll_PyObject_Call
+# define PyObject_Repr dll_PyObject_Repr
 # define PyString_AsString dll_PyString_AsString
 # define PyString_AsStringAndSize dll_PyString_AsStringAndSize
 # define PyString_FromString dll_PyString_FromString
@@ -227,8 +234,11 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PyFloat_AsDouble dll_PyFloat_AsDouble
 # define PyFloat_FromDouble dll_PyFloat_FromDouble
 # define PyFloat_Type (*dll_PyFloat_Type)
+# define PyNumber_Check dll_PyNumber_Check
+# define PyNumber_Long dll_PyNumber_Long
 # define PyImport_AddModule (*dll_PyImport_AddModule)
 # define PySys_SetObject dll_PySys_SetObject
+# define PySys_GetObject dll_PySys_GetObject
 # define PySys_SetArgv dll_PySys_SetArgv
 # define PyType_Type (*dll_PyType_Type)
 # define PyType_Ready (*dll_PyType_Ready)
@@ -295,12 +305,14 @@ static int(*dll_PyDict_SetItemString)(PyObject *dp, char *key, PyObject *item);
 static int(*dll_PyErr_BadArgument)(void);
 static PyObject *(*dll_PyErr_NewException)(char *, PyObject *, PyObject *);
 static void(*dll_PyErr_Clear)(void);
+static PyObject*(*dll_PyErr_Format)(PyObject *, const char *, ...);
 static void(*dll_PyErr_PrintEx)(int);
 static PyObject*(*dll_PyErr_NoMemory)(void);
 static PyObject*(*dll_PyErr_Occurred)(void);
 static void(*dll_PyErr_SetNone)(PyObject *);
 static void(*dll_PyErr_SetString)(PyObject *, const char *);
 static void(*dll_PyErr_SetObject)(PyObject *, PyObject *);
+static int(*dll_PyErr_ExceptionMatches)(PyObject *);
 static void(*dll_PyEval_InitThreads)(void);
 static void(*dll_PyEval_RestoreThread)(PyThreadState *);
 static PyThreadState*(*dll_PyEval_SaveThread)(void);
@@ -316,7 +328,8 @@ static PyTypeObject* dll_PyBool_Type;
 static PyTypeObject* dll_PyInt_Type;
 static PyTypeObject* dll_PyLong_Type;
 static PyObject*(*dll_PyList_GetItem)(PyObject *, PyInt);
-static PyObject*(*dll_PyList_Append)(PyObject *, PyObject *);
+static int(*dll_PyList_Append)(PyObject *, PyObject *);
+static int(*dll_PyList_Insert)(PyObject *, PyInt, PyObject *);
 static PyObject*(*dll_PyList_New)(PyInt size);
 static int(*dll_PyList_SetItem)(PyObject *, PyInt, PyObject *);
 static PyInt(*dll_PyList_Size)(PyObject *);
@@ -341,15 +354,18 @@ static PyObject* (*dll_PyObject_CallMethod)(PyObject *, char *, PyObject *);
 static int (*dll_PyMapping_Check)(PyObject *);
 static PyObject* (*dll_PyIter_Next)(PyObject *);
 static PyObject*(*dll_PyModule_GetDict)(PyObject *);
+static int(*dll_PyModule_AddObject)(PyObject *, const char *, PyObject *);
 static int(*dll_PyRun_SimpleString)(char *);
 static PyObject *(*dll_PyRun_String)(char *, int, PyObject *, PyObject *);
 static PyObject* (*dll_PyObject_GetAttrString)(PyObject *, const char *);
 static int (*dll_PyObject_HasAttrString)(PyObject *, const char *);
 static PyObject* (*dll_PyObject_SetAttrString)(PyObject *, const char *, PyObject *);
 static PyObject* (*dll_PyObject_CallFunctionObjArgs)(PyObject *, ...);
+static PyObject* (*dll_PyObject_CallFunction)(PyObject *, char *, ...);
 static PyObject* (*dll_PyObject_Call)(PyObject *, PyObject *, PyObject *);
+static PyObject* (*dll_PyObject_Repr)(PyObject *);
 static char*(*dll_PyString_AsString)(PyObject *);
-static int(*dll_PyString_AsStringAndSize)(PyObject *, char **, int *);
+static int(*dll_PyString_AsStringAndSize)(PyObject *, char **, PyInt *);
 static PyObject*(*dll_PyString_FromString)(const char *);
 static PyObject*(*dll_PyString_FromFormat)(const char *, ...);
 static PyObject*(*dll_PyString_FromStringAndSize)(const char *, PyInt);
@@ -360,7 +376,10 @@ static PyObject *(*py_PyUnicode_AsEncodedString)(PyObject *, char *, char *);
 static double(*dll_PyFloat_AsDouble)(PyObject *);
 static PyObject*(*dll_PyFloat_FromDouble)(double);
 static PyTypeObject* dll_PyFloat_Type;
+static int(*dll_PyNumber_Check)(PyObject *);
+static PyObject*(*dll_PyNumber_Long)(PyObject *);
 static int(*dll_PySys_SetObject)(char *, PyObject *);
+static PyObject *(*dll_PySys_GetObject)(char *);
 static int(*dll_PySys_SetArgv)(int, char **);
 static PyTypeObject* dll_PyType_Type;
 static int (*dll_PyType_Ready)(PyTypeObject *type);
@@ -426,6 +445,8 @@ static PyObject *imp_PyExc_KeyboardInterrupt;
 static PyObject *imp_PyExc_TypeError;
 static PyObject *imp_PyExc_ValueError;
 static PyObject *imp_PyExc_RuntimeError;
+static PyObject *imp_PyExc_ImportError;
+static PyObject *imp_PyExc_OverflowError;
 
 # define PyExc_AttributeError imp_PyExc_AttributeError
 # define PyExc_IndexError imp_PyExc_IndexError
@@ -434,6 +455,8 @@ static PyObject *imp_PyExc_RuntimeError;
 # define PyExc_TypeError imp_PyExc_TypeError
 # define PyExc_ValueError imp_PyExc_ValueError
 # define PyExc_RuntimeError imp_PyExc_RuntimeError
+# define PyExc_ImportError imp_PyExc_ImportError
+# define PyExc_OverflowError imp_PyExc_OverflowError
 
 /*
  * Table of name to function pointer of python.
@@ -460,12 +483,14 @@ static struct
     {"PyErr_BadArgument", (PYTHON_PROC*)&dll_PyErr_BadArgument},
     {"PyErr_NewException", (PYTHON_PROC*)&dll_PyErr_NewException},
     {"PyErr_Clear", (PYTHON_PROC*)&dll_PyErr_Clear},
+    {"PyErr_Format", (PYTHON_PROC*)&dll_PyErr_Format},
     {"PyErr_PrintEx", (PYTHON_PROC*)&dll_PyErr_PrintEx},
     {"PyErr_NoMemory", (PYTHON_PROC*)&dll_PyErr_NoMemory},
     {"PyErr_Occurred", (PYTHON_PROC*)&dll_PyErr_Occurred},
     {"PyErr_SetNone", (PYTHON_PROC*)&dll_PyErr_SetNone},
     {"PyErr_SetString", (PYTHON_PROC*)&dll_PyErr_SetString},
     {"PyErr_SetObject", (PYTHON_PROC*)&dll_PyErr_SetObject},
+    {"PyErr_ExceptionMatches", (PYTHON_PROC*)&dll_PyErr_ExceptionMatches},
     {"PyEval_InitThreads", (PYTHON_PROC*)&dll_PyEval_InitThreads},
     {"PyEval_RestoreThread", (PYTHON_PROC*)&dll_PyEval_RestoreThread},
     {"PyEval_SaveThread", (PYTHON_PROC*)&dll_PyEval_SaveThread},
@@ -482,6 +507,7 @@ static struct
     {"PyLong_Type", (PYTHON_PROC*)&dll_PyLong_Type},
     {"PyList_GetItem", (PYTHON_PROC*)&dll_PyList_GetItem},
     {"PyList_Append", (PYTHON_PROC*)&dll_PyList_Append},
+    {"PyList_Insert", (PYTHON_PROC*)&dll_PyList_Insert},
     {"PyList_New", (PYTHON_PROC*)&dll_PyList_New},
     {"PyList_SetItem", (PYTHON_PROC*)&dll_PyList_SetItem},
     {"PyList_Size", (PYTHON_PROC*)&dll_PyList_Size},
@@ -506,13 +532,16 @@ static struct
     {"PyMapping_Check", (PYTHON_PROC*)&dll_PyMapping_Check},
     {"PyIter_Next", (PYTHON_PROC*)&dll_PyIter_Next},
     {"PyModule_GetDict", (PYTHON_PROC*)&dll_PyModule_GetDict},
+    {"PyModule_AddObject", (PYTHON_PROC*)&dll_PyModule_AddObject},
     {"PyRun_SimpleString", (PYTHON_PROC*)&dll_PyRun_SimpleString},
     {"PyRun_String", (PYTHON_PROC*)&dll_PyRun_String},
     {"PyObject_GetAttrString", (PYTHON_PROC*)&dll_PyObject_GetAttrString},
     {"PyObject_HasAttrString", (PYTHON_PROC*)&dll_PyObject_HasAttrString},
     {"PyObject_SetAttrString", (PYTHON_PROC*)&dll_PyObject_SetAttrString},
     {"PyObject_CallFunctionObjArgs", (PYTHON_PROC*)&dll_PyObject_CallFunctionObjArgs},
+    {"PyObject_CallFunction", (PYTHON_PROC*)&dll_PyObject_CallFunction},
     {"PyObject_Call", (PYTHON_PROC*)&dll_PyObject_Call},
+    {"PyObject_Repr", (PYTHON_PROC*)&dll_PyObject_Repr},
     {"PyString_AsString", (PYTHON_PROC*)&dll_PyString_AsString},
     {"PyString_AsStringAndSize", (PYTHON_PROC*)&dll_PyString_AsStringAndSize},
     {"PyString_FromString", (PYTHON_PROC*)&dll_PyString_FromString},
@@ -525,7 +554,10 @@ static struct
     {"PyFloat_AsDouble", (PYTHON_PROC*)&dll_PyFloat_AsDouble},
     {"PyFloat_FromDouble", (PYTHON_PROC*)&dll_PyFloat_FromDouble},
     {"PyImport_AddModule", (PYTHON_PROC*)&dll_PyImport_AddModule},
+    {"PyNumber_Check", (PYTHON_PROC*)&dll_PyNumber_Check},
+    {"PyNumber_Long", (PYTHON_PROC*)&dll_PyNumber_Long},
     {"PySys_SetObject", (PYTHON_PROC*)&dll_PySys_SetObject},
+    {"PySys_GetObject", (PYTHON_PROC*)&dll_PySys_GetObject},
     {"PySys_SetArgv", (PYTHON_PROC*)&dll_PySys_SetArgv},
     {"PyType_Type", (PYTHON_PROC*)&dll_PyType_Type},
     {"PyType_Ready", (PYTHON_PROC*)&dll_PyType_Ready},
@@ -700,6 +732,8 @@ get_exceptions(void)
     imp_PyExc_TypeError = PyDict_GetItemString(exdict, "TypeError");
     imp_PyExc_ValueError = PyDict_GetItemString(exdict, "ValueError");
     imp_PyExc_RuntimeError = PyDict_GetItemString(exdict, "RuntimeError");
+    imp_PyExc_ImportError = PyDict_GetItemString(exdict, "ImportError");
+    imp_PyExc_OverflowError = PyDict_GetItemString(exdict, "OverflowError");
     Py_XINCREF(imp_PyExc_AttributeError);
     Py_XINCREF(imp_PyExc_IndexError);
     Py_XINCREF(imp_PyExc_KeyError);
@@ -707,6 +741,8 @@ get_exceptions(void)
     Py_XINCREF(imp_PyExc_TypeError);
     Py_XINCREF(imp_PyExc_ValueError);
     Py_XINCREF(imp_PyExc_RuntimeError);
+    Py_XINCREF(imp_PyExc_ImportError);
+    Py_XINCREF(imp_PyExc_OverflowError);
     Py_XDECREF(exmod);
 }
 #endif /* DYNAMIC_PYTHON */
@@ -1354,22 +1390,10 @@ python_tabpage_free(tabpage_T *tab)
 #endif
 
     static int
-add_object(PyObject *dict, const char *name, PyObject *object)
-{
-    if (PyDict_SetItemString(dict, (char *) name, object))
-	return -1;
-    Py_DECREF(object);
-    return 0;
-}
-
-    static int
 PythonMod_Init(void)
 {
-    PyObject *mod;
-    PyObject *dict;
-
     /* The special value is removed from sys.path in Python_Init(). */
-    static char *(argv[2]) = {"/must>not&exist/foo", NULL};
+    static char	*(argv[2]) = {"/must>not&exist/foo", NULL};
 
     if (init_types())
 	return -1;
@@ -1377,11 +1401,16 @@ PythonMod_Init(void)
     /* Set sys.argv[] to avoid a crash in warn(). */
     PySys_SetArgv(1, argv);
 
-    mod = Py_InitModule4("vim", VimMethods, (char *)NULL, (PyObject *)NULL,
-			    PYTHON_API_VERSION);
-    dict = PyModule_GetDict(mod);
+    vim_module = Py_InitModule4("vim", VimMethods, (char *)NULL,
+				(PyObject *)NULL, PYTHON_API_VERSION);
 
-    return populate_module(dict, add_object, PyDict_GetItemString);
+    if (populate_module(vim_module))
+	return -1;
+
+    if (init_sys_path())
+	return -1;
+
+    return 0;
 }
 
 /*************************************************************************

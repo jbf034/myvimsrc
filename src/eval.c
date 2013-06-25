@@ -112,6 +112,9 @@ static char *e_dictrange = N_("E719: Cannot use [:] with a Dictionary");
 static char *e_letwrong = N_("E734: Wrong variable type for %s=");
 static char *e_nofunc = N_("E130: Unknown function: %s");
 static char *e_illvar = N_("E461: Illegal variable name: %s");
+#ifdef FEAT_FLOAT
+static char *e_float_as_string = N_("E806: using Float as a String");
+#endif
 
 static dictitem_T	globvars_var;		/* variable used for g: */
 #define globvarht globvardict.dv_hashtab
@@ -654,6 +657,8 @@ static void f_reverse __ARGS((typval_T *argvars, typval_T *rettv));
 #ifdef FEAT_FLOAT
 static void f_round __ARGS((typval_T *argvars, typval_T *rettv));
 #endif
+static void f_screenattr __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_screenchar __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_screencol __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_screenrow __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_search __ARGS((typval_T *argvars, typval_T *rettv));
@@ -3223,7 +3228,7 @@ next_for_item(fi_void, arg)
     void	*fi_void;
     char_u	*arg;
 {
-    forinfo_T    *fi = (forinfo_T *)fi_void;
+    forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
     listitem_T	*item;
 
@@ -5266,16 +5271,20 @@ eval_index(arg, rettv, evaluate, verbose)
     char_u	*s;
     char_u	*key = NULL;
 
-    if (rettv->v_type == VAR_FUNC
-#ifdef FEAT_FLOAT
-	    || rettv->v_type == VAR_FLOAT
-#endif
-	    )
+    if (rettv->v_type == VAR_FUNC)
     {
 	if (verbose)
 	    EMSG(_("E695: Cannot index a Funcref"));
 	return FAIL;
     }
+#ifdef FEAT_FLOAT
+    else if (rettv->v_type == VAR_FLOAT)
+    {
+	if (verbose)
+	    EMSG(_(e_float_as_string));
+	return FAIL;
+    }
+#endif
 
     if (**arg == '.')
     {
@@ -8037,6 +8046,8 @@ static struct fst
 #ifdef FEAT_FLOAT
     {"round",		1, 1, f_round},
 #endif
+    {"screenattr",	2, 2, f_screenattr},
+    {"screenchar",	2, 2, f_screenchar},
     {"screencol",	0, 0, f_screencol},
     {"screenrow",	0, 0, f_screenrow},
     {"search",		1, 4, f_search},
@@ -10437,7 +10448,7 @@ findfilendir(argvars, rettv, find_what)
     {
 	do
 	{
-	    if (rettv->v_type == VAR_STRING)
+	    if (rettv->v_type == VAR_STRING || rettv->v_type == VAR_LIST)
 		vim_free(fresult);
 	    fresult = find_file_in_path_option(first ? fname : NULL,
 					       first ? (int)STRLEN(fname) : 0,
@@ -10958,25 +10969,35 @@ f_function(argvars, rettv)
     typval_T	*rettv;
 {
     char_u	*s;
-    char_u	*name = NULL;
 
     s = get_tv_string(&argvars[0]);
     if (s == NULL || *s == NUL || VIM_ISDIGIT(*s))
 	EMSG2(_(e_invarg2), s);
-    /* Don't check an autoload name for existence here, but still expand it 
-     * checking for validity */
-    else if ((name = get_expanded_name(s, vim_strchr(s, AUTOLOAD_CHAR) == NULL))
-									== NULL)
+    /* Don't check an autoload name for existence here. */
+    else if (vim_strchr(s, AUTOLOAD_CHAR) == NULL && !function_exists(s))
 	EMSG2(_("E700: Unknown function: %s"), s);
     else
     {
-	if (name == NULL)
-	    /* Autoload function, need to copy string */
-	    rettv->vval.v_string = vim_strsave(s);
+	if (STRNCMP(s, "s:", 2) == 0 || STRNCMP(s, "<SID>", 5) == 0)
+	{
+	    char	sid_buf[25];
+	    int		off = *s == 's' ? 2 : 5;
+
+	    /* Expand s: and <SID> into <SNR>nr_, so that the function can
+	     * also be called from another script. Using trans_function_name()
+	     * would also work, but some plugins depend on the name being
+	     * printable text. */
+	    sprintf(sid_buf, "<SNR>%ld_", (long)current_SID);
+	    rettv->vval.v_string =
+			    alloc((int)(STRLEN(sid_buf) + STRLEN(s + off) + 1));
+	    if (rettv->vval.v_string != NULL)
+	    {
+		STRCPY(rettv->vval.v_string, sid_buf);
+		STRCAT(rettv->vval.v_string, s + off);
+	    }
+	}
 	else
-	    /* Function found by get_expanded_name, string allocated by 
-	     * trans_function_name: no need to copy */
-	    rettv->vval.v_string = name;
+	    rettv->vval.v_string = vim_strsave(s);
 	rettv->v_type = VAR_FUNC;
     }
 }
@@ -11863,7 +11884,7 @@ f_getwinposy(argvars, rettv)
     static win_T *
 find_win_by_nr(vp, tp)
     typval_T	*vp;
-    tabpage_T	*tp;	    /* NULL for current tab page */
+    tabpage_T	*tp UNUSED;	/* NULL for current tab page */
 {
 #ifdef FEAT_WINDOWS
     win_T	*wp;
@@ -11913,7 +11934,8 @@ getwinvar(argvars, rettv, off)
     win_T	*win, *oldcurwin;
     char_u	*varname;
     dictitem_T	*v;
-    tabpage_T	*tp, *oldtabpage;
+    tabpage_T	*tp = NULL;
+    tabpage_T	*oldtabpage;
     int		done = FALSE;
 
 #ifdef FEAT_WINDOWS
@@ -11933,7 +11955,7 @@ getwinvar(argvars, rettv, off)
     {
 	/* Set curwin to be our win, temporarily.  Also set the tabpage,
 	 * otherwise the window is not valid. */
-	switch_win(&oldcurwin, &oldtabpage, win, tp);
+	switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE);
 
 	if (*varname == '&')	/* window-local-option */
 	{
@@ -11953,7 +11975,7 @@ getwinvar(argvars, rettv, off)
 	}
 
 	/* restore previous notion of curwin */
-	restore_win(oldcurwin, oldtabpage);
+	restore_win(oldcurwin, oldtabpage, TRUE);
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -15774,6 +15796,17 @@ theend:
 }
 
 #ifdef FEAT_FLOAT
+
+/*
+ * round() is not in C90, use ceil() or floor() instead.
+ */
+    float_T
+vim_round(f)
+    float_T f;
+{
+    return f > 0 ? floor(f + 0.5) : ceil(f - 0.5);
+}
+
 /*
  * "round({float})" function
  */
@@ -15786,12 +15819,64 @@ f_round(argvars, rettv)
 
     rettv->v_type = VAR_FLOAT;
     if (get_float_arg(argvars, &f) == OK)
-	/* round() is not in C90, use ceil() or floor() instead. */
-	rettv->vval.v_float = f > 0 ? floor(f + 0.5) : ceil(f - 0.5);
+	rettv->vval.v_float = vim_round(f);
     else
 	rettv->vval.v_float = 0.0;
 }
 #endif
+
+/*
+ * "screenattr()" function
+ */
+    static void
+f_screenattr(argvars, rettv)
+    typval_T	*argvars UNUSED;
+    typval_T	*rettv;
+{
+    int		row;
+    int		col;
+    int		c;
+
+    row = get_tv_number_chk(&argvars[0], NULL) - 1;
+    col = get_tv_number_chk(&argvars[1], NULL) - 1;
+    if (row < 0 || row >= screen_Rows
+	    || col < 0 || col >= screen_Columns)
+	c = -1;
+    else
+	c = ScreenAttrs[LineOffset[row] + col];
+    rettv->vval.v_number = c;
+}
+
+/*
+ * "screenchar()" function
+ */
+    static void
+f_screenchar(argvars, rettv)
+    typval_T	*argvars UNUSED;
+    typval_T	*rettv;
+{
+    int		row;
+    int		col;
+    int		off;
+    int		c;
+
+    row = get_tv_number_chk(&argvars[0], NULL) - 1;
+    col = get_tv_number_chk(&argvars[1], NULL) - 1;
+    if (row < 0 || row >= screen_Rows
+	    || col < 0 || col >= screen_Columns)
+	c = -1;
+    else
+    {
+	off = LineOffset[row] + col;
+#ifdef FEAT_MBYTE
+	if (enc_utf8 && ScreenLinesUC[off] != 0)
+	    c = ScreenLinesUC[off];
+	else
+#endif
+	    c = ScreenLines[off];
+    }
+    rettv->vval.v_number = c;
+}
 
 /*
  * "screencol()" function
@@ -16601,24 +16686,34 @@ f_settabvar(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
+#ifdef FEAT_WINDOWS
     tabpage_T	*save_curtab;
+    tabpage_T	*tp;
+#endif
     char_u	*varname, *tabvarname;
     typval_T	*varp;
-    tabpage_T	*tp;
 
     rettv->vval.v_number = 0;
 
     if (check_restricted() || check_secure())
 	return;
 
+#ifdef FEAT_WINDOWS
     tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
+#endif
     varname = get_tv_string_chk(&argvars[1]);
     varp = &argvars[2];
 
-    if (tp != NULL && varname != NULL && varp != NULL)
+    if (varname != NULL && varp != NULL
+#ifdef FEAT_WINDOWS
+	    && tp != NULL
+#endif
+	    )
     {
+#ifdef FEAT_WINDOWS
 	save_curtab = curtab;
 	goto_tabpage_tp(tp, FALSE, FALSE);
+#endif
 
 	tabvarname = alloc((unsigned)STRLEN(varname) + 3);
 	if (tabvarname != NULL)
@@ -16629,9 +16724,11 @@ f_settabvar(argvars, rettv)
 	    vim_free(tabvarname);
 	}
 
+#ifdef FEAT_WINDOWS
 	/* Restore current tabpage */
 	if (valid_tabpage(save_curtab))
 	    goto_tabpage_tp(save_curtab, FALSE, FALSE);
+#endif
     }
 }
 
@@ -16675,7 +16772,7 @@ setwinvar(argvars, rettv, off)
     char_u	*varname, *winvarname;
     typval_T	*varp;
     char_u	nbuf[NUMBUFLEN];
-    tabpage_T	*tp;
+    tabpage_T	*tp = NULL;
 
     if (check_restricted() || check_secure())
 	return;
@@ -16693,7 +16790,7 @@ setwinvar(argvars, rettv, off)
     if (win != NULL && varname != NULL && varp != NULL)
     {
 #ifdef FEAT_WINDOWS
-	if (switch_win(&save_curwin, &save_curtab, win, tp) == FAIL)
+	if (switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == FAIL)
 	    return;
 #endif
 
@@ -16722,7 +16819,7 @@ setwinvar(argvars, rettv, off)
 	}
 
 #ifdef FEAT_WINDOWS
-	restore_win(save_curwin, save_curtab);
+	restore_win(save_curwin, save_curtab, TRUE);
 #endif
     }
 }
@@ -20009,7 +20106,7 @@ get_tv_string_buf_chk(varp, buf)
 	    break;
 #ifdef FEAT_FLOAT
 	case VAR_FLOAT:
-	    EMSG(_("E806: using Float as a String"));
+	    EMSG(_(e_float_as_string));
 	    break;
 #endif
 	case VAR_STRING:

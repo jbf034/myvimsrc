@@ -2816,7 +2816,25 @@ edit_buffers(parmp)
 # ifdef FEAT_AUTOCMD
     --autocmd_no_enter;
 # endif
-    win_enter(firstwin, FALSE);		/* back to first window */
+#if defined(FEAT_WINDOWS) && defined(FEAT_QUICKFIX)
+    /*
+     * Avoid making a preview window the current window.
+     */
+    if (firstwin->w_p_pvw)
+    {
+       win_T   *win;
+
+       for (win = firstwin; win != NULL; win = win->w_next)
+           if (!win->w_p_pvw)
+           {
+               firstwin = win;
+               break;
+           }
+    }
+#endif
+    /* make the first window the current window */
+    win_enter(firstwin, FALSE);
+
 # ifdef FEAT_AUTOCMD
     --autocmd_no_leave;
 # endif
@@ -2979,6 +2997,10 @@ source_startup_scripts(parmp)
 #endif
 #ifdef USR_VIMRC_FILE3
 		&& do_source((char_u *)USR_VIMRC_FILE3, TRUE,
+							   DOSO_VIMRC) == FAIL
+#endif
+#ifdef USR_VIMRC_FILE4
+		&& do_source((char_u *)USR_VIMRC_FILE4, TRUE,
 							   DOSO_VIMRC) == FAIL
 #endif
 		&& process_env((char_u *)"EXINIT", FALSE) == FAIL
