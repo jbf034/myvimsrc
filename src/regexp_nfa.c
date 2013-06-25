@@ -273,6 +273,7 @@ static int nfa_regcomp_start __ARGS((char_u *expr, int re_flags));
 static int nfa_get_reganch __ARGS((nfa_state_T *start, int depth));
 static int nfa_get_regstart __ARGS((nfa_state_T *start, int depth));
 static char_u *nfa_get_match_text __ARGS((nfa_state_T *start));
+static int realloc_post_list __ARGS((void));
 static int nfa_recognize_char_class __ARGS((char_u *start, char_u *end, int extra_newl));
 static int nfa_emit_equi_class __ARGS((int c));
 static int nfa_regatom __ARGS((void));
@@ -1149,13 +1150,16 @@ nfa_regatom()
 			int	    n;
 
 			/* \%[abc] */
-			for (n = 0; (c = getchr()) != ']'; ++n)
+			for (n = 0; (c = peekchr()) != ']'; ++n)
 			{
 			    if (c == NUL)
 				EMSG2_RET_FAIL(_(e_missing_sb),
 						      reg_magic == MAGIC_ALL);
-			    EMIT(c);
+			    /* recursive call! */
+			    if (nfa_regatom() == FAIL)
+				return FAIL;
 			}
+			getchr();  /* get the ] */
 			if (n == 0)
 			    EMSG2_RET_FAIL(_(e_empty_sb),
 						      reg_magic == MAGIC_ALL);
@@ -2607,7 +2611,7 @@ nfa_max_width(startstate, depth)
     if (depth > 4)
 	return -1;
 
-    for (;;)
+    while (state != NULL)
     {
 	switch (state->c)
 	{
@@ -2806,7 +2810,7 @@ nfa_max_width(startstate, depth)
 	state = state->out;
     }
 
-    /* unrecognized */
+    /* unrecognized, "cannot happen" */
     return -1;
 }
 
@@ -4210,6 +4214,8 @@ addstate_here(l, state, subs, pim, ip)
 
     /* re-order to put the new state at the current position */
     count = l->n - tlen;
+    if (count == 0)
+	return; /* no state got added */
     if (count == 1)
     {
 	/* overwrite the current state */
