@@ -4641,7 +4641,7 @@ im_set_active(int active)
 {
     int was_active;
 
-    was_active = !!im_is_active;
+    was_active = !!im_get_status();
     im_is_active = (active && !p_imdisable);
 
     if (im_is_active != was_active)
@@ -5410,6 +5410,26 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
     int
 im_get_status(void)
 {
+#  ifdef FEAT_EVAL
+    if (p_imsf[0] != NUL)
+    {
+	int is_active;
+
+	/* FIXME: Don't execute user function in unsafe situation. */
+	if (exiting
+#   ifdef FEAT_AUTOCMD
+		|| is_autocmd_blocked()
+#   endif
+		)
+	    return FALSE;
+	/* FIXME: :py print 'xxx' is shown duplicate result.
+	 * Use silent to avoid it. */
+	++msg_silent;
+	is_active = call_func_retnr(p_imsf, 0, NULL, FALSE);
+	--msg_silent;
+	return (is_active > 0);
+    }
+#  endif
     return im_is_active;
 }
 
