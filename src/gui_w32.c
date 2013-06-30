@@ -3216,7 +3216,7 @@ gui_mch_dialog(
 	    if (l == 1 && vim_iswhite(*pend)
 					&& textWidth > maxDialogWidth * 3 / 4)
 		last_white = pend;
-	    textWidth += GetTextWidth(hdc, pend, l);
+	    textWidth += GetTextWidthEnc(hdc, pend, l);
 	    if (textWidth >= maxDialogWidth)
 	    {
 		/* Line will wrap. */
@@ -3282,7 +3282,7 @@ gui_mch_dialog(
 	    pend = vim_strchr(pstart, DLG_BUTTON_SEP);
 	    if (pend == NULL)
 		pend = pstart + STRLEN(pstart);	// Last button name.
-	    textWidth = GetTextWidth(hdc, pstart, (int)(pend - pstart));
+	    textWidth = GetTextWidthEnc(hdc, pstart, (int)(pend - pstart));
 	    if (textWidth < minButtonWidth)
 		textWidth = minButtonWidth;
 	    textWidth += dlgPaddingX;	    /* Padding within button */
@@ -3307,7 +3307,7 @@ gui_mch_dialog(
 	    pend = vim_strchr(pstart, DLG_BUTTON_SEP);
 	    if (pend == NULL)
 		pend = pstart + STRLEN(pstart);	// Last button name.
-	    textWidth = GetTextWidth(hdc, pstart, (int)(pend - pstart));
+	    textWidth = GetTextWidthEnc(hdc, pstart, (int)(pend - pstart));
 	    textWidth += dlgPaddingX;		/* Padding within button */
 	    textWidth += DLG_VERT_PADDING_X * 2; /* Padding around button */
 	    if (textWidth > dlgwidth)
@@ -4163,7 +4163,11 @@ get_toolbar_bitmap(vimmenu_T *menu)
 	 * didn't exist or wasn't specified, try the menu name
 	 */
 	if (hbitmap == NULL
-		&& (gui_find_bitmap(menu->name, fname, "bmp") == OK))
+		&& (gui_find_bitmap(
+#ifdef FEAT_MULTI_LANG
+			    menu->en_dname != NULL ? menu->en_dname :
+#endif
+					menu->dname, fname, "bmp") == OK))
 	    hbitmap = LoadImage(
 		    NULL,
 		    fname,

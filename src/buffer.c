@@ -984,6 +984,10 @@ do_bufdel(command, arg, addr_count, start_bnr, end_bnr, forceit)
 
     return errormsg;
 }
+#endif /* FEAT_LISTCMDS */
+
+#if defined(FEAT_LISTCMDS) || defined(FEAT_PYTHON) \
+	|| defined(FEAT_PYTHON3) || defined(PROTO)
 
 /*
  * Implementation of the commands for the buffer list.
@@ -1364,8 +1368,7 @@ do_buffer(action, start, dir, count, forceit)
 
     return OK;
 }
-
-#endif /* FEAT_LISTCMDS */
+#endif
 
 /*
  * Set current buffer to "buf".  Executes autocommands and closes current
@@ -5093,7 +5096,8 @@ chk_modeline(lnum, flags)
 	    if ((prev != -1 && STRNCMP(s, "ex:", (size_t)3) == 0)
 		    || STRNCMP(s, "vi:", (size_t)3) == 0)
 		break;
-	    if (STRNCMP(s, "vim", 3) == 0)
+	    /* Accept both "vim" and "Vim". */
+	    if ((s[0] == 'v' || s[0] == 'V') && s[1] == 'i' && s[2] == 'm')
 	    {
 		if (s[3] == '<' || s[3] == '=' || s[3] == '>')
 		    e = s + 4;
@@ -5101,6 +5105,8 @@ chk_modeline(lnum, flags)
 		    e = s + 3;
 		vers = getdigits(&e);
 		if (*e == ':'
+			&& (s[0] != 'V'
+				  || STRNCMP(skipwhite(e + 1), "set", 3) == 0)
 			&& (s[3] == ':'
 			    || (VIM_VERSION_100 >= vers && isdigit(s[3]))
 			    || (VIM_VERSION_100 < vers && s[3] == '<')

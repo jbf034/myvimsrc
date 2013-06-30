@@ -273,6 +273,7 @@ static int nfa_regcomp_start __ARGS((char_u *expr, int re_flags));
 static int nfa_get_reganch __ARGS((nfa_state_T *start, int depth));
 static int nfa_get_regstart __ARGS((nfa_state_T *start, int depth));
 static char_u *nfa_get_match_text __ARGS((nfa_state_T *start));
+static int realloc_post_list __ARGS((void));
 static int nfa_recognize_char_class __ARGS((char_u *start, char_u *end, int extra_newl));
 static int nfa_emit_equi_class __ARGS((int c));
 static int nfa_regatom __ARGS((void));
@@ -289,10 +290,11 @@ static void nfa_dump __ARGS((nfa_regprog_T *prog));
 #endif
 static int *re2post __ARGS((void));
 static nfa_state_T *alloc_state __ARGS((int c, nfa_state_T *out, nfa_state_T *out1));
+static void st_error __ARGS((int *postfix, int *end, int *p));
+static int nfa_max_width __ARGS((nfa_state_T *startstate, int depth));
 static nfa_state_T *post2nfa __ARGS((int *postfix, int *end, int nfa_calc_size));
 static void nfa_postprocess __ARGS((nfa_regprog_T *prog));
 static int check_char_class __ARGS((int class, int c));
-static void st_error __ARGS((int *postfix, int *end, int *p));
 static void nfa_save_listids __ARGS((nfa_regprog_T *prog, int *list));
 static void nfa_restore_listids __ARGS((nfa_regprog_T *prog, int *list));
 static int nfa_re_num_cmp __ARGS((long_u val, int op, long_u pos));
@@ -1149,13 +1151,16 @@ nfa_regatom()
 			int	    n;
 
 			/* \%[abc] */
-			for (n = 0; (c = getchr()) != ']'; ++n)
+			for (n = 0; (c = peekchr()) != ']'; ++n)
 			{
 			    if (c == NUL)
 				EMSG2_RET_FAIL(_(e_missing_sb),
 						      reg_magic == MAGIC_ALL);
-			    EMIT(c);
+			    /* recursive call! */
+			    if (nfa_regatom() == FAIL)
+				return FAIL;
 			}
+			getchr();  /* get the ] */
 			if (n == 0)
 			    EMSG2_RET_FAIL(_(e_empty_sb),
 						      reg_magic == MAGIC_ALL);
@@ -2607,7 +2612,7 @@ nfa_max_width(startstate, depth)
     if (depth > 4)
 	return -1;
 
-    for (;;)
+    while (state != NULL)
     {
 	switch (state->c)
 	{
@@ -2806,7 +2811,7 @@ nfa_max_width(startstate, depth)
 	state = state->out;
     }
 
-    /* unrecognized */
+    /* unrecognized, "cannot happen" */
     return -1;
 }
 
@@ -3465,6 +3470,7 @@ typedef struct
 #ifdef ENABLE_LOG
 static void log_subsexpr __ARGS((regsubs_T *subs));
 static void log_subexpr __ARGS((regsub_T *sub));
+static char *pim_info __ARGS((nfa_pim_T *pim));
 
     static void
 log_subsexpr(subs)
@@ -3504,7 +3510,8 @@ log_subexpr(sub)
 }
 
     static char *
-pim_info(nfa_pim_T *pim)
+pim_info(pim)
+    nfa_pim_T *pim;
 {
     static char buf[30];
 
@@ -3528,6 +3535,7 @@ static void clear_sub __ARGS((regsub_T *sub));
 static void copy_sub __ARGS((regsub_T *to, regsub_T *from));
 static void copy_sub_off __ARGS((regsub_T *to, regsub_T *from));
 static int sub_equal __ARGS((regsub_T *sub1, regsub_T *sub2));
+static int match_backref __ARGS((regsub_T *sub, int subidx, int *bytelen));
 static int has_state_with_pos __ARGS((nfa_list_T *l, nfa_state_T *state, regsubs_T *subs));
 static int state_in_list __ARGS((nfa_list_T *l, nfa_state_T *state, regsubs_T *subs));
 static void addstate __ARGS((nfa_list_T *l, nfa_state_T *state, regsubs_T *subs, nfa_pim_T *pim, int off));
@@ -3634,14 +3642,14 @@ sub_equal(sub1, sub2)
 	    if (i < sub1->in_use)
 		s1 = sub1->list.multi[i].start.lnum;
 	    else
-		s1 = 0;
+		s1 = -1;
 	    if (i < sub2->in_use)
 		s2 = sub2->list.multi[i].start.lnum;
 	    else
-		s2 = 0;
+		s2 = -1;
 	    if (s1 != s2)
 		return FALSE;
-	    if (s1 != 0 && sub1->list.multi[i].start.col
+	    if (s1 != -1 && sub1->list.multi[i].start.col
 					     != sub2->list.multi[i].start.col)
 		return FALSE;
 	}
@@ -3923,8 +3931,9 @@ addstate(l, state, subs, pim, off)
 	    if (state->lastlist[nfa_ll_index] == l->id)
 	    {
 		/* This state is already in the list, don't add it again,
-		 * unless it is an MOPEN that is used for a backreference. */
-		if (!nfa_has_backref)
+		 * unless it is an MOPEN that is used for a backreference or
+		 * when there is a PIM. */
+		if (!nfa_has_backref && pim == NULL)
 		{
 skip_add:
 #ifdef ENABLE_LOG
@@ -3941,9 +3950,9 @@ skip_add:
 		    goto skip_add;
 	    }
 
-	    /* When there are backreferences the number of states may be (a
-	     * lot) bigger than anticipated. */
-	    if (nfa_has_backref && l->n == l->len)
+	    /* When there are backreferences or PIMs the number of states may
+	     * be (a lot) bigger than anticipated. */
+	    if (l->n == l->len)
 	    {
 		int newlen = l->len * 3 / 2 + 50;
 
@@ -4210,6 +4219,8 @@ addstate_here(l, state, subs, pim, ip)
 
     /* re-order to put the new state at the current position */
     count = l->n - tlen;
+    if (count == 0)
+	return; /* no state got added */
     if (count == 1)
     {
 	/* overwrite the current state */
@@ -4217,14 +4228,39 @@ addstate_here(l, state, subs, pim, ip)
     }
     else if (count > 1)
     {
-	/* make space for new states, then move them from the
-	 * end to the current position */
-	mch_memmove(&(l->t[listidx + count]),
-		&(l->t[listidx + 1]),
-		sizeof(nfa_thread_T) * (l->n - listidx - 1));
-	mch_memmove(&(l->t[listidx]),
-		&(l->t[l->n - 1]),
-		sizeof(nfa_thread_T) * count);
+	if (l->n + count - 1 >= l->len)
+	{
+	    /* not enough space to move the new states, reallocate the list
+	     * and move the states to the right position */
+	    nfa_thread_T *newl;
+
+	    l->len = l->len * 3 / 2 + 50;
+	    newl = (nfa_thread_T *)alloc(l->len * sizeof(nfa_thread_T));
+	    if (newl == NULL)
+		return;
+	    mch_memmove(&(newl[0]),
+		    &(l->t[0]),
+		    sizeof(nfa_thread_T) * listidx);
+	    mch_memmove(&(newl[listidx]),
+		    &(l->t[l->n - count]),
+		    sizeof(nfa_thread_T) * count);
+	    mch_memmove(&(newl[listidx + count]),
+		    &(l->t[listidx + 1]),
+		    sizeof(nfa_thread_T) * (l->n - count - listidx - 1));
+	    vim_free(l->t);
+	    l->t = newl;
+	}
+	else
+	{
+	    /* make space for new states, then move them from the
+	     * end to the current position */
+	    mch_memmove(&(l->t[listidx + count]),
+		    &(l->t[listidx + 1]),
+		    sizeof(nfa_thread_T) * (l->n - listidx - 1));
+	    mch_memmove(&(l->t[listidx]),
+		    &(l->t[l->n - 1]),
+		    sizeof(nfa_thread_T) * count);
+	}
     }
     --l->n;
     *ip = listidx - 1;
@@ -4312,8 +4348,6 @@ check_char_class(class, c)
     }
     return FAIL;
 }
-
-static int match_backref __ARGS((regsub_T *sub, int subidx, int *bytelen));
 
 /*
  * Check for a match with subexpression "subidx".
@@ -5189,6 +5223,12 @@ nfa_regmatch(prog, start, submatch, m)
 			 || t->state->c == NFA_START_INVISIBLE_BEFORE_FIRST
 			 || t->state->c == NFA_START_INVISIBLE_BEFORE_NEG_FIRST)
 		    {
+			int in_use = m->norm.in_use;
+
+			/* Copy submatch info for the recursive call, so that
+			 * \1 can be matched. */
+			copy_sub_off(&m->norm, &t->subs.norm);
+
 			/*
 			 * First try matching the invisible match, then what
 			 * follows.
@@ -5218,6 +5258,7 @@ nfa_regmatch(prog, start, submatch, m)
 			    add_here = TRUE;
 			    add_state = t->state->out1->out;
 			}
+			m->norm.in_use = in_use;
 		    }
 		    else
 		    {

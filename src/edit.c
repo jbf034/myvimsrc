@@ -3467,6 +3467,7 @@ ins_compl_new_leader()
     }
 
     compl_enter_selects = !compl_used_match;
+    compl_shown_match = compl_curr_match = compl_first_match;
 
     /* Show the popup menu with a different set of matches. */
     ins_compl_show_pum();
@@ -8192,22 +8193,25 @@ ins_reg()
     --no_mapping;
 
 #ifdef FEAT_EVAL
-    /*
-     * Don't call u_sync() while getting the expression,
-     * evaluating it or giving an error message for it!
-     */
+    /* Don't call u_sync() while typing the expression or giving an error
+     * message for it. Only call it explicitly. */
     ++no_u_sync;
     if (regname == '=')
     {
 # ifdef USE_IM_CONTROL
 	int	im_on = im_get_status();
 # endif
+	/* Sync undo, so the effect of e.g., setline() can be undone. */
+	u_sync(TRUE);
+	ins_need_undo = TRUE;
+
 	regname = get_expr_register();
 # ifdef USE_IM_CONTROL
 	/* Restore the Input Method. */
 	if (im_on)
 	    im_set_active(TRUE);
 # endif
+	Insstart = curwin->w_cursor;
     }
     if (regname == NUL || !valid_yank_reg(regname, FALSE))
     {
