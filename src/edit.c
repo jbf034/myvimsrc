@@ -8211,7 +8211,6 @@ ins_reg()
 	if (im_on)
 	    im_set_active(TRUE);
 # endif
-	Insstart = curwin->w_cursor;
     }
     if (regname == NUL || !valid_yank_reg(regname, FALSE))
     {
