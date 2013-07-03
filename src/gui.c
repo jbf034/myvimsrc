@@ -1624,6 +1624,7 @@ gui_set_shellsize(mustset, fit_to_display, direction)
 	    un_maximize = FALSE;
 #endif
     }
+    limit_screen_size();
     gui.num_cols = Columns;
     gui.num_rows = Rows;
 
