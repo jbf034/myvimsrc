@@ -1,4 +1,4 @@
-*version7.txt*  For Vim version 7.4a.  Last change: 2013 Jul 06
+*version7.txt*  For Vim version 7.4a.  Last change: 2013 Jul 13
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -70,6 +70,7 @@ Fixed					|fixed-7.3|
 
 VERSION 7.4			|version-7.4|
 New regexp engine			|new-regexp-engine|
+Better Python interface			|better-python-interface|
 Changed					|changed-7.4|
 Added					|added-7.4|
 Fixed					|fixed-7.4|
@@ -5994,7 +5995,7 @@ Solution:   Init variables.
 Files:	    src/ex_cmds2.c, src/ex_docmd.c
 
 Patch 7.1.201
-Problem:    When reading stdin 'fenc' and 'ff are not set.
+Problem:    When reading stdin 'fenc' and 'ff' are not set.
 Solution:   Set the options after reading stdin. (Ben Schmidt)
 Files:	    src/fileio.c
 
@@ -8787,7 +8788,7 @@ Solution:   Change to the new UNUSED style.
 Files:	    src/getchar.c
 
 Patch 7.2.231
-Problem:    Warning for unreacheable code.
+Problem:    Warning for unreachable code.
 Solution:   Add #ifdef.
 Files:	    src/if_perl.xs
 
@@ -10163,6 +10164,9 @@ This section is about improvements made between version 7.3 and 7.4.
 This release has hundreds of bug fixes and there are a few new features.  The
 most notable new features are:
 
+- New regexp engine			|new-regexp-engine|
+- A more pythonic Python interface	|better-python-interface|
+
 
 New regexp engine					*new-regexp-engine*
 -----------------
@@ -10183,14 +10187,168 @@ is now working fine.  Previously Vim could get stuck.
 More information here: |two-engines|
 
 
+Better Python interface				*better-python-interface*
+-----------------------
+
+Added |python-bindeval| function. Unlike |python-eval| this one returns 
+|python-Dictionary|, |python-List| and |python-Function| objects for 
+dictionaries lists and functions respectively in place of their python 
+built-in equivalents (or None if we are talking about function references).
+   For simple types this function returns python built-in types and not only 
+python `str()` like |python-eval| does. On python 3 it will return `bytes()` 
+objects in place of `str()` ones avoiding possibility of UnicodeDecodeError.
+   Interface of new objects mimics standard python `dict()` and `list()`
+interfaces to some extent. Extent will be improved in the future.
+
+Added special |python-vars| objects also available for |python-buffer| and 
+|python-window|. They ease access to VimL variables from python.
+
+Now you no longer need to alter `sys.path` to import your module: special 
+hooks are responsible for importing from {rtp}/python2, {rtp}/python3 and 
+{rtp}/pythonx directories (for python 2, python 3 and both respectively). 
+See |python-special-path|.
+
+Added possibility to work with |tabpage|s through |python-tabpage| object.
+
+Added automatic conversion of vim errors and exceptions to python 
+exceptions.
+
+Changed the behavior of |python-buffers| object: it now uses buffer numbers 
+as keys in place of the index of the buffer in the internal buffer list. 
+This should not break anything as the only way to get this index was 
+iterating over |python-buffers|.
+
+Added |:pydo| and |:py3do| commands.
+
+Added |pyeval()| and |py3eval()| functions.
+
+Now in all places which previously accepted `str()` objects in both python 
+version both `str()` and `unicode()` (python 2) or `bytes()` and `str()` 
+(python 3) are accepted.
+
+|python-window| has gained `.col` and `.row` attributes that are currently 
+the only way to get internal window positions.
+
+Added or fixed support for `dir()` in vim python objects.
+
+Old python versions (≤2.2) are no longer supported. Building with them did 
+not work anyway.
+
+
 Changed							*changed-7.4*
 -------
 
-Todo.
+Functions:
+	Added ability to use |Dictionary-function|s for |sort()|ing, via 
+	optional third argument. (Nikolay Pavlov)
 
+	Added special |expand()| argument that expands to the current line 
+	number.
+
+	Made it possible to force |char2nr()| always give unicode codepoints 
+	regardless of current encoding. (Yasuhiro Matsumoto)
+
+	Made it possible for functions generating file list generate |List| 
+	and not NL-separated string. (e.g. |glob()|, |expand()|) (Christian 
+	Brabandt)
+
+	Functions that obtain variables from the specific window, tabpage or 
+	buffer scope dictionary can now return specified default value in 
+	place of empty string in case variable is not found. (|gettabvar()|, 
+	|getwinvar()|, |getbufvar()|) (Shougo Matsushita, Hirohito Higashi)
+
+Options:
+	Added ability to automatically save selection into the system 
+	clipboard when using non-GUI version of vim (autoselectplus in 
+	'clipboard'). Also added ability to use system clipboard as default 
+	register (previously only primary selection could be used). (Ivan 
+	Krasilnikov, Christian Brabandt, Bram Moolenaar)
+
+	Added special 'shiftwidth' value that makes 'sw' follow 'tabstop'. As 
+	indenting via 'indentexpr' became tricky |shiftwidth()| function was 
+	added. Also added equivalent special value to 'softtabstop' option. 
+	(Christian Brabandt, so8res)
+
+	Added ability to delete comment leader when using |J| by `j` flag in 
+	'formatoptions' (|fo-table|). (Lech Lorens)
+
+	Added ability to control indentation inside namespaces: |cino-N|. 
+	(Konstantin Lepa)
+
+	Added ability to control alignment inside `if` condition separately 
+	from alignment inside function arguments: |cino-k|. (Lech Lorens)
+
+	Added ability to show absolute number in number column when 
+	'relativenumber' option is on. (Christian Brabandt)
+
+Comands:
+	Made it possible to remove all signs from the current buffer using 
+	|:sign-unplace|. (Christian Brabandt)
+
+	Added |:language| autocompletion. (Dominique Pelle)
+
+	|:diffoff| now saves the local values of some settings and restores 
+	them in place of blindly resetting them to the defaults. (Christian 
+	Brabandt)
+
+	Added |:map-nowait| creating mapping which when having lhs that is the 
+	prefix of another mapping’s lhs will not allow vim to wait for user to 
+	type more characters to resolve ambiguity, forcing vim to take the 
+	shorter alternative: one with <nowait>.
+
+	Added more |:command-complete| completion types: |:behave| suboptions, 
+	color schemes, compilers, |:cscope| suboptions, files from 'path', 
+	|:history| suboptions, locale names, |:syntime| suboptions, user 
+	names. (Dominique Pelle)
+
+Other:
+	Improved support for cmd.exe. (Ben Fritz, Bram Moolenaar)
+
+	Added |v:windowid| variable containing current window number in GUI 
+	vim. (Christian J. Robinson, Lech Lorens)
+
+	Lua interface now also uses userdata binded to vim structures. (Taro 
+	Muraoka, Luis Carvalho)
+
+	Added rxvt-unicode and >xterm-277 mouse support. (Yiding Jia, Hayaki 
+	Saito)
 
 Added							*added-7.4*
 -----
+
+Added support for |Lists| and |Dictionaries| in |viminfo|. (Christian 
+Brabandt)
+
+Functions:
+	Bitwise functions: |and()|, |or()|, |invert()|, |xor()|.
+
+	Added |luaeval()| function. (Taro Muraoka, Luis Carvalho)
+
+	Added |sha256()| function. (Tyru, Hirohito Higashi)
+
+	Added |wildmenumode()| function. (Christian Brabandt)
+
+	Debugging functions: |screenattr()|, |screenchar()|, |screencol()|, 
+	|screenrow()|. (Simon Ruderich, Bram Moolenaar)
+
+Autocommands:
+	Added |InsertCharPre| event launched before inserting character. 
+	(Jakson A. Aquino)
+
+	Added |CompleteDone| event launched after finishing completion in 
+	insert mode. (idea by Florian Klein)
+
+	Added |QuitPre| event launched when commands that can either close vim 
+	or only some window(s) are launched.
+
+	Added |TextChanged| and |TextChangedI| events launched when text is 
+	changed.
+
+Commands:
+	|:syntime| command useful for debugging.
+
+Options:
+	Made it possible to ignore case when completing: 'wildignorecase'.
 
 Various syntax, indent and other plugins were added.
 
@@ -10337,7 +10495,7 @@ Files:	    src/ex_cmds.c
 
 Patch 7.3.025
 Problem:    ":mksession" does not square brackets escape file name properly.
-Solution:   Improve escapging of file names. (partly by Peter Odding)
+Solution:   Improve escaping of file names. (partly by Peter Odding)
 Files:	    src/ex_docmd.c
 
 Patch 7.3.026
@@ -10656,7 +10814,7 @@ Files:	    src/memline.c
 
 Patch 7.3.078
 Problem:    Warning for unused variable.
-Solution:   Adjuste #ifdefs.
+Solution:   Adjust #ifdefs.
 Files:	    src/ops.c
 
 Patch 7.3.079
@@ -10756,7 +10914,7 @@ Solution:   Use menu_name_equal().  (Alex Jakushev)
 Files:	    src/menu.c
 
 Patch 7.3.096
-Problem:    "gvim -nb" is not interruptable.  Leaking file descriptor on
+Problem:    "gvim -nb" is not interruptible.  Leaking file descriptor on
 	    netbeans connection error.
 Solution:   Check for CTRL-C typed.  Free file descriptor.  (Xavier de Gaye)
 Files:	    src/netbeans.c
@@ -11068,7 +11226,7 @@ Files:	    src/syntax.c
 Patch 7.3.149
 Problem:    The cursor disappears after the processing of the 'setDot'
 	    netbeans command when vim runs in a terminal.
-Solution:   Show the cursor after a screen update. (Xavier de Gaye, 2011
+Solution:   Show the cursor after a screen update. (Xavier de Gaye)
 Files:	    src/netbeans.c
 
 Patch 7.3.150
@@ -11153,7 +11311,7 @@ Files:	    src/option.c
 
 Patch 7.3.164
 Problem:    C-indenting: a preprocessor statement confuses detection of a
-	    function delcaration.
+	    function declaration.
 Solution:   Ignore preprocessor lines. (Lech Lorens)  Also recognize the style
 	    to put a comma before the argument name.
 Files:	    src/misc1.c, testdir/test3.in, testdir/test3.ok
@@ -11249,7 +11407,7 @@ Files:	    src/misc1.c, src/testdir/test3.in, src/testdir/test3.ok
 
 Patch 7.3.180
 Problem:    When both a middle part of 'comments' matches and an end part, the
-	    middle part was used errornously.
+	    middle part was used erroneously.
 Solution:   After finding the middle part match continue looking for a better
 	    end part match. (partly by Lech Lorens)
 Files:	    src/misc1.c, src/testdir/test3.in, src/testdir/test3.ok
@@ -11483,7 +11641,7 @@ Problem:    Python 3: vim.error is a 'str' instead of an 'Exception' object,
 	    so 'except' or 'raise' it causes a 'SystemError' exception.
 	    Buffer objects do not support slice assignment.
 	    When exchanging text between Vim and Python, multibyte texts become
-	    gabage or cause Unicode Exceptions, etc.
+	    garbage or cause Unicode Exceptions, etc.
 	    'py3file' tries to read in the file as Unicode, sometimes causes
 	    UnicodeDecodeException
 Solution:   Fix the problems. (lilydjwg)
@@ -11730,7 +11888,7 @@ Solution:   Don't trigger CursorHold when there is typeahead.
 Files:	    src/fileio.c
 
 Patch 7.3.261
-Problem:    G++ error message errornously recognized as error.
+Problem:    G++ error message erroneously recognized as error.
 Solution:   Ignore "In file included from" line also when it ends in a colon.
 	    (Fernando Castillo)
 Files:	    src/option.h
@@ -11918,7 +12076,7 @@ Files:	    src/ascii.h, src/spell.c
 
 Patch 7.3.294 (after 7.3.289)
 Problem:    Patch 289 causes more problems than it solves.
-Solution:   Rever the patch untill a better solution is found.
+Solution:   Revert the patch until a better solution is found.
 Files:	    src/edit.c
 
 Patch 7.3.295
@@ -12679,7 +12837,7 @@ Files:	    src/xpm_w32.c
 
 Patch 7.3.429
 Problem:    When 'cpoptions' includes "E" "c0" in the first column is an
-	    error. The redo register is then set to the errornous command.
+	    error. The redo register is then set to the erroneous command.
 Solution:   Do not set the redo register if the command fails because of an
 	    empty region. (Hideki Eiraku)
 Files:	    src/getchar.c, src/normal.c, src/proto/getchar.pro
@@ -12923,7 +13081,7 @@ Files:	    src/buffer.c, src/ex_cmds.c
 Patch 7.3.472
 Problem:    Crash when using ":redraw" in a BufEnter autocommand and
 	    switching to another tab. (驼峰)
-Solution:   Move triggering the the autocommands to after correcting the
+Solution:   Move triggering the autocommands to after correcting the
 	    option values. Also check the row value to be out of bounds.
 	    (Christian Brabandt, Sergey Khorev)
 Files:	    src/screen.c, src/window.c
@@ -13049,7 +13207,7 @@ Files:	    src/testdir/test1.in, src/testdir/test85.in, src/testdir/test85.ok
 
 Patch 7.3.492
 Problem:    Can't indent conditions separately from function arguments.
-Solution:   Add the 'k' flag in 'cino. (Lech Lorens)
+Solution:   Add the 'k' flag in 'cino'. (Lech Lorens)
 Files:	    runtime/doc/indent.txt, src/misc1.c, src/testdir/test3.in,
 	    src/testdir/test3.ok
 
@@ -13059,7 +13217,7 @@ Solution:   Remove them. (Hong Xu)
 Files:	    src/misc1.c
 
 Patch 7.3.494 (after 7.3.491)
-Problem:    Can't compile with Lua 9.1 or dynamic Lua.
+Problem:    Can't compile with Lua 5.1 or dynamic Lua.
 Solution:   Fix dll_ methods. Fix luado(). (Muraoka Taro, Luis Carvalho)
 Files:	    src/if_lua.c
 
@@ -13208,7 +13366,7 @@ Solution:   Recognize completefunction returning -3.  (Matsushita Shougo)
 Files:	    src/edit.c
 
 Patch 7.3.520
-Problem:    Gvim starts up slow on Unbuntu 12.04.
+Problem:    Gvim starts up slow on Ubuntu 12.04.
 Solution:   Move the call to gui_mch_init_check() to after fork(). (Yasuhiro
 	    Matsumoto)  Do check $DISPLAY being set.
 Files:	    src/gui.c, src/gui_gtk_x11.c, src/proto/gui_gtk_x11.pro
@@ -13301,7 +13459,7 @@ Solution:   In utf_islower() return true for the sharp s. Note: also need
 Files:	    src/mbyte.c
 
 Patch 7.3.537
-Problem:    Unecessary call to init_spell_chartab().
+Problem:    Unnecessary call to init_spell_chartab().
 Solution:   Delete the call.
 Files:	    src/spell.c
 
@@ -13312,7 +13470,7 @@ Files:	    src/quickfix.c, src/testdir/test10.in, src/testdir/test10.ok
 
 Patch 7.3.539
 Problem:    Redrawing a character on the command line does not work properly
-	    for multi-byte charactes.
+	    for multi-byte characters.
 Solution:   Count the number of bytes in a character. (Yukihiro Nakadaira)
 Files:	    src/ex_getln.c
 
@@ -13639,7 +13797,7 @@ Files:	    runtime/doc/sign.txt, src/buffer.c, src/ex_cmds.c,
 Patch 7.3.597
 Problem:    'clipboard' "autoselect" only applies to the * register. (Sergey
 	    Vakulenko)
-Solution:   Make 'autoselect' work for the + register. (Christian Brabant)
+Solution:   Make 'autoselect' work for the + register. (Christian Brabandt)
 	    Add the "autoselectplus" option in 'clipboard' and the "P" flag in
 	    'guioptions'.
 Files:	    runtime/doc/options.txt, src/normal.c, src/ops.c, src/screen.c,
@@ -13682,7 +13840,7 @@ Files:	    src/buffer.c, src/eval.c, src/proto/eval.pro, src/structs.h,
 Patch 7.3.604
 Problem:    inputdialog() doesn't use the cancel argument in the console.
 	    (David Fishburn)
-Solution:   Use the third argument. (Christian Brabant)
+Solution:   Use the third argument. (Christian Brabandt)
 Files:	    src/eval.c
 
 Patch 7.3.605 (after 7.3.577)
@@ -13874,7 +14032,7 @@ Solution:   Do not break out of the loop early when inside try/catch.
 Files:	    src/ex_docmd.c, src/globals.h
 
 Patch 7.3.638
-Problem:    Unecessary redraw of the previous character.
+Problem:    Unnecessary redraw of the previous character.
 Solution:   Check if the character is double-width. (Jon Long)
 Files:	    src/screen.c
 
@@ -14210,7 +14368,7 @@ Solution:   Free the font. (Ken Takata)
 Files:	    src/syntax.c
 
 Patch 7.3.698
-Problem:    Python 3 does not preserve state beween commands.
+Problem:    Python 3 does not preserve state between commands.
 Solution:   Preserve the state. (Paul Ollis)
 Files:	    src/if_python.c, src/if_python3.c
 
@@ -14393,7 +14551,7 @@ Solution:   Avoid using NULL pointer. (Christian Brabandt)
 Files:	    src/quickfix.c
 
 Patch 7.3.731
-Problem:    Py3Init_vim() is exported uneccessarily.
+Problem:    Py3Init_vim() is exported unnecessarily.
 Solution:   Make it static. (Ken Takata)
 Files:	    src/if_python3.c
 
@@ -14532,7 +14690,7 @@ Patch 7.3.756
 Problem:    A location list can get a wrong count in :lvimgrep.
 Solution:   Check if the list was changed by autocommands. (mostly by
 	    Christian Brabandt)
-Files:	    src/quickfic.c
+Files:	    src/quickfix.c
 
 Patch 7.3.757
 Problem:    Issue 96: May access freed memory when a put command triggers
@@ -14628,7 +14786,7 @@ Files:	    src/mbyte.c
 
 Patch 7.3.774
 Problem:    Tiny GUI version misses console dialog feature.
-Solution:   Define FEAT_CON_DIALOG when apprpriate. (Christian Brabandt)
+Solution:   Define FEAT_CON_DIALOG when appropriate. (Christian Brabandt)
 Files:	    src/feature.h, src/gui.h
 
 Patch 7.3.775
@@ -14717,7 +14875,7 @@ Solution:   call do_modelines(). (Ken Takata)
 Files:	    src/fileio.c
 
 Patch 7.3.791
-Problem:    MzScheme interface doesn't work propely.
+Problem:    MzScheme interface doesn't work properly.
 Solution:   Make it work better. (Sergey Khorev)
 Files:	    runtime/doc/if_mzsch.txt, src/configure.in, src/auto/configure,
 	    src/eval.c, src/if_mzsch.c, src/if_mzsch.h, src/Make_ming.mak,
@@ -14731,7 +14889,7 @@ Solution:   Do not change the text when asking for confirmation, only display
 Files:	    src/ex_cmds.c
 
 Patch 7.3.793 (after 7.3.792)
-Problem:    New interactive :substutite behavior is not tested.
+Problem:    New interactive :substitute behavior is not tested.
 Solution:   Add tests. (Christian Brabandt)
 Files:	    src/testdir/test80.in, src/testdir/test80.ok
 
@@ -14827,7 +14985,7 @@ Solution:   Ignore $VIMRUNTIME if it is too long.
 Files:	    src/dosinst.c
 
 Patch 7.3.810
-Problem:    'relativenumber is reset unexpectedly. (François Ingelrest)
+Problem:    'relativenumber' is reset unexpectedly. (François Ingelrest)
 Solution:   After an option was reset also reset the global value. Add a test.
 	    (Christian Brabandt)
 Files:	    src/option.c, src/testdir/Make_amiga.mak,
@@ -15523,7 +15681,7 @@ Patch 7.3.926
 Problem:    Autocommands are triggered by setwinvar() et al. Missing BufEnter
 	    on :tabclose. Duplicate WinEnter on :tabclose. Wrong order of
 	    events for :tablose and :tabnew.
-Solution:   Fix these autocommand events. (Zyx)
+Solution:   Fix these autocommand events. (ZyX)
 Files:	    runtime/doc/eval.txt, src/buffer.c, src/eval.c, src/ex_cmds2.c,
 	    src/fileio.c, src/proto/window.pro, src/testdir/test62.in,
 	    src/testdir/test62.ok, src/window.c
@@ -15774,7 +15932,7 @@ Solution:   Include multi-byte by default, with "normal" features.
 Files:	    src/feature.h
 
 Patch 7.3.969
-Problem:    Can't built with Python 3 and without Python 2.
+Problem:    Can't build with Python 3 and without Python 2.
 Solution:   Adjust #ifdef. (Xavier de Gaye)
 Files:	    src/window.c
 
@@ -15864,7 +16022,7 @@ Solution:   Don't point to an integer but the characters.
 Files:	    src/regexp_nfa.c, src/testdir/test95.in, src/testdir/test95.ok
 
 Patch 7.3.983
-Problem:    Uneccessary temp variable.
+Problem:    Unnecessary temp variable.
 Solution:   Remove the variable.
 Files:	    src/regexp_nfa.c
 
@@ -16018,7 +16176,7 @@ Files:	    src/if_py_both.h
 Patch 7.3.1010
 Problem:    New regexp: adding \Z makes every character match.
 Solution:   Only apply ireg_icombine for composing characters.
-	    Alsl add missing change from patch 1008. (Ken Takata)
+	    Also add missing change from patch 1008. (Ken Takata)
 Files:	    src/regexp_nfa.c, src/testdir/test95.in, src/testdir/test95.ok
 
 Patch 7.3.1011
@@ -16108,7 +16266,7 @@ Solution:   Check for "\n" character.
 Files:	    src/regexp_nfa.c, src/testdir/test64.in, src/testdir/test64.ok
 
 Patch 7.3.1026
-Problem:    New regexp: pattern that includs a new-line matches too early.
+Problem:    New regexp: pattern that includes a new-line matches too early.
 	    (john McGowan)
 Solution:   Do not start searching in the second line.
 Files:	    src/regexp_nfa.c, src/testdir/test64.in, src/testdir/test64.ok
@@ -16281,7 +16439,7 @@ Solution:   Python patch 15. (ZyX) Fix will follow later.
 Files:	    src/eval.c, src/if_py_both.h, src/proto/eval.pro
 
 Patch 7.3.1057
-Problem:    Python: not enough compatibilty.
+Problem:    Python: not enough compatibility.
 Solution:   Python patch 16: Make OutputWritelines support any sequence object
 	    (ZyX) Note: tests fail
 Files:	    src/if_py_both.h, src/testdir/test86.in, src/testdir/test86.ok,
@@ -16330,7 +16488,7 @@ Files:	    src/if_py_both.h
 
 Patch 7.3.1065
 Problem:    Python: key mapping is not standard.
-Solution:   Puthon patch 24: use PyMapping_Keys. (ZyX)
+Solution:   Python patch 24: use PyMapping_Keys. (ZyX)
 Files:	    src/if_py_both.h, src/if_python3.c, src/if_python.c
 
 Patch 7.3.1066
@@ -16368,7 +16526,7 @@ Files:	    src/regexp_nfa.c, src/regexp.h, src/testdir/test64.in,
 	    src/testdir/test64.ok
 
 Patch 7.3.1072
-Problem:    Compiler warning for unitialized variable.
+Problem:    Compiler warning for uninitialized variable.
 Solution:   Initialize it.
 Files:	    src/regexp_nfa.c
 
@@ -16484,7 +16642,7 @@ Files:	    src/regexp_nfa.c, src/regexp.h
 Patch 7.3.1093
 Problem:    New regexp engine: When a sub expression is empty \1 skips a
 	    character.
-Solution:   Make \1 try the current position when the match is emtpy.
+Solution:   Make \1 try the current position when the match is empty.
 Files:	    src/regexp_nfa.c, src/testdir/test64.in, src/testdir/test64.ok
 
 Patch 7.3.1094
@@ -16582,7 +16740,7 @@ Files:	    src/Make_bc5.mak, src/Make_cyg.mak, src/Make_ming.mak,
 
 Patch 7.3.1110
 Problem:    New regexp matching: Using \@= and the like can be slow.
-Solution:   Decide whether to first try matching the zero-wdith part or what
+Solution:   Decide whether to first try matching the zero-width part or what
 	    follows, whatever is more likely to fail.
 Files:	    src/regexp_nfa.c
 
@@ -16667,7 +16825,7 @@ Solution:   Allow using \%V but never match. (Dominique Pelle)
 Files:	    src/regexp_nfa.c
 
 Patch 7.3.1126
-Problem:    Compiler warning for unitialized variable. (Tony Mechelynck)
+Problem:    Compiler warning for uninitialized variable. (Tony Mechelynck)
 Solution:   Assign something to the variable.
 Files:	    src/regexp_nfa.c
 
@@ -16822,12 +16980,12 @@ Files:	    src/regexp_nfa.c
 
 Patch 7.3.1153
 Problem:    New regexp engine: Some look-behind matches are very expensive.
-Solution:   Pospone invisible matches further, until a match is almost found.
+Solution:   Postpone invisible matches further, until a match is almost found.
 Files:	    src/regexp_nfa.c
 
 Patch 7.3.1154
-Problem:    New regexp_nfa engine: Uneccessary code.
-Solution:   Remove uneccessary code.
+Problem:    New regexp_nfa engine: Unnecessary code.
+Solution:   Remove unnecessary code.
 Files:	    src/regexp_nfa.c
 
 Patch 7.3.1155
@@ -16907,7 +17065,7 @@ Files:	    src/configure.in, src/auto/configure
 
 Patch 7.3.1168
 Problem:    Python "sane" configure checks give a warning message.
-Solution:   Use single quotes intead of escaped double quotes. (Ben Fritz)
+Solution:   Use single quotes instead of escaped double quotes. (Ben Fritz)
 Files:	    src/configure.in, src/auto/configure
 
 Patch 7.3.1169
@@ -17057,7 +17215,7 @@ Solution:   Tune the estimation of pattern failure chance.
 Files:	    src/regexp_nfa.c
 
 Patch 7.3.1195
-Problem:    Compiler warning for unitialized variable. (Tony Mechelynck)
+Problem:    Compiler warning for uninitialized variable. (Tony Mechelynck)
 Solution:   Set the length to the matching backref.
 Files:	    src/regexp.c
 
@@ -17187,7 +17345,7 @@ Files:	    src/regexp_nfa.c, src/testdir/test64.in, src/testdir/test64.ok
 
 Patch 7.3.1218
 Problem:    "make test" on MS-Windows does not clean all temporary files and
-	    gives some unneccessary message.
+	    gives some unnecessary message.
 Solution:   Clean the right files.  Create .failed files. (Ken Takata)
 Files:	    src/testdir/Make_dos.mak
 
@@ -17206,7 +17364,7 @@ Patch 7.3.1221
 Problem:    When build flags change "make distclean" run into a configure
 	    error.
 Solution:   When CFLAGS changes delete auto/config.cache.  Also avoid adding
-	    duplicate text to flags.
+	    duplicate text to flags. (Ken Takata)
 Files:	    src/Makefile, src/configure.in, src/auto/configure
 
 Patch 7.3.1222
@@ -17246,7 +17404,7 @@ Files:	    src/if_py_both.h, src/testdir/test86.ok, src/testdir/test87.ok
 Patch 7.3.1228
 Problem:    Python: various inconsistencies and problems.
 Solution:   StringToLine now supports both bytes() and unicode() objects.
-	    Make function names consistant.  Fix memory leak fixed in
+	    Make function names consistent.  Fix memory leak fixed in
 	    StringToLine. (ZyX)
 Files:	    src/if_py_both.h, src/if_python3.c, src/if_python.c
 
@@ -17478,7 +17636,7 @@ Solution:   Implement more ACL support. (Ken Takata)
 Files:	    src/os_win32.c
 
 Patch 7.3.1268
-Problem:    ACL support doesn't work when when compiled with MingW.
+Problem:    ACL support doesn't work when compiled with MingW.
 Solution:   Support ACL on MingW. (Ken Takata)
 Files:	    src/os_win32.c, src/os_win32.h
 
@@ -17621,7 +17779,7 @@ Solution:   Initialize the variables.
 Files:	    src/screen.c
 
 Patch 7.3.1292
-Problem:    Possibly using invalid pointer when searcing for window. (Raichoo)
+Problem:    Possibly using invalid pointer when searching for window. (Raichoo)
 Solution:   Use "firstwin" instead of "tp_firstwin" for current tab.
 Files:	    src/window.c
 
