@@ -341,7 +341,9 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'iconstring'	options.txt	/*'iconstring'*
 'ignorecase'	options.txt	/*'ignorecase'*
 'im'	options.txt	/*'im'*
+'imactivatefunc'	options.txt	/*'imactivatefunc'*
 'imactivatekey'	options.txt	/*'imactivatekey'*
+'imaf'	options.txt	/*'imaf'*
 'imak'	options.txt	/*'imak'*
 'imc'	options.txt	/*'imc'*
 'imcmdline'	options.txt	/*'imcmdline'*
@@ -351,6 +353,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'iminsert'	options.txt	/*'iminsert'*
 'ims'	options.txt	/*'ims'*
 'imsearch'	options.txt	/*'imsearch'*
+'imsf'	options.txt	/*'imsf'*
+'imstatusfunc'	options.txt	/*'imstatusfunc'*
 'inc'	options.txt	/*'inc'*
 'include'	options.txt	/*'include'*
 'includeexpr'	options.txt	/*'includeexpr'*
@@ -2120,6 +2124,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :doautoa	autocmd.txt	/*:doautoa*
 :doautoall	autocmd.txt	/*:doautoall*
 :doautocmd	autocmd.txt	/*:doautocmd*
+:dp	change.txt	/*:dp*
 :dr	windows.txt	/*:dr*
 :drop	windows.txt	/*:drop*
 :ds	tagsrch.txt	/*:ds*
@@ -2416,6 +2421,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :map!	map.txt	/*:map!*
 :map-<buffer>	map.txt	/*:map-<buffer>*
 :map-<expr>	map.txt	/*:map-<expr>*
+:map-<nowait>	map.txt	/*:map-<nowait>*
 :map-<script>	map.txt	/*:map-<script>*
 :map-<silent>	map.txt	/*:map-<silent>*
 :map-<special>	map.txt	/*:map-<special>*
@@ -2426,6 +2432,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :map-expression	map.txt	/*:map-expression*
 :map-local	map.txt	/*:map-local*
 :map-modes	map.txt	/*:map-modes*
+:map-nowait	map.txt	/*:map-nowait*
 :map-operator	map.txt	/*:map-operator*
 :map-script	map.txt	/*:map-script*
 :map-silent	map.txt	/*:map-silent*
@@ -4286,6 +4293,7 @@ E877	pattern.txt	/*E877*
 E878	pattern.txt	/*E878*
 E879	syntax.txt	/*E879*
 E88	windows.txt	/*E88*
+E880	if_pyth.txt	/*E880*
 E89	message.txt	/*E89*
 E90	message.txt	/*E90*
 E91	options.txt	/*E91*
@@ -4390,6 +4398,7 @@ N	pattern.txt	/*N*
 N%	motion.txt	/*N%*
 N:	cmdline.txt	/*N:*
 N<Del>	various.txt	/*N<Del>*
+NFA	pattern.txt	/*NFA*
 NL-used-for-Nul	pattern.txt	/*NL-used-for-Nul*
 NetBSD-backspace	options.txt	/*NetBSD-backspace*
 NetUserPass()	pi_netrw.txt	/*NetUserPass()*
@@ -4725,6 +4734,7 @@ added-6.4	version6.txt	/*added-6.4*
 added-7.1	version7.txt	/*added-7.1*
 added-7.2	version7.txt	/*added-7.2*
 added-7.3	version7.txt	/*added-7.3*
+added-7.4	version7.txt	/*added-7.4*
 added-BeOS	version5.txt	/*added-BeOS*
 added-Mac	version5.txt	/*added-Mac*
 added-VMS	version5.txt	/*added-VMS*
@@ -4841,6 +4851,7 @@ beos-timeout	os_beos.txt	/*beos-timeout*
 beos-unicode	os_beos.txt	/*beos-unicode*
 beos-utf8	os_beos.txt	/*beos-utf8*
 beos-vimdir	os_beos.txt	/*beos-vimdir*
+better-python-interface	version7.txt	/*better-python-interface*
 beval_bufnr-variable	eval.txt	/*beval_bufnr-variable*
 beval_col-variable	eval.txt	/*beval_col-variable*
 beval_lnum-variable	eval.txt	/*beval_lnum-variable*
@@ -5003,6 +5014,7 @@ changed-6.4	version6.txt	/*changed-6.4*
 changed-7.1	version7.txt	/*changed-7.1*
 changed-7.2	version7.txt	/*changed-7.2*
 changed-7.3	version7.txt	/*changed-7.3*
+changed-7.4	version7.txt	/*changed-7.4*
 changelist	motion.txt	/*changelist*
 changelog.vim	syntax.txt	/*changelog.vim*
 changenr()	eval.txt	/*changenr()*
@@ -5612,6 +5624,7 @@ fixed-6.4	version6.txt	/*fixed-6.4*
 fixed-7.1	version7.txt	/*fixed-7.1*
 fixed-7.2	version7.txt	/*fixed-7.2*
 fixed-7.3	version7.txt	/*fixed-7.3*
+fixed-7.4	version7.txt	/*fixed-7.4*
 flexwiki.vim	syntax.txt	/*flexwiki.vim*
 float-e	eval.txt	/*float-e*
 float-functions	usr_41.txt	/*float-functions*
@@ -5895,8 +5908,10 @@ g:html_encoding_override	syntax.txt	/*g:html_encoding_override*
 g:html_end_line	syntax.txt	/*g:html_end_line*
 g:html_expand_tabs	syntax.txt	/*g:html_expand_tabs*
 g:html_hover_unfold	syntax.txt	/*g:html_hover_unfold*
+g:html_id_expr	syntax.txt	/*g:html_id_expr*
 g:html_ignore_conceal	syntax.txt	/*g:html_ignore_conceal*
 g:html_ignore_folding	syntax.txt	/*g:html_ignore_folding*
+g:html_line_ids	syntax.txt	/*g:html_line_ids*
 g:html_no_foldcolumn	syntax.txt	/*g:html_no_foldcolumn*
 g:html_no_invalid	syntax.txt	/*g:html_no_invalid*
 g:html_no_pre	syntax.txt	/*g:html_no_pre*
@@ -6003,10 +6018,8 @@ g:tar_writeoptions	pi_tar.txt	/*g:tar_writeoptions*
 g:tex_comment_nospell	syntax.txt	/*g:tex_comment_nospell*
 g:tex_conceal	syntax.txt	/*g:tex_conceal*
 g:tex_fast	syntax.txt	/*g:tex_fast*
-g:tex_fast	syntax.txt	/*g:tex_fast*
 g:tex_flavor	filetype.txt	/*g:tex_flavor*
 g:tex_fold_enabled	syntax.txt	/*g:tex_fold_enabled*
-g:tex_isk	syntax.txt	/*g:tex_isk*
 g:tex_isk	syntax.txt	/*g:tex_isk*
 g:tex_no_error	syntax.txt	/*g:tex_no_error*
 g:tex_nospell	syntax.txt	/*g:tex_nospell*
@@ -6722,6 +6735,7 @@ map-<SID>	map.txt	/*map-<SID>*
 map-ambiguous	map.txt	/*map-ambiguous*
 map-backtick	tips.txt	/*map-backtick*
 map-comments	map.txt	/*map-comments*
+map-error	map.txt	/*map-error*
 map-examples	map.txt	/*map-examples*
 map-keys-fails	map.txt	/*map-keys-fails*
 map-listing	map.txt	/*map-listing*
@@ -7149,6 +7163,7 @@ new-posix	version7.txt	/*new-posix*
 new-print-multi-byte	version7.txt	/*new-print-multi-byte*
 new-printing	version6.txt	/*new-printing*
 new-python3	version7.txt	/*new-python3*
+new-regexp-engine	version7.txt	/*new-regexp-engine*
 new-runtime-dir	version5.txt	/*new-runtime-dir*
 new-script	version5.txt	/*new-script*
 new-script-5.4	version5.txt	/*new-script-5.4*
@@ -7371,6 +7386,7 @@ py3eval()	eval.txt	/*py3eval()*
 pyeval()	eval.txt	/*pyeval()*
 python	if_pyth.txt	/*python*
 python-.locked	if_pyth.txt	/*python-.locked*
+python-2-and-3	if_pyth.txt	/*python-2-and-3*
 python-Dictionary	if_pyth.txt	/*python-Dictionary*
 python-Function	if_pyth.txt	/*python-Function*
 python-List	if_pyth.txt	/*python-List*
@@ -8511,6 +8527,7 @@ version-7.0	version7.txt	/*version-7.0*
 version-7.1	version7.txt	/*version-7.1*
 version-7.2	version7.txt	/*version-7.2*
 version-7.3	version7.txt	/*version-7.3*
+version-7.4	version7.txt	/*version-7.4*
 version-variable	eval.txt	/*version-variable*
 version4.txt	version4.txt	/*version4.txt*
 version5.txt	version5.txt	/*version5.txt*
@@ -8519,6 +8536,7 @@ version7.0	version7.txt	/*version7.0*
 version7.1	version7.txt	/*version7.1*
 version7.2	version7.txt	/*version7.2*
 version7.3	version7.txt	/*version7.3*
+version7.4	version7.txt	/*version7.4*
 version7.txt	version7.txt	/*version7.txt*
 vi	intro.txt	/*vi*
 vi-differences	vi_diff.txt	/*vi-differences*
