@@ -9,3 +9,4 @@ src/tags
 src/vim
 gvim.desktop
 tags
+runtime/doc/uganda.nsis.txt
