@@ -289,7 +289,7 @@ save_re_pat(idx, pat, magic)
 	/* If 'hlsearch' set and search pat changed: need redraw. */
 	if (p_hls)
 	    redraw_all_later(SOME_VALID);
-	no_hlsearch = FALSE;
+	SET_NO_HLSEARCH(FALSE);
 #endif
     }
 }
@@ -333,7 +333,7 @@ restore_search_patterns()
 	spats[1] = saved_spats[1];
 	last_idx = saved_last_idx;
 # ifdef FEAT_SEARCH_EXTRA
-	no_hlsearch = saved_no_hlsearch;
+	SET_NO_HLSEARCH(saved_no_hlsearch);
 # endif
     }
 }
@@ -1148,7 +1148,7 @@ do_search(oap, dirc, pat, count, options, tm)
     if (no_hlsearch && !(options & SEARCH_KEEP))
     {
 	redraw_all_later(SOME_VALID);
-	no_hlsearch = FALSE;
+	SET_NO_HLSEARCH(FALSE);
     }
 #endif
 
@@ -1760,6 +1760,9 @@ findmatchlimit(oap, initc, flags, maxtravel)
 #endif
 
     pos = curwin->w_cursor;
+#ifdef FEAT_VIRTUALEDIT
+    pos.coladd = 0;
+#endif
     linep = ml_get(pos.lnum);
 
     cpo_match = (vim_strchr(p_cpo, CPO_MATCH) != NULL);
@@ -4589,7 +4592,7 @@ current_search(count, forward)
 				ml_get(curwin->w_buffer->b_ml.ml_line_count));
 	    }
 	}
-
+	p_ws = old_p_ws;
     }
 
     start_pos = pos;
@@ -4604,7 +4607,6 @@ current_search(count, forward)
     if (!VIsual_active)
 	VIsual = start_pos;
 
-    p_ws = old_p_ws;
     curwin->w_cursor = pos;
     VIsual_active = TRUE;
     VIsual_mode = 'v';
@@ -4677,8 +4679,8 @@ is_one_char(pattern)
 		&& regmatch.startpos[0].lnum == regmatch.endpos[0].lnum
 		&& regmatch.startpos[0].col == regmatch.endpos[0].col);
 
-	if (!result && incl(&pos) == 0 && pos.col == regmatch.endpos[0].col)
-	    result  = TRUE;
+	if (!result && inc(&pos) >= 0 && pos.col == regmatch.endpos[0].col)
+	    result = TRUE;
     }
 
     called_emsg |= save_called_emsg;
@@ -5559,7 +5561,9 @@ read_viminfo_search_pattern(virp, force)
 		spats[idx].off.off = off;
 #ifdef FEAT_SEARCH_EXTRA
 		if (setlast)
-		    no_hlsearch = !hlsearch_on;
+		{
+		    SET_NO_HLSEARCH(!hlsearch_on);
+		}
 #endif
 	    }
 	}
